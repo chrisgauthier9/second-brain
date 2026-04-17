@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Balance – Second Brain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #111827; color: #f3f4f6; min-height: 100vh; font-size: 14px; }
+    header { background: #1f2937; border-bottom: 1px solid #374151; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
+    .nav-links a { font-size: 13px; color: #9ca3af; text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: background .15s; }
+    .nav-links a:hover { background: #374151; color: #f3f4f6; }
+    .nav-links a.active { background: #7c3aed; color: #fff; }
+    #last-updated { font-size: 12px; color: #6b7280; white-space: nowrap; }
+    main { max-width: 900px; margin: 0 auto; padding: 24px; }
+    h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; margin-bottom: 12px; }
+
+    /* Goal cards */
+    .goal-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 28px; }
+    .goal-card { background: #1f2937; border: 1px solid #374151; border-radius: 10px; padding: 16px 18px; }
+    .goal-card .cat-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .goal-card .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .goal-card .hours-big { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+    .goal-card .sub { font-size: 12px; color: #6b7280; margin-bottom: 10px; }
+    .bar-track { background: #374151; border-radius: 4px; height: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 999px; margin-top: 10px; }
+    .badge-ok { background: rgba(52,211,153,.15); color: #34d399; }
+    .badge-miss { background: rgba(248,113,113,.15); color: #f87171; }
+    .badge-partial { background: rgba(251,191,36,.15); color: #fbbf24; }
+
+    /* Week grid */
+    .week-section { margin-bottom: 28px; }
+    .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .day-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .day-label { font-size: 10px; color: #6b7280; margin-bottom: 2px; }
+    .day-bar-wrap { width: 100%; display: flex; flex-direction: column; gap: 2px; }
+    .day-bar { border-radius: 3px; width: 100%; min-height: 4px; transition: height .3s; }
+    .day-today .day-label { color: #a78bfa; font-weight: 600; }
+
+    /* Log table */
+    .log-section { }
+    .log-table { width: 100%; border-collapse: collapse; }
+    .log-table th { background: #111827; padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; border-bottom: 1px solid #374151; }
+    .log-table td { padding: 10px 12px; border-bottom: 1px solid #1f2937; font-size: 13px; }
+    .log-table tr:last-child td { border-bottom: none; }
+    .log-wrap { background: #1f2937; border: 1px solid #374151; border-radius: 10px; overflow: hidden; }
+    .cat-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .empty { text-align: center; padding: 40px; color: #6b7280; font-size: 13px; }
+    .loading { text-align: center; padding: 60px; color: #6b7280; }
+
+    /* Colors per category */
+    .hoot-color { color: #34d399; } .hoot-bg { background: #34d399; }
+    .finnian-color { color: #60a5fa; } .finnian-bg { background: #60a5fa; }
+    .tempo-color { color: #f472b6; } .tempo-bg { background: #f472b6; }
+  </style>
+</head>
+<body>
+<header>
+  <a href="index.html" style="font-size:16px;font-weight:700;background:linear-gradient(135deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none;">Second Brain</a>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="fitness.html">Fitness</a>
+    <a href="tickets.html">Tickets</a>
+    <a href="balance.html" class="active">Balance</a>
+  </nav>
+  <span id="last-updated">Loading...</span>
+</header>
+<main>
+  <div id="app"><div class="loading">Loading balance data...</div></div>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrZGJ6b3B0Ym9pbnlzc3BucGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjA0NjIsImV4cCI6MjA5MTMzNjQ2Mn0.ccbJRVXNfqmgXuH1J9vL8DgttCAFJ-36gulWpL6R_cQ';
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const CATS = [
+  { key: 'hoot',    label: 'Hoot',    cls: 'hoot' },
+  { key: 'finnian', label: 'Finnian', cls: 'finnian' },
+  { key: 'tempo',   label: 'Tempo',   cls: 'tempo' },
+];
+const GOAL_MINUTES = 60;
+
+function getWeekDays() {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().split('T')[0]);
+  }
+  return days;
+}
+
+function hrs(min) { return (min / 60).toFixed(1); }
+
+function render(logs) {
+  const today = new Date().toISOString().split('T')[0];
+  const weekDays = getWeekDays();
+
+  // Build dayMap
+  const dayMap = {};
+  for (const row of logs) {
+    if (!dayMap[row.log_date]) dayMap[row.log_date] = {};
+    dayMap[row.log_date][row.category] = (dayMap[row.log_date][row.category] || 0) + row.duration_minutes;
+  }
+
+  // Week totals
+  const weekTotals = { hoot: 0, finnian: 0, tempo: 0 };
+  const weekDays7 = {};
+  for (const cat of ['hoot','finnian','tempo']) weekDays7[cat] = 0;
+  for (const day of weekDays) {
+    const d = dayMap[day] || {};
+    for (const cat of ['hoot','finnian','tempo']) {
+      weekTotals[cat] += (d[cat] || 0);
+      if ((d[cat] || 0) >= GOAL_MINUTES) weekDays7[cat]++;
+    }
+  }
+
+  // Today totals
+  const todayData = dayMap[today] || {};
+
+  // Goal cards
+  const goalCards = CATS.map(cat => {
+    const todayMin = todayData[cat.key] || 0;
+    const weekMin = weekTotals[cat.key];
+    const pct = Math.min(100, Math.round(todayMin / GOAL_MINUTES * 100));
+    const metToday = todayMin >= GOAL_MINUTES;
+    const badgeCls = metToday ? 'badge-ok' : todayMin > 0 ? 'badge-partial' : 'badge-miss';
+    const badgeLabel = metToday ? '✓ Goal met' : todayMin > 0 ? `${GOAL_MINUTES - todayMin}m to go` : 'Not started';
+    return `<div class="goal-card">
+      <div class="cat-label"><div class="dot ${cat.cls}-bg"></div><span class="${cat.cls}-color">${cat.label}</span></div>
+      <div class="hours-big ${cat.cls}-color">${hrs(todayMin)}h</div>
+      <div class="sub">today · ${hrs(weekMin)}h this week</div>
+      <div class="bar-track"><div class="bar-fill ${cat.cls}-bg" style="width:${pct}%"></div></div>
+      <span class="status-badge ${badgeCls}">${badgeLabel}</span>
+    </div>`;
+  }).join('');
+
+  // Week grid
+  const maxMin = 180;
+  const weekGrid = weekDays.map(day => {
+    const d = dayMap[day] || {};
+    const isToday = day === today;
+    const dayName = new Date(day + 'T12:00:00').toLocaleDateString('en', { weekday: 'narrow' });
+    const bars = ['hoot','finnian','tempo'].map(cat => {
+      const min = d[cat] || 0;
+      if (min === 0) return '';
+      const h = Math.max(6, Math.round((min / maxMin) * 60));
+      return `<div class="day-bar ${cat}-bg" style="height:${h}px" title="${cat}: ${hrs(min)}h"></div>`;
+    }).join('');
+    return `<div class="day-col${isToday?' day-today':''}">
+      <div class="day-label">${dayName}</div>
+      <div class="day-bar-wrap" style="min-height:66px;justify-content:flex-end;display:flex;flex-direction:column;gap:2px;">${bars || '<div style="height:4px;background:#374151;border-radius:3px;opacity:.4"></div>'}</div>
+    </div>`;
+  }).join('');
+
+  // Recent log table
+  const recent = [...logs].sort((a,b) => b.log_date.localeCompare(a.log_date) || a.category.localeCompare(b.category)).slice(0, 30);
+  const tableRows = recent.length === 0
+    ? `<tr><td colspan="4" class="empty">No logs yet. Do your end-of-day check-in with Claude.</td></tr>`
+    : recent.map(r => {
+        const cat = CATS.find(c => c.key === r.category);
+        return `<tr>
+          <td><span class="cat-dot ${cat?.cls}-bg"></span><span class="${cat?.cls}-color" style="font-weight:500">${cat?.label || r.category}</span></td>
+          <td style="color:#9ca3af">${r.log_date}</td>
+          <td style="font-weight:600">${hrs(r.duration_minutes)}h</td>
+          <td style="color:#6b7280;font-size:12px">${r.notes || '—'}</td>
+        </tr>`;
+      }).join('');
+
+  document.getElementById('app').innerHTML = `
+    <h2 style="margin-bottom:16px">Today vs 1h goal</h2>
+    <div class="goal-cards">${goalCards}</div>
+
+    <div class="week-section">
+      <h2>This week</h2>
+      <div class="week-grid">${weekGrid}</div>
+      <div style="display:flex;gap:16px;margin-top:12px">
+        ${CATS.map(c=>`<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280"><div style="width:8px;height:8px;border-radius:2px;" class="${c.cls}-bg"></div>${c.label}: ${weekDays7[c.key]}/7 days</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="log-section">
+      <h2>Log</h2>
+      <div class="log-wrap">
+        <table class="log-table">
+          <thead><tr><th>Project</th><th>Date</th><th>Hours</th><th>Notes</th></tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('last-updated').textContent = `refreshed ${new Date().toLocaleTimeString()}`;
+}
+
+async function load() {
+  const { data, error } = await client
+    .from('time_logs')
+    .select('log_date, category, duration_minutes, notes')
+    .gte('log_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+    .order('log_date', { ascending: false });
+
+  if (error) {
+    document.getElementById('app').innerHTML = `<div class="empty">Error loading data: ${error.message}</div>`;
+    return;
+  }
+  render(data || []);
+}
+
+load();
+</script>
+</body>
+</html>
