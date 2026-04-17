@@ -282,8 +282,9 @@ function renderSessionDetail(session) {
   const exerciseOrder = []; const seen = new Set();
   for (const s of sets) { const n = s.exercises?.name; if(n && !seen.has(n)){exerciseOrder.push(n);seen.add(n);} }
   const weekLabel = session.week ? ` · Week ${session.week}` : '';
+  const mesoLink = meso ? ` · <button onclick="showDetail('meso',DATA.mesocycles.find(x=>x.id===${meso.id}))" style="background:none;border:none;font-family:inherit;font-size:12px;color:var(--upper-a);cursor:pointer;padding:0;font-weight:500">${esc(meso.name)}</button>` : '';
   let html = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
-    <div><span style="font-size:16px;font-weight:700;color:${wc(session.workout)}">${session.workout}</span><span style="font-size:12px;color:var(--muted);margin-left:8px">${fmt(session.date)}${meso?' · '+meso.name:''}${weekLabel}</span></div>
+    <div><span style="font-size:16px;font-weight:700;color:${wc(session.workout)}">${session.workout}</span><span style="font-size:12px;color:var(--muted);margin-left:8px">${fmt(session.date)}${mesoLink}${weekLabel}</span></div>
   </div>`;
   for (const exName of exerciseOrder) {
     const exSets = sets.filter(s=>s.exercises?.name===exName).sort((a,b)=>a.set_number-b.set_number);
@@ -348,3 +349,4 @@ loadData();
 </script>
 </body>
 </html>
+
