@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journal – Second Brain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #111827; color: #f3f4f6; min-height: 100vh; font-size: 14px; }
+
+    /* Header */
+    header { background: #1f2937; border-bottom: 1px solid #374151; padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+    .logo { font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; white-space: nowrap; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; align-items: center; }
+    .nav-links a { font-size: 13px; color: #9ca3af; text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: background .15s; white-space: nowrap; }
+    .nav-links a:hover { background: #374151; color: #f3f4f6; }
+    .nav-links a.active { background: #7c3aed; color: #fff; }
+    .nav-meta { font-size: 12px; color: #6b7280; white-space: nowrap; }
+
+    /* Layout */
+    .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 49px); }
+    @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } .entry-panel { display: none; } .entry-panel.visible { display: block; } }
+
+    /* Left sidebar */
+    .sidebar { border-right: 1px solid #374151; overflow-y: auto; }
+
+    /* Calendar */
+    .cal-section { padding: 20px; border-bottom: 1px solid #374151; }
+    .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .cal-title { font-size: 15px; font-weight: 600; color: #f3f4f6; }
+    .cal-nav { background: none; border: none; color: #6b7280; font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+    .cal-nav:hover { background: #374151; color: #f3f4f6; }
+    .cal-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+    .cal-dow { text-align: center; font-size: 10px; color: #4b5563; font-weight: 600; padding: 2px 0; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; font-weight: 500; color: #6b7280; cursor: default; position: relative; border: 1px solid transparent; }
+    .cal-day.has-entry { color: #f3f4f6; cursor: pointer; }
+    .cal-day.has-entry:hover { background: #374151; }
+    .cal-day.today { border-color: #6b7280; }
+    .cal-day.selected { background: #f97316 !important; color: #fff !important; border-color: transparent; }
+    .cal-day.has-entry::after { content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: #f97316; }
+    .cal-day.selected::after { background: rgba(255,255,255,0.6); }
+
+    /* Entry list */
+    .entry-list { padding: 0; }
+    .entry-item { padding: 14px 20px; border-bottom: 1px solid #1f2937; cursor: pointer; transition: background .1s; }
+    .entry-item:hover { background: #1f2937; }
+    .entry-item.active { background: #1f2937; border-left: 2px solid #f97316; padding-left: 18px; }
+    .entry-item-date { font-size: 11px; color: #6b7280; margin-bottom: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+    .entry-item-preview { font-size: 13px; color: #9ca3af; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .entry-item-title { font-size: 13px; font-weight: 600; color: #e5e7eb; margin-bottom: 2px; }
+
+    /* Right panel - entry detail */
+    .entry-panel { padding: 32px 40px; overflow-y: auto; max-height: calc(100vh - 49px); }
+    .entry-panel-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #4b5563; gap: 12px; padding: 40px; text-align: center; }
+    .entry-panel-empty .icon { font-size: 40px; opacity: 0.4; }
+
+    .entry-date-header { font-size: 12px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+    .entry-weekday { font-size: 28px; font-weight: 700; color: #f3f4f6; margin-bottom: 24px; font-family: 'Lora', serif; }
+    .entry-body { font-family: 'Lora', Georgia, serif; font-size: 15px; color: #d1d5db; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+    .entry-body h1, .entry-body h2, .entry-body h3 { font-family: 'Lora', serif; color: #f3f4f6; margin: 1.2em 0 0.4em; font-weight: 600; }
+    .entry-body h1 { font-size: 18px; }
+    .entry-body h2 { font-size: 16px; }
+
+    /* Tab switcher for journal type */
+    .tab-bar { display: flex; gap: 4px; padding: 12px 20px 0; }
+    .tab-btn { padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; background: transparent; color: #6b7280; transition: all .15s; }
+    .tab-btn.active { background: #374151; color: #f3f4f6; }
+
+    .loading-state { padding: 40px; text-align: center; color: #4b5563; font-size: 13px; }
+    .count-badge { font-size: 11px; color: #6b7280; padding: 12px 20px 8px; font-weight: 500; }
+  </style>
+</head>
+<body>
+<header>
+  <a href="index.html" class="logo">Second Brain</a>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="fitness.html">Fitness</a>
+    <a href="tickets.html">Tickets</a>
+    <a href="balance.html">Balance</a>
+    <a href="journal.html" class="active">Journal</a>
+  </nav>
+</header>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('daily')">Daily</button>
+      <button class="tab-btn" onclick="switchTab('thoughts')">Thoughts</button>
+    </div>
+
+    <div class="cal-section">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="prevMonth()">‹</button>
+        <span class="cal-title" id="cal-title"></span>
+        <button class="cal-nav" onclick="nextMonth()">›</button>
+      </div>
+      <div class="cal-dow-row">
+        <div class="cal-dow">S</div><div class="cal-dow">M</div><div class="cal-dow">T</div>
+        <div class="cal-dow">W</div><div class="cal-dow">T</div><div class="cal-dow">F</div><div class="cal-dow">S</div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+
+    <div id="entry-list-container">
+      <div class="loading-state">Loading entries...</div>
+    </div>
+  </div>
+
+  <!-- Entry detail panel -->
+  <div class="entry-panel" id="entry-panel">
+    <div class="entry-panel-empty">
+      <div class="icon">📖</div>
+      <div style="font-size:14px">Select an entry to read it</div>
+      <div style="font-size:12px;color:#374151">Or pick a day from the calendar</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrZGJ6b3B0Ym9pbnlzc3BucGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjA0NjIsImV4cCI6MjA5MTMzNjQ2Mn0.ccbJRVXNfqmgXuH1J9vL8DgttCAFJ-36gulWpL6R_cQ';
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let allEntries = [];
+let allThoughts = [];
+let activeTab = 'daily';
+let calYear, calMonth;
+let selectedDate = null;
+let selectedId = null;
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function activeEntries() { return activeTab === 'daily' ? allEntries : allThoughts; }
+
+// ── Calendar ────────────────────────────────────────────
+function renderCalendar() {
+  const entries = activeEntries();
+  const entryDates = new Set(entries.map(e => e.entry_date));
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('cal-title').textContent = `${MONTHS[calMonth]} ${calYear}`;
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  let html = Array(firstDay).fill('<div></div>').join('');
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hasEntry = entryDates.has(iso);
+    const isToday = iso === today;
+    const isSelected = iso === selectedDate;
+    const cls = ['cal-day', hasEntry?'has-entry':'', isToday?'today':'', isSelected?'selected':''].filter(Boolean).join(' ');
+    const click = hasEntry ? `onclick="selectDate('${iso}')"` : '';
+    html += `<div class="${cls}" ${click}>${d}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
+function prevMonth() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function nextMonth() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+
+// ── Entry list ──────────────────────────────────────────
+function renderList(filterDate = null) {
+  const entries = activeEntries();
+  const filtered = filterDate ? entries.filter(e => e.entry_date === filterDate) : entries;
+  const container = document.getElementById('entry-list-container');
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="loading-state">${filterDate ? 'No entry for this day' : 'No entries found'}</div>`;
+    return;
+  }
+
+  const count = filterDate ? '' : `<div class="count-badge">${filtered.length} entries</div>`;
+  container.innerHTML = count + filtered.map(e => {
+    const d = new Date(e.entry_date + 'T12:00:00');
+    const dateStr = d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
+    const weekday = DAYS[d.getDay()];
+    // Strip markdown headings for preview
+    const preview = (e.body || '').replace(/^#+ .*/gm, '').replace(/\\/g, '').trim().slice(0, 100);
+    const isActive = e.id === selectedId;
+    return `<div class="entry-item${isActive?' active':''}" onclick="selectEntry(${e.id})">
+      <div class="entry-item-date">${dateStr} · ${weekday}</div>
+      <div class="entry-item-preview">${escHtml(preview)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Entry detail ────────────────────────────────────────
+function selectDate(iso) {
+  selectedDate = iso;
+  renderCalendar();
+  renderList(iso);
+  // Auto-open first entry for that date
+  const entries = activeEntries();
+  const match = entries.find(e => e.entry_date === iso);
+  if (match) selectEntry(match.id);
+}
+
+function selectEntry(id) {
+  const entries = activeEntries();
+  const entry = entries.find(e => e.id === id);
+  if (!entry) return;
+  selectedId = id;
+  selectedDate = entry.entry_date;
+  renderCalendar();
+  renderList(null);
+
+  const d = new Date(entry.entry_date + 'T12:00:00');
+  const dateStr = d.toLocaleDateString('en', { month: 'long', day: 'numeric', year: 'numeric' });
+  const weekday = DAYS[d.getDay()];
+  const journalBadge = entry.journal ? `<span style="font-size:11px;background:#374151;color:#9ca3af;padding:2px 8px;border-radius:999px;margin-left:8px">${entry.journal}</span>` : '';
+
+  // Render markdown-ish body
+  const body = renderBody(entry.body || '');
+
+  document.getElementById('entry-panel').innerHTML = `
+    <div class="entry-date-header">${dateStr}${journalBadge}</div>
+    <div class="entry-weekday">${weekday}</div>
+    <div class="entry-body">${body}</div>
+  `;
+}
+
+function renderBody(text) {
+  // Clean Day One escape chars, render basic markdown
+  return text
+    .replace(/\\/g, '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\/g,'');
+}
+
+// ── Tab switching ───────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  selectedId = null;
+  selectedDate = null;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(tab === 'daily' ? 'daily' : 'thought')));
+  // Reset calendar to most recent entry month
+  const entries = activeEntries();
+  if (entries.length > 0) {
+    const latest = new Date(entries[0].entry_date + 'T12:00:00');
+    calYear = latest.getFullYear();
+    calMonth = latest.getMonth();
+  }
+  renderCalendar();
+  renderList();
+  document.getElementById('entry-panel').innerHTML = `<div class="entry-panel-empty"><div class="icon">📖</div><div style="font-size:14px">Select an entry to read it</div></div>`;
+}
+
+// ── Load data ───────────────────────────────────────────
+async function load() {
+  const [journalRes, thoughtsRes] = await Promise.all([
+    client.from('journal_entries').select('id, entry_date, body').order('entry_date', {ascending: false}),
+    client.from('thoughts_feelings').select('id, entry_date, body, journal').order('entry_date', {ascending: false}),
+  ]);
+
+  allEntries = journalRes.data || [];
+  allThoughts = thoughtsRes.data || [];
+
+  // Init calendar at most recent entry
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  if (allEntries.length > 0) {
+    const latest = new Date(allEntries[0].entry_date + 'T12:00:00');
+    calYear = latest.getFullYear();
+    calMonth = latest.getMonth();
+  }
+
+  renderCalendar();
+  renderList();
+}
+
+load();
+</script>
+</body>
+</html>
