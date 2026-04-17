@@ -23,7 +23,6 @@
     }
     body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
     header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-    header h1 { font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; }
     .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
     .nav-links a { font-size: 13px; color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: background .15s; }
     .nav-links a:hover { background: var(--border); color: var(--text); }
@@ -40,7 +39,6 @@
     .set-wt { color: var(--text); font-weight: 700; min-width: 58px; }
     .set-reps { color: var(--muted); }
     .set-rpe { font-size: 11px; font-weight: 700; margin-left: auto; }
-    .set-note { color: var(--dim); font-size: 11px; font-style: italic; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .pill { font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 999px; display: inline-block; }
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 20px; }
     .stat-tile { padding: 12px 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; text-align: center; }
@@ -75,9 +73,7 @@
     .muscle-pill.active { border-color: #7c3aed; color: #fff; background: #7c3aed22; }
     .session-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--deep); border-radius: 8px; border: 1px solid var(--border); cursor: pointer; margin-bottom: 4px; font-family: inherit; text-align: left; color: var(--text); transition: border-color .15s; }
     .session-btn:hover { border-color: #7c3aed; }
-    .footer-bar { text-align: center; color: var(--border); font-size: 10px; margin-top: 32px; letter-spacing: 1px; padding-bottom: 24px; }
     .workout-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
-    .notes-box { padding: 10px 12px; background: var(--deep); border-radius: 8px; border-left: 2px solid var(--border); margin-bottom: 20px; }
   </style>
 </head>
 <body>
@@ -103,20 +99,18 @@ const workoutColors = {"Upper A":"var(--upper-a)","Lower A":"var(--lower-a)","Up
 const muscleColors = {Back:"var(--back)",Biceps:"var(--biceps)",Calves:"var(--calves)",Chest:"var(--chest)",Glutes:"var(--glutes)",Hamstrings:"var(--hamstrings)",Quads:"var(--quads)",Shoulders:"var(--shoulders)",Triceps:"var(--triceps)"};
 const statusColors = {Active:"var(--active)",Complete:"var(--complete)",Deload:"var(--deload)",Planned:"var(--planned)"};
 
-let DATA = { exercises:[], mesocycles:[], sessions:[], sets:[], templates:[] };
+let DATA = { exercises:[], mesocycles:[], sessions:[], sets:[] };
 let STATE = { tab:'mesos', detail:null };
 
 async function loadData() {
-  const [exRes, mesoRes, setsRes, tmplRes] = await Promise.all([
+  const [exRes, mesoRes, setsRes] = await Promise.all([
     sb.from('exercises').select('*').order('name'),
     sb.from('mesocycles').select('*').order('start_date', {ascending:false}),
     sb.from('sets_log').select('*, exercises(name, muscle_group, equipment)').order('date').order('exercise_order').order('set_number'),
-    sb.from('workout_templates').select('*, exercises(name, muscle_group)').order('mesocycle_id').order('exercise_order'),
   ]);
   DATA.exercises = exRes.data || [];
   DATA.mesocycles = mesoRes.data || [];
   DATA.sets = setsRes.data || [];
-  DATA.templates = tmplRes.data || [];
 
   const sessMap = new Map();
   for (const s of DATA.sets) {
@@ -136,9 +130,18 @@ function fmt(iso) { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${
 function fmtFull(iso) { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]} ${+d}, ${y}`; }
 function getMeso(id) { return DATA.mesocycles.find(m=>m.id===id); }
 
+// Calculate weeks from start/end dates
+function calcWeeks(meso) {
+  if (!meso.start_date || !meso.end_date) return null;
+  const start = new Date(meso.start_date);
+  const end = new Date(meso.end_date);
+  return Math.round((end - start) / (7 * 24 * 60 * 60 * 1000));
+}
+
 function setRow(s) {
   const rpeColor = s.rpe >= 9 ? 'var(--rpe-high)' : s.rpe >= 7 ? 'var(--rpe-mid)' : 'var(--rpe-low)';
-  return `<div class="set-row"><span class="set-num">${s.set_number}</span><span class="set-wt">${s.weight != null ? s.weight+'lb' : '—'}</span><span class="set-reps">${s.actual_reps != null ? s.actual_reps+'×' : (s.target_reps ? s.target_reps+'× target' : '—')}</span>${s.rpe ? `<span class="set-rpe" style="color:${rpeColor}">RPE ${s.rpe}</span>` : ''}</div>`;
+  const reps = s.actual_reps != null ? `x${s.actual_reps}` : (s.target_reps ? `x${s.target_reps} target` : '—');
+  return `<div class="set-row"><span class="set-num">${s.set_number}</span><span class="set-wt">${s.weight != null ? s.weight+'lb' : '—'}</span><span class="set-reps">${reps}</span>${s.rpe ? `<span class="set-rpe" style="color:${rpeColor}">RPE ${s.rpe}</span>` : ''}</div>`;
 }
 
 function showDetail(type, data) { STATE.detail = {type, data}; render(); }
@@ -159,7 +162,7 @@ function render() {
   if (STATE.tab === 'mesos') content = renderMesos();
   else if (STATE.tab === 'sessions') content = renderSessions();
   else content = renderExercises();
-  app.innerHTML = tabs + content + `<div class="footer-bar">LIVE · ${DATA.sets.length} SETS · ${DATA.sessions.length} SESSIONS · ${DATA.exercises.length} EXERCISES</div>`;
+  app.innerHTML = tabs + content;
 }
 
 function renderMesos() {
@@ -167,17 +170,18 @@ function renderMesos() {
   return DATA.mesocycles.map(m => {
     const mSets = DATA.sets.filter(s => s.mesocycle_id === m.id);
     const mSess = DATA.sessions.filter(s => s.meso_id === m.id);
-    const weeks = m.weeks || 0;
+    const weeks = calcWeeks(m);
     const elapsed = mSess.length > 0 ? Math.max(...mSess.map(s => s.week || 0)) : 0;
     const pct = weeks > 0 ? Math.min(100, Math.round(elapsed / weeks * 100)) : 0;
     const color = sc(m.status);
+    const weeksLabel = weeks != null ? `${weeks} wks` : '';
     return `<button class="card" onclick="showDetail('meso',DATA.mesocycles.find(x=>x.id===${m.id}))">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
         <span style="font-size:16px;font-weight:700">${esc(m.name)}</span>
         <span class="pill" style="background:${color}22;color:${color}">${m.status}</span>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${m.split||''} · ${m.weeks||0} wks · ${fmt(m.start_date)} – ${fmt(m.end_date)}</div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${m.split_type||''} · ${weeksLabel} · ${fmt(m.start_date)} – ${fmt(m.end_date)}</div>
+      ${weeks > 0 ? `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>` : ''}
       <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--dim)">
         <span>${mSess.length} sessions</span><span>${mSets.length} sets</span>
       </div>
@@ -189,26 +193,28 @@ function renderMesoDetail(meso) {
   const sessions = DATA.sessions.filter(s => s.meso_id === meso.id);
   const mSets = DATA.sets.filter(s => s.mesocycle_id === meso.id);
   const color = sc(meso.status);
+  const weeks = calcWeeks(meso);
   let html = `<div style="margin-bottom:20px">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
       <h2 style="font-size:20px;font-weight:700">${esc(meso.name)}</h2>
       <span class="pill" style="background:${color}22;color:${color}">${meso.status}</span>
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">${meso.split||''} · ${meso.weeks||0} wks · ${fmt(meso.start_date)} – ${fmt(meso.end_date)}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">${meso.split_type||''} · ${weeks != null ? weeks+' wks' : ''} · ${fmt(meso.start_date)} – ${fmt(meso.end_date)}</div>
     <div class="stat-grid">
       <div class="stat-tile"><div class="stat-val">${sessions.length}</div><div class="stat-label">Sessions</div></div>
       <div class="stat-tile"><div class="stat-val">${mSets.length}</div><div class="stat-label">Sets</div></div>
-      <div class="stat-tile"><div class="stat-val">${meso.weeks||0}</div><div class="stat-label">Weeks</div></div>
+      <div class="stat-tile"><div class="stat-val">${weeks != null ? weeks : '—'}</div><div class="stat-label">Weeks</div></div>
     </div>
   </div>`;
   html += renderCalendar(meso);
   if (sessions.length > 0) {
     html += `<h3 class="section-label" style="margin-top:20px">Sessions</h3>`;
     for (const sess of sessions) {
-      const sc2 = sess.sets?.length || DATA.sets.filter(s=>s.date===sess.date&&s.workout_name===sess.workout).length;
+      const sc2 = DATA.sets.filter(s=>s.date===sess.date&&s.workout_name===sess.workout).length;
+      const weekLabel = sess.week ? ` · Week ${sess.week}` : '';
       html += `<button class="session-btn" onclick="showDetail('session',DATA.sessions.find(x=>x.date==='${sess.date}'&&x.workout==='${sess.workout}'))">
         <div style="width:8px;height:8px;border-radius:2px;background:${wc(sess.workout)};flex-shrink:0"></div>
-        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:${wc(sess.workout)}">${esc(sess.workout)}</div><div style="font-size:11px;color:var(--dim)">${fmtFull(sess.date)} · W${sess.week||'?'}</div></div>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:${wc(sess.workout)}">${esc(sess.workout)}</div><div style="font-size:11px;color:var(--dim)">${fmtFull(sess.date)}${weekLabel}</div></div>
         <span style="font-size:11px;color:var(--dim)">${sc2} sets</span>
         <span style="color:var(--border)">›</span>
       </button>`;
@@ -237,8 +243,7 @@ function renderCalendar(meso) {
       ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
       ${Array(firstDay).fill('<div></div>').join('')}`;
   for (let d=1; d<=daysInMonth; d++) {
-    const mo = calMonth; const y = calYear;
-    const iso = `${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const iso = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const s = sessMap.get(iso);
     const isToday = iso===today;
     const cls = `cal-day${s?' has-session':''}${isToday?' today':''}`;
@@ -258,11 +263,12 @@ function renderSessions() {
   return DATA.sessions.map(sess => {
     const sc2 = DATA.sets.filter(s=>s.date===sess.date&&s.workout_name===sess.workout).length;
     const meso = getMeso(sess.meso_id);
+    const weekLabel = sess.week ? ` · Week ${sess.week}` : '';
     return `<button class="session-btn" onclick="showDetail('session',DATA.sessions.find(x=>x.date==='${sess.date}'&&x.workout==='${sess.workout}'))">
       <div style="width:8px;height:8px;border-radius:2px;background:${wc(sess.workout)};flex-shrink:0"></div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;color:${wc(sess.workout)}">${esc(sess.workout)}</div>
-        <div style="font-size:11px;color:var(--dim)">${fmtFull(sess.date)}${meso?' · '+esc(meso.name)+' W'+(sess.week||'?'):''}</div>
+        <div style="font-size:11px;color:var(--dim)">${fmtFull(sess.date)}${meso?' · '+esc(meso.name):''}${weekLabel}</div>
       </div>
       <span style="font-size:11px;color:var(--dim)">${sc2} sets</span>
       <span style="color:var(--border)">›</span>
@@ -275,8 +281,9 @@ function renderSessionDetail(session) {
   const meso = getMeso(session.meso_id);
   const exerciseOrder = []; const seen = new Set();
   for (const s of sets) { const n = s.exercises?.name; if(n && !seen.has(n)){exerciseOrder.push(n);seen.add(n);} }
+  const weekLabel = session.week ? ` · Week ${session.week}` : '';
   let html = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
-    <div><span style="font-size:16px;font-weight:700;color:${wc(session.workout)}">${session.workout}</span><span style="font-size:12px;color:var(--muted);margin-left:8px">${fmt(session.date)}${meso?' · '+meso.name+' W'+session.week:''}</span></div>
+    <div><span style="font-size:16px;font-weight:700;color:${wc(session.workout)}">${session.workout}</span><span style="font-size:12px;color:var(--muted);margin-left:8px">${fmt(session.date)}${meso?' · '+meso.name:''}${weekLabel}</span></div>
   </div>`;
   for (const exName of exerciseOrder) {
     const exSets = sets.filter(s=>s.exercises?.name===exName).sort((a,b)=>a.set_number-b.set_number);
