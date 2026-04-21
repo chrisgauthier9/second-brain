@@ -12,16 +12,16 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', system-ui, sans-serif; background: #111827; color: #f3f4f6; min-height: 100vh; font-size: 14px; }
 
-    /* Header */
     header { background: #1f2937; border-bottom: 1px solid #374151; padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
     .logo { font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; white-space: nowrap; }
     .nav-links { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; align-items: center; }
     .nav-links a { font-size: 13px; color: #9ca3af; text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: background .15s; white-space: nowrap; }
     .nav-links a:hover { background: #374151; color: #f3f4f6; }
     .nav-links a.active { background: #7c3aed; color: #fff; }
-    .nav-meta { font-size: 12px; color: #6b7280; white-space: nowrap; }
+    .lock-toggle { background: none; border: 1px solid #374151; color: #6b7280; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: inherit; }
+    .lock-toggle:hover { border-color: #6b7280; color: #f3f4f6; }
+    body.unlocked .lock-toggle { color: #10b981; border-color: #10b981; }
 
-    /* Layout */
     .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 49px); }
     .back-btn { display: none; background: none; border: none; color: #9ca3af; font-size: 14px; cursor: pointer; padding: 0; margin-bottom: 16px; font-family: inherit; }
     .back-btn:hover { color: #f3f4f6; }
@@ -34,10 +34,8 @@
       .entry-weekday { font-size: 24px; margin-bottom: 18px; }
     }
 
-    /* Left sidebar */
     .sidebar { border-right: 1px solid #374151; overflow-y: auto; }
 
-    /* Calendar */
     .cal-section { padding: 20px; border-bottom: 1px solid #374151; }
     .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .cal-title { font-size: 15px; font-weight: 600; color: #f3f4f6; }
@@ -54,37 +52,82 @@
     .cal-day.has-entry::after { content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: #f97316; }
     .cal-day.selected::after { background: rgba(255,255,255,0.6); }
 
-    /* Entry list */
     .entry-list { padding: 0; }
     .entry-item { padding: 14px 20px; border-bottom: 1px solid #1f2937; cursor: pointer; transition: background .1s; }
     .entry-item:hover { background: #1f2937; }
     .entry-item.active { background: #1f2937; border-left: 2px solid #f97316; padding-left: 18px; }
     .entry-item-date { font-size: 11px; color: #6b7280; margin-bottom: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
     .entry-item-preview { font-size: 13px; color: #9ca3af; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-    .entry-item-title { font-size: 13px; font-weight: 600; color: #e5e7eb; margin-bottom: 2px; }
 
-    /* Right panel - entry detail */
     .entry-panel { padding: 32px 40px; overflow-y: auto; max-height: calc(100vh - 49px); }
     .entry-panel-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #4b5563; gap: 12px; padding: 40px; text-align: center; }
     .entry-panel-empty .icon { font-size: 40px; opacity: 0.4; }
 
-    .entry-date-header { font-size: 12px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+    .entry-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 6px; }
+    .entry-date-header { font-size: 12px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
+    .entry-actions { display: none; gap: 6px; }
+    body.unlocked .entry-actions { display: flex; }
+    .action-btn { background: #1f2937; border: 1px solid #374151; color: #9ca3af; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: inherit; }
+    .action-btn:hover { background: #374151; color: #f3f4f6; }
+    .action-btn.primary { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+    .action-btn.primary:hover { background: #6d28d9; }
+    .action-btn.danger:hover { background: #7f1d1d; color: #fecaca; border-color: #7f1d1d; }
+
     .entry-weekday { font-size: 28px; font-weight: 700; color: #f3f4f6; margin-bottom: 24px; font-family: 'Lora', serif; }
     .entry-body { font-family: 'Lora', Georgia, serif; font-size: 15px; color: #d1d5db; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
     .entry-body h1, .entry-body h2, .entry-body h3 { font-family: 'Lora', serif; color: #f3f4f6; margin: 1.2em 0 0.4em; font-weight: 600; }
     .entry-body h1 { font-size: 18px; }
     .entry-body h2 { font-size: 16px; }
 
-    /* Tab switcher for journal type */
-    .tab-bar { display: flex; gap: 4px; padding: 12px 20px 0; }
+    .editor { display: flex; flex-direction: column; gap: 12px; }
+    .editor-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+    .editor input[type="date"], .editor select {
+      background: #1f2937; border: 1px solid #374151; color: #f3f4f6; padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 13px;
+    }
+    .editor textarea {
+      width: 100%; min-height: 400px; background: #1f2937; border: 1px solid #374151; color: #e5e7eb;
+      padding: 16px; border-radius: 8px; font-family: 'Lora', Georgia, serif; font-size: 15px; line-height: 1.7; resize: vertical;
+    }
+    .editor textarea:focus, .editor input:focus, .editor select:focus { outline: none; border-color: #7c3aed; }
+    .editor-actions { display: flex; gap: 8px; }
+
+    .tab-bar { display: flex; gap: 4px; padding: 12px 20px 0; align-items: center; }
     .tab-btn { padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; background: transparent; color: #6b7280; transition: all .15s; }
     .tab-btn.active { background: #374151; color: #f3f4f6; }
+    .new-btn { display: none; margin-left: auto; background: #7c3aed; border: none; color: #fff; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; }
+    .new-btn:hover { background: #6d28d9; }
+    body.unlocked .new-btn { display: block; }
 
     .loading-state { padding: 40px; text-align: center; color: #4b5563; font-size: 13px; }
     .count-badge { font-size: 11px; color: #6b7280; padding: 12px 20px 8px; font-weight: 500; }
+
+    .lock-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.95); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+    .lock-overlay.hidden { display: none; }
+    .lock-card { background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 32px; max-width: 360px; width: 100%; }
+    .lock-card h2 { font-size: 18px; margin-bottom: 8px; }
+    .lock-card p { font-size: 13px; color: #9ca3af; margin-bottom: 20px; }
+    .lock-card input { width: 100%; background: #111827; border: 1px solid #374151; color: #f3f4f6; padding: 10px 14px; border-radius: 8px; font-family: inherit; font-size: 14px; margin-bottom: 12px; }
+    .lock-card input:focus { outline: none; border-color: #7c3aed; }
+    .lock-card button { width: 100%; background: #7c3aed; border: none; color: #fff; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; font-size: 14px; }
+    .lock-card button:hover { background: #6d28d9; }
+    .lock-card .skip { background: none; color: #6b7280; margin-top: 8px; font-weight: 500; font-size: 12px; }
+    .lock-card .skip:hover { color: #9ca3af; background: none; }
+    .lock-error { color: #f87171; font-size: 12px; margin-bottom: 8px; min-height: 16px; }
   </style>
 </head>
 <body>
+
+<div class="lock-overlay" id="lock-overlay">
+  <div class="lock-card">
+    <h2>🔒 Unlock editing</h2>
+    <p>Enter password to enable edit, delete, and new entry controls. You can also continue read-only.</p>
+    <input type="password" id="lock-input" placeholder="Password" autocomplete="off" />
+    <div class="lock-error" id="lock-error"></div>
+    <button onclick="tryUnlock()">Unlock</button>
+    <button class="skip" onclick="dismissLock()">Continue read-only</button>
+  </div>
+</div>
+
 <header>
   <a href="index.html" class="logo">Second Brain</a>
   <nav class="nav-links">
@@ -93,15 +136,16 @@
     <a href="tickets.html">Tickets</a>
     <a href="balance.html">Balance</a>
     <a href="journal.html" class="active">Journal</a>
+    <button class="lock-toggle" id="lock-toggle" onclick="toggleLock()">🔒 Locked</button>
   </nav>
 </header>
 
 <div class="layout">
-  <!-- Sidebar -->
   <div class="sidebar">
     <div class="tab-bar">
       <button class="tab-btn active" onclick="switchTab('daily')">Daily</button>
       <button class="tab-btn" onclick="switchTab('thoughts')">Thoughts</button>
+      <button class="new-btn" onclick="newEntry()">+ New</button>
     </div>
 
     <div class="cal-section">
@@ -122,7 +166,6 @@
     </div>
   </div>
 
-  <!-- Entry detail panel -->
   <div class="entry-panel" id="entry-panel">
     <div class="entry-panel-empty">
       <div class="icon">📖</div>
@@ -137,17 +180,70 @@ const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrZGJ6b3B0Ym9pbnlzc3BucGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjA0NjIsImV4cCI6MjA5MTMzNjQ2Mn0.ccbJRVXNfqmgXuH1J9vL8DgttCAFJ-36gulWpL6R_cQ';
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+// SHA-256 of password "secondbrain" — change by regenerating the hash
+const PASSWORD_HASH = '33d7daeae6a0d305683fc44485c8c7aa059412891952e9e97dcbef1b82c13b70';
+const UNLOCK_KEY = 'sb_journal_unlocked';
+
 let allEntries = [];
 let allThoughts = [];
 let activeTab = 'daily';
 let calYear, calMonth;
 let selectedDate = null;
 let selectedId = null;
+let editingMode = false;
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 function activeEntries() { return activeTab === 'daily' ? allEntries : allThoughts; }
+function activeTable() { return activeTab === 'daily' ? 'journal_entries' : 'thoughts_feelings'; }
+
+// ── Password ────────────────────────────────────────────
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function tryUnlock() {
+  const input = document.getElementById('lock-input');
+  const err = document.getElementById('lock-error');
+  const hash = await sha256(input.value);
+  if (hash === PASSWORD_HASH) {
+    localStorage.setItem(UNLOCK_KEY, '1');
+    document.body.classList.add('unlocked');
+    document.getElementById('lock-toggle').textContent = '🔓 Unlocked';
+    document.getElementById('lock-overlay').classList.add('hidden');
+    err.textContent = '';
+  } else {
+    err.textContent = 'Wrong password';
+    input.value = '';
+  }
+}
+
+function dismissLock() { document.getElementById('lock-overlay').classList.add('hidden'); }
+
+function toggleLock() {
+  if (document.body.classList.contains('unlocked')) {
+    localStorage.removeItem(UNLOCK_KEY);
+    document.body.classList.remove('unlocked');
+    document.getElementById('lock-toggle').textContent = '🔒 Locked';
+    if (editingMode) cancelEdit();
+  } else {
+    document.getElementById('lock-overlay').classList.remove('hidden');
+    document.getElementById('lock-input').focus();
+  }
+}
+
+function initLockState() {
+  if (localStorage.getItem(UNLOCK_KEY) === '1') {
+    document.body.classList.add('unlocked');
+    document.getElementById('lock-toggle').textContent = '🔓 Unlocked';
+    document.getElementById('lock-overlay').classList.add('hidden');
+  }
+  document.getElementById('lock-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') tryUnlock();
+  });
+}
 
 // ── Calendar ────────────────────────────────────────────
 function renderCalendar() {
@@ -173,7 +269,7 @@ function renderCalendar() {
 function prevMonth() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
 function nextMonth() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
 
-// ── Entry list ──────────────────────────────────────────
+// ── List ────────────────────────────────────────────────
 function renderList(filterDate = null) {
   const entries = activeEntries();
   const filtered = filterDate ? entries.filter(e => e.entry_date === filterDate) : entries;
@@ -189,7 +285,6 @@ function renderList(filterDate = null) {
     const d = new Date(e.entry_date + 'T12:00:00');
     const dateStr = d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
     const weekday = DAYS[d.getDay()];
-    // Strip markdown headings for preview
     const preview = (e.body || '').replace(/^#+ .*/gm, '').replace(/\\/g, '').trim().slice(0, 100);
     const isActive = e.id === selectedId;
     return `<div class="entry-item${isActive?' active':''}" onclick="selectEntry(${e.id})">
@@ -199,37 +294,42 @@ function renderList(filterDate = null) {
   }).join('');
 }
 
-// ── Entry detail ────────────────────────────────────────
+// ── Detail ──────────────────────────────────────────────
 function selectDate(iso) {
   selectedDate = iso;
   renderCalendar();
   renderList(iso);
-  // Auto-open first entry for that date
-  const entries = activeEntries();
-  const match = entries.find(e => e.entry_date === iso);
+  const match = activeEntries().find(e => e.entry_date === iso);
   if (match) selectEntry(match.id);
 }
 
 function selectEntry(id) {
-  const entries = activeEntries();
-  const entry = entries.find(e => e.id === id);
+  const entry = activeEntries().find(e => e.id === id);
   if (!entry) return;
   selectedId = id;
   selectedDate = entry.entry_date;
+  editingMode = false;
   renderCalendar();
   renderList(null);
+  renderDetail(entry);
+}
 
+function renderDetail(entry) {
   const d = new Date(entry.entry_date + 'T12:00:00');
   const dateStr = d.toLocaleDateString('en', { month: 'long', day: 'numeric', year: 'numeric' });
   const weekday = DAYS[d.getDay()];
-  const journalBadge = entry.journal ? `<span style="font-size:11px;background:#374151;color:#9ca3af;padding:2px 8px;border-radius:999px;margin-left:8px">${entry.journal}</span>` : '';
-
-  // Render markdown-ish body
+  const journalBadge = entry.journal ? `<span style="font-size:11px;background:#374151;color:#9ca3af;padding:2px 8px;border-radius:999px;margin-left:8px">${escHtml(entry.journal)}</span>` : '';
   const body = renderBody(entry.body || '');
 
   document.getElementById('entry-panel').innerHTML = `
     <button class="back-btn" onclick="closeEntry()">← Back to entries</button>
-    <div class="entry-date-header">${dateStr}${journalBadge}</div>
+    <div class="entry-header-row">
+      <div class="entry-date-header">${dateStr}${journalBadge}</div>
+      <div class="entry-actions">
+        <button class="action-btn" onclick="startEdit()">Edit</button>
+        <button class="action-btn danger" onclick="deleteEntry()">Delete</button>
+      </div>
+    </div>
     <div class="entry-weekday">${weekday}</div>
     <div class="entry-body">${body}</div>
   `;
@@ -241,11 +341,12 @@ function closeEntry() {
   document.getElementById('entry-panel').classList.remove('visible');
   document.body.classList.remove('detail-open');
   selectedId = null;
+  editingMode = false;
   renderList();
+  document.getElementById('entry-panel').innerHTML = `<div class="entry-panel-empty"><div class="icon">📖</div><div style="font-size:14px">Select an entry to read it</div></div>`;
 }
 
 function renderBody(text) {
-  // Clean Day One escape chars, render basic markdown
   return text
     .replace(/\\/g, '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -261,13 +362,146 @@ function escHtml(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\/g,'');
 }
 
-// ── Tab switching ───────────────────────────────────────
+// ── Editing ─────────────────────────────────────────────
+function startEdit() {
+  if (!document.body.classList.contains('unlocked')) return;
+  const entry = activeEntries().find(e => e.id === selectedId);
+  if (!entry) return;
+  editingMode = 'edit';
+  renderEditor(entry);
+}
+
+function newEntry() {
+  if (!document.body.classList.contains('unlocked')) return;
+  editingMode = 'new';
+  selectedId = null;
+  const today = new Date().toISOString().split('T')[0];
+  renderEditor({ entry_date: today, body: '', journal: activeTab === 'thoughts' ? 'Thoughts and Feelings' : null });
+}
+
+function renderEditor(entry) {
+  const isThoughts = activeTab === 'thoughts';
+  const isNew = editingMode === 'new';
+  const existingJournals = [...new Set(allThoughts.map(t => t.journal).filter(Boolean))];
+  const journalOpts = existingJournals.map(j =>
+    `<option value="${escHtml(j)}" ${j === entry.journal ? 'selected' : ''}>${escHtml(j)}</option>`
+  ).join('');
+  const journalPicker = isThoughts ? `
+    <select id="edit-journal">
+      ${journalOpts}
+      <option value="__new__">+ New journal...</option>
+    </select>
+  ` : '';
+
+  document.getElementById('entry-panel').innerHTML = `
+    <button class="back-btn" onclick="cancelEdit()">← Cancel</button>
+    <div class="entry-header-row">
+      <div class="entry-date-header">${isNew ? 'New entry' : 'Editing'}</div>
+    </div>
+    <div class="editor">
+      <div class="editor-meta">
+        <input type="date" id="edit-date" value="${entry.entry_date}">
+        ${journalPicker}
+      </div>
+      <textarea id="edit-body" placeholder="Write...">${escHtml(entry.body || '')}</textarea>
+      <div class="editor-actions">
+        <button class="action-btn primary" onclick="saveEntry()">Save</button>
+        <button class="action-btn" onclick="cancelEdit()">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('entry-panel').classList.add('visible');
+  document.body.classList.add('detail-open');
+
+  if (isThoughts) {
+    document.getElementById('edit-journal').addEventListener('change', e => {
+      if (e.target.value === '__new__') {
+        const name = prompt('New journal name:');
+        if (name) {
+          const opt = document.createElement('option');
+          opt.value = name; opt.textContent = name; opt.selected = true;
+          e.target.insertBefore(opt, e.target.lastElementChild);
+        } else {
+          e.target.value = existingJournals[0] || '';
+        }
+      }
+    });
+  }
+}
+
+async function saveEntry() {
+  const date = document.getElementById('edit-date').value;
+  const body = document.getElementById('edit-body').value.trim();
+  if (!date || !body) { alert('Date and body are required.'); return; }
+  const table = activeTable();
+  const isThoughts = activeTab === 'thoughts';
+  const journal = isThoughts ? document.getElementById('edit-journal').value : null;
+
+  const payload = { entry_date: date, body };
+  if (isThoughts) {
+    payload.journal = journal && journal !== '__new__' ? journal : 'Thoughts and Feelings';
+    payload.source = 'manual';
+  }
+
+  try {
+    if (editingMode === 'new') {
+      const { data, error } = await client.from(table).insert(payload).select().single();
+      if (error) throw error;
+      await load();
+      const d = new Date(data.entry_date + 'T12:00:00');
+      calYear = d.getFullYear();
+      calMonth = d.getMonth();
+      renderCalendar();
+      renderList();
+      selectEntry(data.id);
+    } else {
+      const { data, error } = await client.from(table).update(payload).eq('id', selectedId).select().single();
+      if (error) throw error;
+      await load();
+      renderCalendar();
+      renderList();
+      selectEntry(data.id);
+    }
+  } catch (err) {
+    alert('Save failed: ' + (err.message || err));
+  }
+}
+
+function cancelEdit() {
+  if (editingMode === 'new') {
+    editingMode = false;
+    closeEntry();
+  } else if (selectedId) {
+    editingMode = false;
+    const entry = activeEntries().find(e => e.id === selectedId);
+    if (entry) renderDetail(entry);
+    else closeEntry();
+  } else {
+    closeEntry();
+  }
+}
+
+async function deleteEntry() {
+  if (!selectedId) return;
+  if (!confirm('Delete this entry? This cannot be undone.')) return;
+  try {
+    const { error } = await client.from(activeTable()).delete().eq('id', selectedId);
+    if (error) throw error;
+    await load();
+    renderCalendar();
+    closeEntry();
+  } catch (err) {
+    alert('Delete failed: ' + (err.message || err));
+  }
+}
+
+// ── Tabs ────────────────────────────────────────────────
 function switchTab(tab) {
   activeTab = tab;
   selectedId = null;
   selectedDate = null;
+  editingMode = false;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(tab === 'daily' ? 'daily' : 'thought')));
-  // Reset calendar to most recent entry month
   const entries = activeEntries();
   if (entries.length > 0) {
     const latest = new Date(entries[0].entry_date + 'T12:00:00');
@@ -281,31 +515,31 @@ function switchTab(tab) {
   document.getElementById('entry-panel').innerHTML = `<div class="entry-panel-empty"><div class="icon">📖</div><div style="font-size:14px">Select an entry to read it</div></div>`;
 }
 
-// ── Load data ───────────────────────────────────────────
+// ── Load ────────────────────────────────────────────────
 async function load() {
   const [journalRes, thoughtsRes] = await Promise.all([
     client.from('journal_entries').select('id, entry_date, body').order('entry_date', {ascending: false}),
     client.from('thoughts_feelings').select('id, entry_date, body, journal').order('entry_date', {ascending: false}),
   ]);
-
   allEntries = journalRes.data || [];
   allThoughts = thoughtsRes.data || [];
-
-  // Init calendar at most recent entry
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
-  if (allEntries.length > 0) {
-    const latest = new Date(allEntries[0].entry_date + 'T12:00:00');
+  const current = activeEntries();
+  if (current.length > 0) {
+    const latest = new Date(current[0].entry_date + 'T12:00:00');
     calYear = latest.getFullYear();
     calMonth = latest.getMonth();
   }
-
-  renderCalendar();
-  renderList();
 }
 
-load();
+(async () => {
+  initLockState();
+  await load();
+  renderCalendar();
+  renderList();
+})();
 </script>
 </body>
 </html>
