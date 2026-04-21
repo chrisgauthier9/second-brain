@@ -23,7 +23,16 @@
 
     /* Layout */
     .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 49px); }
-    @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } .entry-panel { display: none; } .entry-panel.visible { display: block; } }
+    .back-btn { display: none; background: none; border: none; color: #9ca3af; font-size: 14px; cursor: pointer; padding: 0; margin-bottom: 16px; font-family: inherit; }
+    .back-btn:hover { color: #f3f4f6; }
+    @media (max-width: 768px) {
+      .layout { grid-template-columns: 1fr; }
+      .entry-panel { display: none; padding: 20px; }
+      .entry-panel.visible { display: block; }
+      body.detail-open .sidebar { display: none; }
+      body.detail-open .back-btn { display: inline-flex; align-items: center; gap: 6px; }
+      .entry-weekday { font-size: 24px; margin-bottom: 18px; }
+    }
 
     /* Left sidebar */
     .sidebar { border-right: 1px solid #374151; overflow-y: auto; }
@@ -219,10 +228,20 @@ function selectEntry(id) {
   const body = renderBody(entry.body || '');
 
   document.getElementById('entry-panel').innerHTML = `
+    <button class="back-btn" onclick="closeEntry()">← Back to entries</button>
     <div class="entry-date-header">${dateStr}${journalBadge}</div>
     <div class="entry-weekday">${weekday}</div>
     <div class="entry-body">${body}</div>
   `;
+  document.getElementById('entry-panel').classList.add('visible');
+  document.body.classList.add('detail-open');
+}
+
+function closeEntry() {
+  document.getElementById('entry-panel').classList.remove('visible');
+  document.body.classList.remove('detail-open');
+  selectedId = null;
+  renderList();
 }
 
 function renderBody(text) {
@@ -257,6 +276,8 @@ function switchTab(tab) {
   }
   renderCalendar();
   renderList();
+  document.getElementById('entry-panel').classList.remove('visible');
+  document.body.classList.remove('detail-open');
   document.getElementById('entry-panel').innerHTML = `<div class="entry-panel-empty"><div class="icon">📖</div><div style="font-size:14px">Select an entry to read it</div></div>`;
 }
 
