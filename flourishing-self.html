@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#111827">
+  <title>Flourishing Self · Second Brain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #111827; color: #f3f4f6; min-height: 100vh; font-size: 14px; }
+
+    header { background: #1f2937; border-bottom: 1px solid #374151; padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+    .logo { font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; white-space: nowrap; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; align-items: center; }
+    .nav-links a { font-size: 13px; color: #9ca3af; text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: background .15s; white-space: nowrap; }
+    .nav-links a:hover { background: #374151; color: #f3f4f6; }
+    .nav-links a.active { background: #7c3aed; color: #fff; }
+
+    main { max-width: 800px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    .page-header { margin-bottom: 40px; border-bottom: 1px solid #374151; padding-bottom: 24px; }
+    .page-header h1 { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }
+    .page-header .subtitle { font-size: 13px; color: #6b7280; font-style: italic; }
+    .last-updated { font-size: 12px; color: #4b5563; margin-top: 8px; }
+
+    /* Table of contents */
+    .toc { background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 20px 24px; margin-bottom: 40px; }
+    .toc h3 { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .toc-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .toc-links a { font-size: 13px; color: #a78bfa; text-decoration: none; padding: 4px 12px; border-radius: 20px; border: 1px solid #374151; transition: all .15s; }
+    .toc-links a:hover { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+
+    /* Markdown rendered content */
+    .content h1 { font-size: 22px; font-weight: 700; color: #f3f4f6; margin: 48px 0 20px; padding-bottom: 10px; border-bottom: 1px solid #374151; }
+    .content h1:first-child { margin-top: 0; }
+    .content h2 { font-size: 16px; font-weight: 600; color: #a78bfa; margin: 32px 0 12px; }
+    .content h3 { font-size: 14px; font-weight: 600; color: #60a5fa; margin: 20px 0 8px; }
+    .content p { color: #d1d5db; line-height: 1.7; margin-bottom: 12px; }
+    .content ul { padding-left: 20px; margin-bottom: 12px; }
+    .content ul li { color: #d1d5db; line-height: 1.8; }
+    .content ul li ul { margin-top: 4px; margin-bottom: 4px; }
+    .content ul li ul li { color: #9ca3af; font-size: 13px; }
+    .content strong { color: #f3f4f6; font-weight: 600; }
+    .content em { color: #9ca3af; font-style: italic; }
+    .content hr { border: none; border-top: 1px solid #1f2937; margin: 32px 0; }
+    .content blockquote { border-left: 3px solid #7c3aed; padding-left: 16px; margin: 16px 0; color: #9ca3af; font-style: italic; font-family: 'Lora', Georgia, serif; }
+
+    /* Tables */
+    .content table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+    .content th { background: #1f2937; color: #9ca3af; font-weight: 600; text-align: left; padding: 10px 14px; border: 1px solid #374151; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .content td { padding: 10px 14px; border: 1px solid #1f2937; color: #d1d5db; vertical-align: top; }
+    .content tr:nth-child(even) td { background: #1a2232; }
+
+    /* Section containers */
+    .section-block { background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+
+    /* Loading state */
+    .loading { text-align: center; padding: 80px 24px; color: #6b7280; }
+    .loading-spinner { width: 32px; height: 32px; border: 2px solid #374151; border-top-color: #7c3aed; border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-state { background: #1f2937; border: 1px solid #ef4444; border-radius: 12px; padding: 24px; color: #fca5a5; text-align: center; }
+
+    footer { text-align: center; padding: 24px; color: #374151; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">Second Brain</a>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="fitness.html">Fitness</a>
+    <a href="balance.html">Balance</a>
+    <a href="journal.html">Journal</a>
+    <a href="flourishing-self.html" class="active">Flourishing Self</a>
+  </nav>
+</header>
+
+<main>
+  <div class="page-header">
+    <h1>Flourishing Self</h1>
+    <div class="subtitle">MMXXVI · The Year I Turned Pro</div>
+    <div class="last-updated" id="lastUpdated"></div>
+  </div>
+
+  <div class="toc">
+    <h3>Sections</h3>
+    <div class="toc-links">
+      <a href="#identity">Identity</a>
+      <a href="#mind">Mind</a>
+      <a href="#finnian">Finnian</a>
+      <a href="#wellbeing">Wellbeing</a>
+      <a href="#projects">Projects</a>
+    </div>
+  </div>
+
+  <div id="loadingState" class="loading">
+    <div class="loading-spinner"></div>
+    <p>Loading your Flourishing Self...</p>
+  </div>
+
+  <div id="content" class="content" style="display:none;"></div>
+</main>
+
+<footer>chrisgauthier9 · second-brain</footer>
+
+<script>
+  const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrZGJ6b3B0Ym9pbnlzc3BucGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjA0NjIsImV4cCI6MjA5MTMzNjQ2Mn0.ccbJRVXNfqmgXuH1J9vL8DgttCAFJ-36gulWpL6R_cQ';
+
+  async function loadFlourishingSelf() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/documents?slug=eq.flourishing-self&select=content,updated_at`, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      if (!data.length) throw new Error('Document not found');
+
+      const { content, updated_at } = data[0];
+
+      // Render markdown
+      const html = marked.parse(content);
+      document.getElementById('content').innerHTML = html;
+      document.getElementById('content').style.display = 'block';
+      document.getElementById('loadingState').style.display = 'none';
+
+      // Add anchor IDs to sections
+      addAnchors();
+
+      // Last updated
+      if (updated_at) {
+        const date = new Date(updated_at).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('lastUpdated').textContent = `Last updated: ${date}`;
+      }
+
+    } catch (err) {
+      document.getElementById('loadingState').innerHTML = `
+        <div class="error-state">
+          <p>Could not load Flourishing Self: ${err.message}</p>
+        </div>`;
+    }
+  }
+
+  function addAnchors() {
+    const h1s = document.querySelectorAll('.content h1');
+    const anchors = { 'IDENTITY': 'identity', 'MINDFULNESS': 'mind', 'FINNIAN': 'finnian', 'WELLBEING': 'wellbeing', 'PROJECTS': 'projects' };
+    h1s.forEach(h1 => {
+      const text = h1.textContent.trim().toUpperCase();
+      for (const [key, id] of Object.entries(anchors)) {
+        if (text.includes(key)) {
+          h1.id = id;
+          break;
+        }
+      }
+    });
+  }
+
+  loadFlourishingSelf();
+</script>
+</body>
+</html>
