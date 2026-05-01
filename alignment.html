@@ -709,6 +709,19 @@ function renderHistory() {
         if (hit === true) cls = 'hit';
         else if (hit === false) cls = 'miss';
         // No streak logic.
+      } else if (h.derived && h.key === 'trained') {
+        // Trained: a single skip is fine (gray). Two skips in a row -> red.
+        if (startedAtIdx === -1 || i < startedAtIdx) {
+          cls = 'empty';
+        } else if (hit === true) {
+          cls = 'hit';
+          prevMissed = false;
+        } else {
+          // No session today. Single miss = stay gray. Second consecutive = red.
+          if (prevMissed) cls = 'miss';
+          else cls = 'empty';
+          prevMissed = true;
+        }
       } else {
         // Non-Hard-NO: yellow on first miss-in-a-stretch, red on 2nd-consecutive.
         if (startedAtIdx === -1 || i < startedAtIdx) {
