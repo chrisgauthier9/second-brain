@@ -83,18 +83,19 @@
     .toggle-row .label { font-size: 14px; font-weight: 500; flex: 1; min-width: 0; }
     .yn-group {
       display: inline-flex; gap: 0; background: #2c3441;
-      border-radius: 8px; padding: 2px; flex-shrink: 0;
+      border-radius: 8px; padding: 2px; flex-shrink: 0; flex-wrap: wrap;
     }
     .yn-btn {
       background: transparent; border: none; cursor: pointer;
       padding: 6px 14px; font-family: inherit; font-size: 12px; font-weight: 600;
       color: var(--dim); border-radius: 6px;
       transition: background .15s, color .15s;
-      min-width: 44px;
+      min-width: 44px; white-space: nowrap;
     }
     .yn-btn:hover { color: var(--text); }
     .yn-btn.active.yes { background: var(--ok); color: #0f1d18; }
     .yn-btn.active.no  { background: var(--dim); color: var(--text); }
+    .yn-btn.active.untracked { background: #475569; color: var(--text); }
     section.hard-nos .toggle-row.broken { border-color: var(--hard-no); background: rgba(248,113,113,.12); }
     section.hard-nos .toggle-row.broken .yn-btn.active.no { background: var(--hard-no); color: #fff; }
 
@@ -261,11 +262,17 @@ function shiftDate(iso, delta) {
   return d.toISOString().split('T')[0];
 }
 
-// "habit hit?" — true/false/null. Null = unset.
+// "habit hit?" — true/false/null. Null = unset / didn't track.
 function habitHit(row, h) {
   if (h.derived && h.key === 'trained') return TRAINED_DATES.has(row.date);
   const v = row?.[h.key];
   if (v == null) return null;
+  // protein_hit is text: 'yes' | 'no' | 'untracked'
+  if (h.key === 'protein_hit') {
+    if (v === 'yes') return true;
+    if (v === 'no')  return false;
+    return null; // untracked treated as "no data" on the heatmap
+  }
   return h.inverted ? !v : !!v;
 }
 
@@ -400,19 +407,26 @@ function renderDay() {
 
   // Toggles — yes/no segmented control. Tapping the active button clears to null.
   document.querySelectorAll('.toggle-row').forEach(rowEl => {
+    const isTri = rowEl.dataset.tri === '1';
     rowEl.querySelectorAll('.yn-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const col = rowEl.dataset.col;
-        const inverted = HARD_NO_INVERTED.has(col);
-        const display = btn.dataset.display; // 'yes' | 'no'
+        const display = btn.dataset.display; // 'yes' | 'no' | 'untracked'
         const wasActive = btn.classList.contains('active');
-        // New display state: clicking active button clears to null; clicking inactive sets to that
         const newDisplay = wasActive ? null : display;
-        // Map display state back to db value
-        let dbVal = null;
-        if (newDisplay === 'yes') dbVal = inverted ? false : true;
-        else if (newDisplay === 'no') dbVal = inverted ? true  : false;
+
+        let dbVal;
+        if (isTri) {
+          // protein: store the display string directly
+          dbVal = newDisplay;
+        } else {
+          // Standard yes/no: map to boolean (with inversion for Hard NOs)
+          const inverted = HARD_NO_INVERTED.has(col);
+          if (newDisplay === 'yes') dbVal = inverted ? false : true;
+          else if (newDisplay === 'no') dbVal = inverted ? true  : false;
+          else dbVal = null;
+        }
 
         // Update visual state
         rowEl.querySelectorAll('.yn-btn').forEach(b => b.classList.remove('active'));
@@ -430,6 +444,18 @@ function renderDay() {
 }
 
 function toggleHTML(item, row) {
+  // Special case: protein_hit is a tri-state (yes/no/untracked), stored as text.
+  if (item.key === 'protein_hit') {
+    const v = row?.[item.key]; // 'yes' | 'no' | 'untracked' | null
+    return `<div class="toggle-row" data-col="${item.key}" data-tri="1">
+      <span class="label">${item.label}</span>
+      <div class="yn-group">
+        <button class="yn-btn yes${v === 'yes' ? ' active' : ''}" data-display="yes">Yes</button>
+        <button class="yn-btn no${v === 'no' ? ' active' : ''}" data-display="no">No</button>
+        <button class="yn-btn untracked${v === 'untracked' ? ' active' : ''}" data-display="untracked">Didn't track</button>
+      </div>
+    </div>`;
+  }
   const v = row?.[item.key];
   const inverted = HARD_NO_INVERTED.has(item.key);
   // "on" semantics = the *good* outcome.
