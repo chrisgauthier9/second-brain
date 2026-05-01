@@ -23,9 +23,6 @@
     .nav-links a { font-size: 13px; color: #9ca3af; text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: background .15s; white-space: nowrap; }
     .nav-links a:hover { background: #374151; color: #f3f4f6; }
     .nav-links a.active { background: #7c3aed; color: #fff; }
-    .lock-toggle { background: none; border: 1px solid #374151; color: #6b7280; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: inherit; }
-    .lock-toggle:hover { border-color: #6b7280; color: #f3f4f6; }
-    body.unlocked .lock-toggle { color: #10b981; border-color: #10b981; }
 
     .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 49px); }
     .back-btn { display: none; background: none; border: none; color: #9ca3af; font-size: 14px; cursor: pointer; padding: 0; margin-bottom: 16px; font-family: inherit; }
@@ -71,7 +68,7 @@
     .entry-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 6px; }
     .entry-date-header { font-size: 12px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
     .entry-actions { display: none; gap: 6px; }
-    body.unlocked .entry-actions { display: flex; }
+    .entry-actions { display: flex; }
     .action-btn { background: #1f2937; border: 1px solid #374151; color: #9ca3af; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: inherit; }
     .action-btn:hover { background: #374151; color: #f3f4f6; }
     .action-btn.primary { background: #7c3aed; border-color: #7c3aed; color: #fff; }
@@ -101,37 +98,15 @@
     .tab-btn.active { background: #374151; color: #f3f4f6; }
     .new-btn { display: none; margin-left: auto; background: #7c3aed; border: none; color: #fff; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; }
     .new-btn:hover { background: #6d28d9; }
-    body.unlocked .new-btn { display: block; }
+    .new-btn { display: block; }
 
     .loading-state { padding: 40px; text-align: center; color: #4b5563; font-size: 13px; }
     .count-badge { font-size: 11px; color: #6b7280; padding: 12px 20px 8px; font-weight: 500; }
 
-    .lock-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.95); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-    .lock-overlay.hidden { display: none; }
-    .lock-card { background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 32px; max-width: 360px; width: 100%; }
-    .lock-card h2 { font-size: 18px; margin-bottom: 8px; }
-    .lock-card p { font-size: 13px; color: #9ca3af; margin-bottom: 20px; }
-    .lock-card input { width: 100%; background: #111827; border: 1px solid #374151; color: #f3f4f6; padding: 10px 14px; border-radius: 8px; font-family: inherit; font-size: 14px; margin-bottom: 12px; }
-    .lock-card input:focus { outline: none; border-color: #7c3aed; }
-    .lock-card button { width: 100%; background: #7c3aed; border: none; color: #fff; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; font-size: 14px; }
-    .lock-card button:hover { background: #6d28d9; }
-    .lock-card .skip { background: none; color: #6b7280; margin-top: 8px; font-weight: 500; font-size: 12px; }
-    .lock-card .skip:hover { color: #9ca3af; background: none; }
-    .lock-error { color: #f87171; font-size: 12px; margin-bottom: 8px; min-height: 16px; }
   </style>
 </head>
 <body>
 
-<div class="lock-overlay" id="lock-overlay">
-  <div class="lock-card">
-    <h2>🔒 Unlock editing</h2>
-    <p>Enter password to enable edit, delete, and new entry controls. You can also continue read-only.</p>
-    <input type="password" id="lock-input" placeholder="Password" autocomplete="off" />
-    <div class="lock-error" id="lock-error"></div>
-    <button onclick="tryUnlock()">Unlock</button>
-    <button class="skip" onclick="dismissLock()">Continue read-only</button>
-  </div>
-</div>
 
 <header>
   <a href="index.html" class="logo">Second Brain</a>
@@ -140,7 +115,6 @@
     <a href="fitness.html">Fitness</a>
     <a href="balance.html">Balance</a>
     <a href="journal.html" class="active">Journal</a>
-    <button class="lock-toggle" id="lock-toggle" onclick="toggleLock()">🔒 Locked</button>
     <a href="flourishing-self.html">Flourishing Self</a>
   </nav>
 </header>
@@ -187,7 +161,6 @@ const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // SHA-256 of password "chris21"
 const PASSWORD_HASH = '811c502f2ebd7ed909f8d59002e13ca4656741de431833e6ad9472b1d723ca45';
-const UNLOCK_KEY = 'sb_journal_unlocked';
 
 let allEntries = [];
 let allThoughts = [];
@@ -209,46 +182,9 @@ async function sha256(text) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-async function tryUnlock() {
-  const input = document.getElementById('lock-input');
-  const err = document.getElementById('lock-error');
-  const hash = await sha256(input.value);
-  if (hash === PASSWORD_HASH) {
-    localStorage.setItem(UNLOCK_KEY, '1');
-    document.body.classList.add('unlocked');
-    document.getElementById('lock-toggle').textContent = '🔓 Unlocked';
-    document.getElementById('lock-overlay').classList.add('hidden');
-    err.textContent = '';
-  } else {
-    err.textContent = 'Wrong password';
-    input.value = '';
-  }
-}
 
-function dismissLock() { document.getElementById('lock-overlay').classList.add('hidden'); }
 
-function toggleLock() {
-  if (document.body.classList.contains('unlocked')) {
-    localStorage.removeItem(UNLOCK_KEY);
-    document.body.classList.remove('unlocked');
-    document.getElementById('lock-toggle').textContent = '🔒 Locked';
-    if (editingMode) cancelEdit();
-  } else {
-    document.getElementById('lock-overlay').classList.remove('hidden');
-    document.getElementById('lock-input').focus();
-  }
-}
 
-function initLockState() {
-  if (localStorage.getItem(UNLOCK_KEY) === '1') {
-    document.body.classList.add('unlocked');
-    document.getElementById('lock-toggle').textContent = '🔓 Unlocked';
-    document.getElementById('lock-overlay').classList.add('hidden');
-  }
-  document.getElementById('lock-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') tryUnlock();
-  });
-}
 
 // ── Calendar ────────────────────────────────────────────
 function renderCalendar() {
@@ -370,7 +306,6 @@ function escHtml(s) {
 
 // ── Editing ─────────────────────────────────────────────
 function startEdit() {
-  if (!document.body.classList.contains('unlocked')) return;
   const entry = activeEntries().find(e => e.id === selectedId);
   if (!entry) return;
   editingMode = 'edit';
@@ -378,7 +313,6 @@ function startEdit() {
 }
 
 function newEntry() {
-  if (!document.body.classList.contains('unlocked')) return;
   editingMode = 'new';
   selectedId = null;
   const today = new Date().toISOString().split('T')[0];
@@ -541,7 +475,6 @@ async function load() {
 }
 
 (async () => {
-  initLockState();
   await load();
   renderCalendar();
   renderList();
@@ -549,3 +482,4 @@ async function load() {
 </script>
 </body>
 </html>
+
