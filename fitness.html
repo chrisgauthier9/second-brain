@@ -221,9 +221,16 @@ function renderSessionDetail(session) {
 
 async function toggleFavorite(id, currentVal) {
   const ex = DATA.exercises.find(e => e.id === id);
-  if (ex) ex.favorite = !currentVal;
+  const newVal = !currentVal;
+  if (ex) ex.favorite = newVal;
   render();
-  await sb.from('exercises').update({ favorite: !currentVal }).eq('id', id);
+  const { error } = await sb.from('exercises').update({ favorite: newVal }).eq('id', id);
+  if (error) {
+    console.error('toggleFavorite failed:', error);
+    if (ex) ex.favorite = currentVal;
+    render();
+    alert('Could not save favorite: ' + error.message);
+  }
 }
 
 function renderExercises() {
