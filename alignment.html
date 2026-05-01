@@ -299,9 +299,11 @@ function shiftDate(iso, delta) {
   return d.toISOString().split('T')[0];
 }
 
-// "habit hit?" — true/false/null. Null = unset / didn't track.
+// "habit hit?" — true/false/null. Null = unset / didn't track / N/A.
 function habitHit(row, h) {
-  if (h.derived && h.key === 'trained') return TRAINED_DATES.has(row.date);
+  if (h.derived && h.key === 'trained') {
+    return TRAINED_DATES.has(row.date) ? true : null;
+  }
   const v = row?.[h.key];
   if (v == null) return null;
   // protein_hit is text: 'yes' | 'no' | 'untracked'
