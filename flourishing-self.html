@@ -91,13 +91,7 @@
 
   <div class="toc">
     <h3>Sections</h3>
-    <div class="toc-links">
-      <a href="#identity">Identity</a>
-      <a href="#mind">Mind</a>
-      <a href="#finnian">Finnian</a>
-      <a href="#wellbeing">Wellbeing</a>
-      <a href="#projects">Projects</a>
-    </div>
+    <div class="toc-links" id="toc-links"></div>
   </div>
 
   <div id="loadingState" class="loading">
@@ -154,15 +148,17 @@
 
   function addAnchors() {
     const h1s = document.querySelectorAll('.content h1');
-    const anchors = { 'IDENTITY': 'identity', 'MINDFULNESS': 'mind', 'FINNIAN': 'finnian', 'WELLBEING': 'wellbeing', 'PROJECTS': 'projects' };
+    const tocLinks = document.getElementById('toc-links');
+    tocLinks.innerHTML = '';
     h1s.forEach(h1 => {
-      const text = h1.textContent.trim().toUpperCase();
-      for (const [key, id] of Object.entries(anchors)) {
-        if (text.includes(key)) {
-          h1.id = id;
-          break;
-        }
-      }
+      const text = h1.textContent.trim();
+      const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      h1.id = id;
+      const label = text.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      const a = document.createElement('a');
+      a.href = '#' + id;
+      a.textContent = label;
+      tocLinks.appendChild(a);
     });
   }
 
