@@ -56,6 +56,11 @@
     .content td { padding: 10px 14px; border: 1px solid #1f2937; color: #d1d5db; vertical-align: top; }
     .content tr:nth-child(even) td { background: #1a2232; }
 
+    /* Instructions block */
+    .instructions-block { background: #1a2535; border: 1px solid #4b5563; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; }
+    .instructions-block p { color: #d1d5db; font-size: 13px; line-height: 1.7; margin: 0; }
+    .instructions-block strong { color: #f3f4f6; }
+
     /* Section containers */
     .section-block { background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
 
@@ -87,6 +92,10 @@
     <h1>Flourishing Self</h1>
     <div class="subtitle">MMXXVI · The Year I Turned Pro</div>
     <div class="last-updated" id="lastUpdated"></div>
+  </div>
+
+  <div id="instructions-block" class="instructions-block" style="display:none;">
+    <div id="instructions-text"></div>
   </div>
 
   <div class="toc">
@@ -129,6 +138,26 @@
       document.getElementById('content').style.display = 'block';
       document.getElementById('loadingState').style.display = 'none';
 
+      // Strip title h1 (FLOURISHING SELF) and subtitle h3 (MMXXVI) from rendered content
+      const contentEl = document.getElementById('content');
+      const firstH1 = contentEl.querySelector('h1');
+      if (firstH1 && firstH1.textContent.toUpperCase().includes('FLOURISHING SELF')) {
+        const nextEl = firstH1.nextElementSibling;
+        if (nextEl && nextEl.tagName === 'H3') nextEl.remove();
+        firstH1.remove();
+      }
+
+      // Extract instructions paragraph (the INSTRUCTIONS: bold block) into its own panel
+      const instrEl = contentEl.querySelector('p strong');
+      if (instrEl && instrEl.textContent.toUpperCase().includes('INSTRUCTIONS')) {
+        const instrP = instrEl.closest('p');
+        if (instrP) {
+          document.getElementById('instructions-text').innerHTML = instrP.outerHTML;
+          document.getElementById('instructions-block').style.display = 'block';
+          instrP.remove();
+        }
+      }
+
       // Add anchor IDs to sections
       addAnchors();
 
@@ -155,7 +184,8 @@
       if (text.toUpperCase().includes('FLOURISHING SELF')) return;
       const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       h1.id = id;
-      const label = text.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      const cleanText = text.replace(/\s*[—–-]+\s*(MASTER|THE)\s*.*/i, '').trim();
+      const label = cleanText.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
       const a = document.createElement('a');
       a.href = '#' + id;
       a.textContent = label;
