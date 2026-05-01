@@ -207,7 +207,7 @@
 
 <script>
 const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrZGJ6b3B0Ym9pbnlzc3BucGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjA0NjIsImV4cCI6MjA5MTMzNjQ2Mn0.ccbJRVXNfqmgXuH1J9vL8DgttCAFJ-36gulWpL6R_cQ';
+let ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrZGJ6b3B0Ym9pbnlzc3BucGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjA0NjIsImV4cCI6MjA5MTMzNjQ2Mn0.ccbJRVXNfqmgXuH1J9vL8DgttCAFJ-36gulWpL6R_cQ';
 
 // Field definitions — checked always means "did the good thing"
 // inDB: true means DB stores true=violation, so we invert for display
@@ -571,7 +571,11 @@ async function init() {
   });
 }
 
-init();
+(async () => {
+  const session = await window._authReadyPromise;
+  if (session?.access_token) ANON_KEY = session.access_token;
+  init();
+})();
 </script>
 </body>
 </html>
