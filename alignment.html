@@ -237,7 +237,6 @@ const HARD_NOS = [
 const DEFAULTS = [
   { key: 'alcohol',                 label: 'No alcohol' },
   { key: 'social_media_before_9pm', label: 'No social media before 9pm' },
-  { key: 'wind_down_by_10pm',       label: 'Wind down by 10pm' },
 ];
 const MORNING = [
   { key: 'no_snooze',               label: 'No snooze' },
@@ -259,7 +258,6 @@ const HABIT_ROWS = [
   { key: 'weed',                    label: 'No weed',          inverted: true,  hardNo: true },
   { key: 'alcohol',                 label: 'No alcohol',       inverted: true },
   { key: 'social_media_before_9pm', label: 'No SM <9pm',       inverted: true },
-  { key: 'wind_down_by_10pm',       label: 'Wind down 10pm',   inverted: false },
   { key: 'no_snooze',               label: 'No snooze',        inverted: false },
   { key: 'morning_walk',            label: 'Morning walk',     inverted: false },
   { key: 'startup_sequence',        label: 'Startup seq',      inverted: false },
@@ -400,6 +398,13 @@ function renderDay() {
           <label>Last caffeine</label>
           <input type="time" data-col="last_caffeine" data-type="time" value="${fmtTime(row.last_caffeine)}">
         </div>
+      </div>
+      <div class="times-row" style="margin-bottom:12px;grid-template-columns:1fr 2fr">
+        <div class="time-cell">
+          <label>Wind down</label>
+          <input type="time" data-col="wind_down_time" data-type="time" value="${fmtTime(row.wind_down_time)}">
+        </div>
+        <div></div>
       </div>
       <div id="sleep-duration" style="font-size:12px;color:var(--dim);margin-bottom:12px;text-align:center">${sleepDurationLabel(row.bedtime, row.wake_time)}</div>
       <div class="toggle-list">
