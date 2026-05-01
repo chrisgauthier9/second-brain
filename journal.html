@@ -141,6 +141,7 @@
     <a href="balance.html">Balance</a>
     <a href="journal.html" class="active">Journal</a>
     <button class="lock-toggle" id="lock-toggle" onclick="toggleLock()">🔒 Locked</button>
+    <a href="flourishing-self.html">Flourishing Self</a>
   </nav>
 </header>
 
@@ -289,7 +290,7 @@ function renderList(filterDate = null) {
     const d = new Date(e.entry_date + 'T12:00:00');
     const dateStr = d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
     const weekday = DAYS[d.getDay()];
-    const preview = (e.body || '').replace(/^#+ .*/gm, '').replace(/\\/g, '').trim().slice(0, 100);
+    const preview = (e.body || '').replace(/^#+ .*/gm, '').replace(/\/g, '').trim().slice(0, 100);
     const isActive = e.id === selectedId;
     return `<div class="entry-item${isActive?' active':''}" onclick="selectEntry(${e.id})">
       <div class="entry-item-date">${dateStr} · ${weekday}</div>
@@ -352,18 +353,19 @@ function closeEntry() {
 
 function renderBody(text) {
   return text
-    .replace(/\\/g, '')
+    .replace(/\/g, '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\n/g, '<br>');
+    .replace(/
+/g, '<br>');
 }
 
 function escHtml(s) {
-  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\/g,'');
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\/g,'');
 }
 
 // ── Editing ─────────────────────────────────────────────
