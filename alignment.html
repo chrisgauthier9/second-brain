@@ -337,11 +337,11 @@ function renderDay() {
       <h2>Sleep & body</h2>
       <div class="times-row" style="margin-bottom:12px">
         <div class="time-cell">
-          <label>Sleep</label>
-          <input type="time" data-col="sleep_time" data-type="time" value="${fmtTime(row.sleep_time)}">
+          <label>Bedtime <span style="color:var(--dim);font-size:10px">(last night)</span></label>
+          <input type="time" data-col="bedtime" data-type="time" value="${fmtTime(row.bedtime)}">
         </div>
         <div class="time-cell">
-          <label>Wake</label>
+          <label>Wake <span style="color:var(--dim);font-size:10px">(this morning)</span></label>
           <input type="time" data-col="wake_time" data-type="time" value="${fmtTime(row.wake_time)}">
         </div>
         <div class="time-cell">
@@ -349,6 +349,7 @@ function renderDay() {
           <input type="time" data-col="last_caffeine" data-type="time" value="${fmtTime(row.last_caffeine)}">
         </div>
       </div>
+      <div id="sleep-duration" style="font-size:12px;color:var(--dim);margin-bottom:12px;text-align:center">${sleepDurationLabel(row.bedtime, row.wake_time)}</div>
       <div class="toggle-list">
         ${MORNING.concat(BODY).map(t => toggleHTML(t, row)).join('')}
       </div>
@@ -456,6 +457,27 @@ function toggleHTML(item, row) {
 function fmtNum(v) { return v != null ? Number(v).toFixed(2).replace(/\.?0+$/, '') : ''; }
 function fmtTime(v) { return v ? String(v).slice(0,5) : ''; }
 
+function sleepDurationLabel(bedtime, wake) {
+  if (!bedtime || !wake) return '&nbsp;';
+  const [bh, bm] = String(bedtime).slice(0,5).split(':').map(Number);
+  const [wh, wm] = String(wake).slice(0,5).split(':').map(Number);
+  if ([bh, bm, wh, wm].some(n => Number.isNaN(n))) return '&nbsp;';
+  // Bedtime treated as the night before the wake. If bedtime hour >= 12 (PM),
+  // it falls before midnight; otherwise (after midnight), it's same morning.
+  let bedMin = bh * 60 + bm;
+  const wakeMin = wh * 60 + wm;
+  // Convention: if bedtime is later than wake on the clock, assume it's PM the night before.
+  let durationMin;
+  if (bedMin > wakeMin) {
+    durationMin = (24 * 60 - bedMin) + wakeMin;
+  } else {
+    durationMin = wakeMin - bedMin;
+  }
+  const hours = Math.floor(durationMin / 60);
+  const mins = durationMin % 60;
+  return `Slept ${hours}h${mins ? ' ' + mins + 'm' : ''}`;
+}
+
 function setStatus(state, msg) {
   const el = document.getElementById('save-status');
   if (!el) return;
@@ -477,6 +499,11 @@ async function saveCell(input) {
   }
   const r = DATA[CURRENT_DATE] || (DATA[CURRENT_DATE] = { date: CURRENT_DATE });
   r[col] = value;
+  // Refresh sleep duration display if bedtime or wake changed
+  if (col === 'bedtime' || col === 'wake_time') {
+    const el = document.getElementById('sleep-duration');
+    if (el) el.innerHTML = sleepDurationLabel(r.bedtime, r.wake_time);
+  }
   await saveValue(col, value);
 }
 
