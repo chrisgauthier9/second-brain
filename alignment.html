@@ -3,10 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Second Brain">
   <meta name="theme-color" content="#111827">
   <title>Alignment – Second Brain</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,63 +11,122 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #111827; --card: #1f2937; --border: #374151;
-      --text: #f3f4f6; --muted: #9ca3af; --dim: #6b7280; --deep: #0f172a;
+      --bg: #111827; --card: #1f2937; --border: #374151; --deep: #0f172a;
+      --text: #f3f4f6; --muted: #9ca3af; --dim: #6b7280;
       --accent: #7c3aed; --ok: #34d399; --warn: #fbbf24; --err: #f87171;
+      --hard-no: #f87171;
     }
-    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 13px; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
     header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
     .logo { font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; white-space: nowrap; }
     .nav-links { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; align-items: center; }
-    .nav-links a { font-size: 13px; color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: background .15s; white-space: nowrap; }
+    .nav-links a { font-size: 13px; color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 6px; }
     .nav-links a:hover { background: var(--border); color: var(--text); }
     .nav-links a.active { background: var(--accent); color: #fff; }
 
-    main { padding: 24px; }
+    main { max-width: 720px; margin: 0 auto; padding: 20px 16px 60px; }
     h1 { font-size: 22px; font-weight: 700; margin-bottom: 16px; }
-    .help { font-size: 11px; color: var(--dim); margin-bottom: 16px; }
 
-    .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: auto; max-height: calc(100vh - 180px); }
-    table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 12px; }
-    thead { position: sticky; top: 0; z-index: 2; background: var(--deep); }
-    th {
-      padding: 10px 8px; text-align: left; font-size: 10px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: .04em; color: var(--dim);
-      border-bottom: 1px solid var(--border); white-space: nowrap;
+    .tabs {
+      display: flex; gap: 4px; background: var(--deep); border-radius: 10px; padding: 3px; margin-bottom: 20px;
     }
-    th.col-date { position: sticky; left: 0; background: var(--deep); z-index: 3; }
-    td { padding: 0; border-bottom: 1px solid var(--border); border-right: 1px solid #1a2332; vertical-align: middle; }
-    td.col-date {
-      position: sticky; left: 0; background: var(--card); z-index: 1;
-      padding: 6px 10px; white-space: nowrap; font-weight: 500; color: var(--muted);
-      border-right: 1px solid var(--border);
+    .tab {
+      flex: 1; padding: 10px 0; border: none; border-radius: 8px;
+      background: transparent; color: var(--dim); font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit; letter-spacing: .03em;
     }
-    tr.today td.col-date { color: #a78bfa; font-weight: 600; }
-    tr.today td { background: rgba(124,58,237,.05); }
+    .tab.active { background: var(--card); color: var(--text); }
 
-    /* Cell inputs — minimal, fill the cell, change border on focus / save state */
-    input.cell, .cell-checkbox-wrap {
-      width: 100%; height: 32px; padding: 0 8px;
-      background: transparent; border: none; outline: none;
-      color: var(--text); font-family: inherit; font-size: 12px;
+    /* Today summary card */
+    .today-summary {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+      margin-bottom: 12px; cursor: pointer; transition: border-color .15s;
     }
-    input.cell:focus { background: rgba(124,58,237,.15); }
-    input.cell.num { text-align: right; min-width: 56px; }
-    input.cell.time { min-width: 90px; }
-    input.cell.text { min-width: 220px; }
-    .cell-checkbox-wrap { display: flex; align-items: center; justify-content: center; cursor: pointer; }
-    .cell-checkbox-wrap input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
-    .cell-derived {
-      width: 100%; height: 32px; display: flex; align-items: center; justify-content: center;
-      color: var(--ok); font-weight: 600;
+    .today-summary:hover { border-color: var(--accent); }
+    .today-summary .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin-bottom: 4px; }
+    .today-summary .date { font-size: 17px; font-weight: 700; }
+    .today-summary .arrow { color: var(--accent); font-size: 18px; }
+
+    /* Quick stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+    .stat {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; text-align: center;
+    }
+    .stat .stat-val { font-size: 20px; font-weight: 700; line-height: 1.1; }
+    .stat .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin-top: 4px; }
+    .stat .stat-unit { font-size: 11px; color: var(--dim); margin-left: 1px; }
+
+    /* Section title */
+    h2 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 18px 0 10px; }
+
+    /* Mini habit cards on Today tab */
+    .habit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .habit-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .habit-card .h-label { font-size: 12px; color: var(--muted); }
+    .habit-card .h-val   { font-size: 14px; font-weight: 600; color: var(--text); }
+    .habit-card.broken { border-color: var(--hard-no); background: rgba(248,113,113,.08); }
+    .habit-card.broken .h-val { color: var(--hard-no); }
+    .habit-card.ok .h-val { color: var(--ok); }
+
+    /* HISTORY heatmap */
+    .history-controls { display: flex; gap: 6px; margin-bottom: 14px; }
+    .range-btn {
+      background: var(--card); border: 1px solid var(--border); color: var(--muted);
+      padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px;
+    }
+    .range-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .heatmap-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; overflow-x: auto; }
+    .heatmap-table { border-collapse: separate; border-spacing: 2px; font-size: 11px; min-width: 100%; }
+    .heatmap-table th, .heatmap-table td { padding: 0; }
+    .heatmap-table th.row-label {
+      text-align: left; padding-right: 10px; color: var(--muted); font-weight: 500;
+      font-size: 11px; white-space: nowrap; min-width: 110px;
+    }
+    .heatmap-table td.day-cell {
+      width: 18px; height: 18px; border-radius: 3px; cursor: pointer;
+      background: #2c3441; transition: transform .1s;
+    }
+    .heatmap-table td.day-cell:hover { transform: scale(1.3); outline: 1px solid var(--text); }
+    .heatmap-table td.day-cell.hit  { background: var(--ok); }
+    .heatmap-table td.day-cell.miss { background: var(--hard-no); }
+    .heatmap-table td.day-cell.partial { background: var(--warn); }
+    .heatmap-table td.day-cell.empty { background: #2c3441; opacity: .4; }
+    .heatmap-table .col-header {
+      font-size: 9px; color: var(--dim); writing-mode: vertical-rl; transform: rotate(180deg);
+      height: 30px; padding: 0 1px;
     }
 
-    /* Save state indicators on the row */
-    tr.saving td.col-date::after { content: '·'; color: var(--warn); margin-left: 6px; font-size: 18px; line-height: 0; }
-    tr.saved  td.col-date::after { content: '✓'; color: var(--ok);   margin-left: 6px; font-size: 11px; }
-    tr.error  td.col-date::after { content: '!'; color: var(--err);  margin-left: 6px; font-size: 14px; font-weight: 700; }
+    .legend { display: flex; gap: 12px; margin-top: 10px; font-size: 10px; color: var(--dim); flex-wrap: wrap; }
+    .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+
+    .streaks-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 18px;
+    }
+    .streak-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .streak-card .label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .streak-card .num { font-size: 20px; font-weight: 700; color: var(--ok); }
+    .streak-card .num.zero { color: var(--dim); }
+    .streak-card .sub { font-size: 10px; color: var(--dim); margin-top: 2px; }
 
     .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .help { font-size: 11px; color: var(--dim); margin-bottom: 12px; }
+
+    /* MOBILE tweaks */
+    @media (max-width: 520px) {
+      .heatmap-table th.row-label { min-width: 90px; font-size: 10px; }
+      .heatmap-table td.day-cell { width: 14px; height: 14px; }
+      .stats-row { grid-template-columns: 1fr 1fr 1fr; }
+      .stat .stat-val { font-size: 17px; }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="auth.js"></script>
@@ -89,34 +144,40 @@
 </header>
 <main>
   <h1>Alignment</h1>
-  <div class="help">Click any cell to edit. Changes save automatically when you click off (or hit Enter / Tab).</div>
-  <div id="app"><div class="loading">Loading…</div></div>
+  <div class="tabs">
+    <button class="tab active" id="tab-today">Today</button>
+    <button class="tab" id="tab-history">History</button>
+  </div>
+  <div id="view"><div class="loading">Loading…</div></div>
 </main>
 
 <script>
-// Column definitions, in render order. type: 'num' | 'time' | 'bool' | 'text' | 'derived'
-const COLS = [
-  { key: 'hoot_hours',              label: 'Hoot (h)',     type: 'num' },
-  { key: 'finnian_hours',           label: 'Finnian (h)',  type: 'num' },
-  { key: 'tempo_hours',             label: 'Tempo (h)',    type: 'num' },
-  { key: 'sleep_time',              label: 'Sleep',        type: 'time' },
-  { key: 'wake_time',               label: 'Wake',         type: 'time' },
-  { key: 'last_caffeine',           label: 'Last caffeine',type: 'time' },
-  { key: 'trained',                 label: 'Trained',      type: 'derived' },
-  { key: 'read_flourishing_self',   label: 'Read FS',      type: 'bool' },
-  { key: 'morning_walk',            label: 'Walk',         type: 'bool' },
-  { key: 'no_snooze',               label: 'No snooze',    type: 'bool' },
-  { key: 'startup_sequence',        label: 'Startup seq',  type: 'bool' },
-  { key: 'wind_down_by_10pm',       label: 'Wind down 10', type: 'bool' },
-  { key: 'protein_hit',             label: 'Protein',      type: 'bool' },
-  { key: 'porn',                    label: 'Porn',         type: 'bool' },
-  { key: 'phone_to_kill_silence',   label: 'Phone silence',type: 'bool' },
-  { key: 'weed',                    label: 'Weed',         type: 'bool' },
-  { key: 'alcohol',                 label: 'Alcohol',      type: 'bool' },
-  { key: 'social_media_before_9pm', label: 'SM <9pm',      type: 'bool' },
-  { key: 'notes',                   label: 'Notes',        type: 'text' },
+// Hard NOs in the DB are inverted: true = bad behavior happened.
+const HARD_NOS = ['porn', 'phone_to_kill_silence', 'weed'];
+const DEFAULTS = ['alcohol', 'social_media_before_9pm', 'wind_down_by_10pm'];
+const HARD_NO_INVERTED = new Set(['porn', 'phone_to_kill_silence', 'weed', 'alcohol', 'social_media_before_9pm']);
+
+const HABIT_ROWS = [
+  { key: 'porn',                    label: 'No porn',          inverted: true,  hardNo: true },
+  { key: 'phone_to_kill_silence',   label: 'No phone silence', inverted: true,  hardNo: true },
+  { key: 'weed',                    label: 'No weed',          inverted: true,  hardNo: true },
+  { key: 'alcohol',                 label: 'No alcohol',       inverted: true },
+  { key: 'social_media_before_9pm', label: 'No SM <9pm',       inverted: true },
+  { key: 'wind_down_by_10pm',       label: 'Wind down 10pm',   inverted: false },
+  { key: 'no_snooze',               label: 'No snooze',        inverted: false },
+  { key: 'morning_walk',            label: 'Morning walk',     inverted: false },
+  { key: 'startup_sequence',        label: 'Startup seq',      inverted: false },
+  { key: 'protein_hit',             label: '180g protein',     inverted: false },
+  { key: 'read_flourishing_self',   label: 'Read FS',          inverted: false },
+  { key: 'trained',                 label: 'Trained',          inverted: false, derived: true },
 ];
-const DAYS_BACK = 60;
+
+const DAYS_BACK_HISTORY = 30; // initial range
+
+let DATA = {};        // date -> daily_checkins row
+let TRAINED_DATES = new Set();
+let TAB = (sessionStorage.getItem('alignTab') || 'today');
+let RANGE = 30;
 
 function todayISO() {
   const now = new Date();
@@ -132,138 +193,183 @@ function dateRange(daysBack) {
   }
   return days;
 }
-function fmtDateLabel(iso) {
+function fmtDayLabel(iso) {
   const d = new Date(iso + 'T12:00:00');
   return d.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-let DATA = {};
-let TRAINED_DATES = new Set();
-
-function cellHTML(col, row) {
-  if (col.type === 'derived' && col.key === 'trained') {
-    const trained = TRAINED_DATES.has(row.date);
-    return `<div class="cell-derived" title="${trained ? 'Session logged on this date' : 'No session logged'}">${trained ? '✓' : '<span style="color:var(--dim)">–</span>'}</div>`;
-  }
-  const v = row?.[col.key];
-  if (col.type === 'bool') {
-    const checked = v === true ? 'checked' : '';
-    return `<label class="cell-checkbox-wrap"><input type="checkbox" data-date="${row.date}" data-col="${col.key}" data-type="bool" ${checked}></label>`;
-  }
-  if (col.type === 'num') {
-    const val = v != null ? Number(v).toFixed(2).replace(/\.?0+$/, '') : '';
-    return `<input class="cell num" type="number" step="0.25" min="0" max="24" value="${val}" data-date="${row.date}" data-col="${col.key}" data-type="num" placeholder="–">`;
-  }
-  if (col.type === 'time') {
-    const val = v ? String(v).slice(0,5) : '';
-    return `<input class="cell time" type="time" value="${val}" data-date="${row.date}" data-col="${col.key}" data-type="time">`;
-  }
-  // text
-  const val = (v ?? '').replace(/"/g, '&quot;');
-  return `<input class="cell text" type="text" value="${val}" data-date="${row.date}" data-col="${col.key}" data-type="text" placeholder="–">`;
-}
-
-function render() {
-  const today = todayISO();
-  const dates = dateRange(DAYS_BACK);
-
-  const headRow = '<tr><th class="col-date">Date</th>' +
-    COLS.map(c => `<th>${c.label}</th>`).join('') +
-    '</tr>';
-
-  const bodyRows = dates.map(date => {
-    const row = DATA[date] || { date };
-    const isToday = date === today;
-    const cells = COLS.map(c => `<td>${cellHTML(c, row)}</td>`).join('');
-    return `<tr data-date="${date}"${isToday ? ' class="today"' : ''}>
-      <td class="col-date">${fmtDateLabel(date)}</td>
-      ${cells}
-    </tr>`;
-  }).join('');
-
-  document.getElementById('app').innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead>${headRow}</thead>
-        <tbody>${bodyRows}</tbody>
-      </table>
-    </div>
-  `;
-
-  // Wire up handlers
-  document.querySelectorAll('input[data-col]').forEach(input => {
-    if (input.type === 'checkbox') {
-      input.addEventListener('change', () => saveCell(input));
-    } else {
-      input.addEventListener('blur', () => saveCell(input));
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') input.blur();
-      });
-    }
-  });
-}
-
-function parseCellValue(input) {
-  const t = input.dataset.type;
-  if (t === 'bool') return input.checked;
-  const raw = input.value.trim();
-  if (raw === '') return null;
-  if (t === 'num') {
-    const n = Number(raw);
-    if (isNaN(n) || n < 0 || n > 24) throw new Error('out of range');
-    return n;
-  }
-  if (t === 'time') return raw; // 'HH:MM'
-  return raw; // text
-}
-
-async function saveCell(input) {
-  const date = input.dataset.date;
-  const col  = input.dataset.col;
-  const tr = document.querySelector(`tr[data-date="${date}"]`);
-
-  let value;
-  try { value = parseCellValue(input); }
-  catch { tr.classList.add('error'); setTimeout(() => tr.classList.remove('error'), 1500); return; }
-
-  // Optimistic local update
-  if (!DATA[date]) DATA[date] = { date };
-  DATA[date][col] = value;
-
-  tr.classList.remove('saved','error'); tr.classList.add('saving');
-
-  const payload = { date, [col]: value };
-  const { error } = await window.sb
-    .from('daily_checkins')
-    .upsert(payload, { onConflict: 'date' });
-
-  tr.classList.remove('saving');
-  if (error) {
-    tr.classList.add('error');
-    console.error('save failed', error);
-    return;
-  }
-  tr.classList.add('saved');
-  setTimeout(() => tr.classList.remove('saved'), 1000);
+// "habit hit?" — returns true/false/null. Null = unset.
+function habitHit(row, h) {
+  if (h.derived && h.key === 'trained') return TRAINED_DATES.has(row.date);
+  const v = row?.[h.key];
+  if (v == null) return null;
+  return h.inverted ? !v : !!v;
 }
 
 async function load() {
   await window._authReadyPromise;
-  const cutoff = dateRange(DAYS_BACK)[DAYS_BACK - 1];
-  const [checkinsRes, sessionsRes] = await Promise.all([
+  const cutoff = dateRange(60)[59]; // load 60 days; render slices the visible portion
+  const [checkinsRes, sessRes] = await Promise.all([
     window.sb.from('daily_checkins').select('*').gte('date', cutoff).order('date', { ascending: false }),
     window.sb.from('sessions').select('date').gte('date', cutoff),
   ]);
-
   if (checkinsRes.error) {
-    document.getElementById('app').innerHTML = `<div class="loading">Error: ${checkinsRes.error.message}</div>`;
+    document.getElementById('view').innerHTML = `<div class="loading">Error: ${checkinsRes.error.message}</div>`;
     return;
   }
   DATA = {};
-  for (const row of (checkinsRes.data || [])) DATA[row.date] = row;
-  TRAINED_DATES = new Set((sessionsRes.data || []).map(s => s.date));
+  for (const r of (checkinsRes.data || [])) DATA[r.date] = r;
+  TRAINED_DATES = new Set((sessRes.data || []).map(s => s.date));
   render();
 }
+
+function render() {
+  document.getElementById('tab-today').classList.toggle('active', TAB === 'today');
+  document.getElementById('tab-history').classList.toggle('active', TAB === 'history');
+  if (TAB === 'today') renderToday();
+  else renderHistory();
+}
+
+function renderToday() {
+  const today = todayISO();
+  const row = DATA[today] || { date: today };
+  const trained = TRAINED_DATES.has(today);
+
+  // Quick stats: hours
+  const h = (k) => row[k] != null ? Number(row[k]) : 0;
+  const hoot = h('hoot_hours'), finn = h('finnian_hours'), tempo = h('tempo_hours');
+
+  // Mini habit cards
+  const habitMini = HABIT_ROWS.filter(h => h.key !== 'trained').map(h => {
+    const v = habitHit(row, h);
+    const text = v === null ? '–' : v ? '✓' : '✗';
+    let cls = '';
+    if (v === true) cls = 'ok';
+    else if (v === false && h.hardNo) cls = 'broken';
+    return `<div class="habit-card ${cls}">
+      <span class="h-label">${h.label}</span>
+      <span class="h-val">${text}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('view').innerHTML = `
+    <div class="today-summary" id="open-today">
+      <div>
+        <div class="label">Today</div>
+        <div class="date">${fmtDayLabel(today)}</div>
+      </div>
+      <div class="arrow">→ Edit</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val" style="color:var(--ok)">${hoot.toFixed(1)}<span class="stat-unit">h</span></div><div class="stat-label">Hoot</div></div>
+      <div class="stat"><div class="stat-val" style="color:#60a5fa">${finn.toFixed(1)}<span class="stat-unit">h</span></div><div class="stat-label">Finnian</div></div>
+      <div class="stat"><div class="stat-val" style="color:#f472b6">${tempo.toFixed(1)}<span class="stat-unit">h</span></div><div class="stat-label">Tempo</div></div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val" style="color:${trained ? 'var(--ok)' : 'var(--dim)'}">${trained ? '✓' : '–'}</div><div class="stat-label">Trained</div></div>
+      <div class="stat"><div class="stat-val">${row.sleep_time ? String(row.sleep_time).slice(0,5) : '–'}</div><div class="stat-label">Sleep</div></div>
+      <div class="stat"><div class="stat-val">${row.wake_time ? String(row.wake_time).slice(0,5) : '–'}</div><div class="stat-label">Wake</div></div>
+    </div>
+
+    <h2>Hard NOs & defaults</h2>
+    <div class="habit-grid">${habitMini}</div>
+
+    <div class="help" style="margin-top:14px">Tap "Today" above to edit details, or jump to <a href="day.html" style="color:var(--accent)">today's full view</a>.</div>
+  `;
+
+  document.getElementById('open-today').addEventListener('click', () => {
+    window.location.href = 'day.html';
+  });
+}
+
+function renderHistory() {
+  const days = dateRange(RANGE).reverse(); // oldest first, so heatmap reads left→right
+  const rows = HABIT_ROWS;
+
+  // Streaks (current streak from today backward)
+  function streakFor(h) {
+    let n = 0;
+    for (const d of dateRange(60)) {
+      const r = DATA[d] || { date: d };
+      const hit = habitHit(r, h);
+      if (hit === true) n++;
+      else if (hit === false) break;
+      else if (n === 0 && hit === null) break;
+      else break;
+    }
+    return n;
+  }
+
+  // Build heatmap grid
+  const headerRow = `<tr><th class="row-label"></th>${days.map(d => {
+    const dt = new Date(d + 'T12:00:00');
+    const isFirstOfMonth = dt.getDate() === 1;
+    const lbl = isFirstOfMonth ? dt.toLocaleDateString('en', { month: 'short' }) + ' ' + dt.getDate() : dt.getDate();
+    return `<th class="col-header">${lbl}</th>`;
+  }).join('')}</tr>`;
+
+  const bodyRows = rows.map(h => {
+    const cells = days.map(d => {
+      const row = DATA[d] || { date: d };
+      const hit = habitHit(row, h);
+      let cls = 'empty';
+      if (hit === true)  cls = 'hit';
+      else if (hit === false) cls = (h.hardNo ? 'miss' : 'partial');
+      return `<td class="day-cell ${cls}" data-date="${d}" title="${fmtDayLabel(d)} — ${h.label}: ${hit === true ? 'hit' : hit === false ? 'missed' : 'no data'}"></td>`;
+    }).join('');
+    return `<tr><th class="row-label">${h.label}</th>${cells}</tr>`;
+  }).join('');
+
+  const streakCards = HABIT_ROWS.filter(h => h.hardNo || h.key === 'trained' || h.key === 'read_flourishing_self').map(h => {
+    const n = streakFor(h);
+    return `<div class="streak-card">
+      <div class="label">${h.label}</div>
+      <div class="num ${n === 0 ? 'zero' : ''}">${n}</div>
+      <div class="sub">day${n === 1 ? '' : 's'}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('view').innerHTML = `
+    <div class="history-controls">
+      <button class="range-btn ${RANGE===7?'active':''}" data-range="7">7d</button>
+      <button class="range-btn ${RANGE===30?'active':''}" data-range="30">30d</button>
+      <button class="range-btn ${RANGE===60?'active':''}" data-range="60">60d</button>
+    </div>
+
+    <div class="heatmap-wrap">
+      <table class="heatmap-table">
+        <thead>${headerRow}</thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:var(--ok)"></span>Hit</span>
+      <span><span class="legend-dot" style="background:var(--hard-no)"></span>Hard NO broken</span>
+      <span><span class="legend-dot" style="background:var(--warn)"></span>Default missed</span>
+      <span><span class="legend-dot" style="background:#2c3441"></span>No data</span>
+    </div>
+
+    <h2>Streaks</h2>
+    <div class="streaks-grid">${streakCards}</div>
+  `;
+
+  document.querySelectorAll('.range-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      RANGE = Number(b.dataset.range);
+      render();
+    });
+  });
+  document.querySelectorAll('.day-cell').forEach(c => {
+    c.addEventListener('click', () => {
+      window.location.href = 'day.html?date=' + c.dataset.date;
+    });
+  });
+}
+
+document.getElementById('tab-today').addEventListener('click', () => { TAB = 'today'; sessionStorage.setItem('alignTab','today'); render(); });
+document.getElementById('tab-history').addEventListener('click', () => { TAB = 'history'; sessionStorage.setItem('alignTab','history'); render(); });
 
 load();
 </script>
