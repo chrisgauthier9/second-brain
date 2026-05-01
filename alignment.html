@@ -76,24 +76,27 @@
     .toggle-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 12px 14px; background: var(--deep); border: 1px solid var(--border);
-      border-radius: 10px; cursor: pointer; user-select: none;
+      border-radius: 10px; user-select: none;
       transition: border-color .15s, background .15s;
+      gap: 10px;
     }
-    .toggle-row:hover { border-color: var(--muted); }
-    .toggle-row .label { font-size: 14px; font-weight: 500; }
-    .toggle-row .switch {
-      width: 44px; height: 24px; background: #2c3441; border-radius: 999px; position: relative;
-      transition: background .2s; flex-shrink: 0;
+    .toggle-row .label { font-size: 14px; font-weight: 500; flex: 1; min-width: 0; }
+    .yn-group {
+      display: inline-flex; gap: 0; background: #2c3441;
+      border-radius: 8px; padding: 2px; flex-shrink: 0;
     }
-    .toggle-row .switch::after {
-      content: ''; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px;
-      background: var(--muted); border-radius: 50%; transition: transform .2s, background .2s;
+    .yn-btn {
+      background: transparent; border: none; cursor: pointer;
+      padding: 6px 14px; font-family: inherit; font-size: 12px; font-weight: 600;
+      color: var(--dim); border-radius: 6px;
+      transition: background .15s, color .15s;
+      min-width: 44px;
     }
-    .toggle-row.on .switch { background: rgba(52,211,153,.3); }
-    .toggle-row.on .switch::after { transform: translateX(20px); background: var(--ok); }
+    .yn-btn:hover { color: var(--text); }
+    .yn-btn.active.yes { background: var(--ok); color: #0f1d18; }
+    .yn-btn.active.no  { background: var(--dim); color: var(--text); }
     section.hard-nos .toggle-row.broken { border-color: var(--hard-no); background: rgba(248,113,113,.12); }
-    section.hard-nos .toggle-row.broken .switch { background: rgba(248,113,113,.3); }
-    section.hard-nos .toggle-row.broken .switch::after { background: var(--hard-no); }
+    section.hard-nos .toggle-row.broken .yn-btn.active.no { background: var(--hard-no); color: #fff; }
 
     .trained-cell {
       padding: 14px; background: var(--deep); border: 1px solid var(--border); border-radius: 10px;
@@ -394,21 +397,33 @@ function renderDay() {
     });
   });
 
-  // Toggles
+  // Toggles — yes/no segmented control. Tapping the active button clears to null.
   document.querySelectorAll('.toggle-row').forEach(rowEl => {
-    rowEl.addEventListener('click', () => {
-      const col = rowEl.dataset.col;
-      const inverted = HARD_NO_INVERTED.has(col);
-      const currentlyOn = rowEl.classList.contains('on');
-      const newOn = !currentlyOn;
-      const dbVal = inverted ? !newOn : newOn;
-      const r = DATA[CURRENT_DATE] || (DATA[CURRENT_DATE] = { date: CURRENT_DATE });
-      r[col] = dbVal;
-      // Update row class without full re-render so the toggle animates
-      rowEl.classList.toggle('on', newOn);
-      const isHardNo = HARD_NO_KEYS.has(col);
-      rowEl.classList.toggle('broken', isHardNo && !newOn);
-      saveValue(col, dbVal);
+    rowEl.querySelectorAll('.yn-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const col = rowEl.dataset.col;
+        const inverted = HARD_NO_INVERTED.has(col);
+        const display = btn.dataset.display; // 'yes' | 'no'
+        const wasActive = btn.classList.contains('active');
+        // New display state: clicking active button clears to null; clicking inactive sets to that
+        const newDisplay = wasActive ? null : display;
+        // Map display state back to db value
+        let dbVal = null;
+        if (newDisplay === 'yes') dbVal = inverted ? false : true;
+        else if (newDisplay === 'no') dbVal = inverted ? true  : false;
+
+        // Update visual state
+        rowEl.querySelectorAll('.yn-btn').forEach(b => b.classList.remove('active'));
+        if (newDisplay) btn.classList.add('active');
+        const isHardNo = HARD_NO_KEYS.has(col);
+        rowEl.classList.toggle('broken', isHardNo && newDisplay === 'no');
+
+        // Update local cache + persist
+        const r = DATA[CURRENT_DATE] || (DATA[CURRENT_DATE] = { date: CURRENT_DATE });
+        r[col] = dbVal;
+        saveValue(col, dbVal);
+      });
     });
   });
 }
@@ -416,12 +431,25 @@ function renderDay() {
 function toggleHTML(item, row) {
   const v = row?.[item.key];
   const inverted = HARD_NO_INVERTED.has(item.key);
-  const on = v == null ? false : (inverted ? !v : !!v);
+  // "on" semantics = the *good* outcome.
+  // For inverted columns: db false (or null mapped to false) means good.
+  // We track three display states based on raw db value:
+  //   v === null/undefined -> neither active (null state)
+  //   v === true  -> for inverted: NO active (bad). For normal: YES active (good).
+  //   v === false -> for inverted: YES active (good). For normal: NO active (bad).
+  let displayState = null; // 'yes' | 'no' | null
+  if (v === true)  displayState = inverted ? 'no'  : 'yes';
+  else if (v === false) displayState = inverted ? 'yes' : 'no';
+
   const isHardNo = HARD_NO_KEYS.has(item.key);
-  const broken = isHardNo && !on && v !== null && v !== undefined;
-  return `<div class="toggle-row${on ? ' on' : ''}${broken ? ' broken' : ''}" data-col="${item.key}">
+  const broken = isHardNo && displayState === 'no';
+
+  return `<div class="toggle-row${broken ? ' broken' : ''}" data-col="${item.key}">
     <span class="label">${item.label}</span>
-    <span class="switch"></span>
+    <div class="yn-group">
+      <button class="yn-btn yes${displayState === 'yes' ? ' active' : ''}" data-display="yes">Yes</button>
+      <button class="yn-btn no${displayState === 'no' ? ' active' : ''}" data-display="no">No</button>
+    </div>
   </div>`;
 }
 
