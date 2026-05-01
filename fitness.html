@@ -235,7 +235,7 @@ function renderExercises() {
       if (a.setCount !== b.setCount) return b.setCount - a.setCount;
       return a.name.localeCompare(b.name);
     });
-  let html = `<input class="search-input" type="text" placeholder="Search exercises…" value="${esc(window._exSearch)}" oninput="window._exSearch=this.value;render()">`;
+  let html = `<input class="search-input" id="exSearchInput" type="text" placeholder="Search exercises…" value="${esc(window._exSearch)}" oninput="window._exSearch=this.value;render();const el=document.getElementById('exSearchInput');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}">`;
   html += `<div class="muscle-pills">${muscles.map(m => `<button class="muscle-pill${window._exFilter===m?' active':''}" onclick="window._exFilter='${m}';render()">${m}</button>`).join('')}</div>`;
   if (filtered.length === 0) html += `<div style="padding:40px;text-align:center;color:var(--muted);font-size:12px">No exercises match</div>`;
   for (const ex of filtered) {
