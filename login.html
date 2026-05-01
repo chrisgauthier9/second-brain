@@ -72,7 +72,7 @@
       btn.disabled = true; err.textContent = '';
       const { error } = await sb.auth.signInWithOAuth({
         provider: 'github',
-        options: { redirectTo: window.location.origin + window.location.pathname.replace(/login\.html$/, 'index.html') },
+        options: { redirectTo: window.location.origin + '/index.html' },
       });
       if (error) {
         btn.disabled = false;
