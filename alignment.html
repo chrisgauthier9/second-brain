@@ -207,26 +207,27 @@
 const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrZGJ6b3B0Ym9pbnlzc3BucGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjA0NjIsImV4cCI6MjA5MTMzNjQ2Mn0.ccbJRVXNfqmgXuH1J9vL8DgttCAFJ-36gulWpL6R_cQ';
 
-// Field definitions
+// Field definitions — checked always means "did the good thing"
+// inDB: true means the DB stores true=violation (bad), so we invert for display
 const HARD_NOS = [
-  { key: 'porn', label: 'Porn', bad: true },
-  { key: 'phone_to_kill_silence', label: 'Phone to kill silence', bad: true },
-  { key: 'weed', label: 'Weed', bad: true },
+  { key: 'porn', label: 'No porn', inDB: true },
+  { key: 'phone_to_kill_silence', label: 'Sat with silence', inDB: true },
+  { key: 'weed', label: 'No weed', inDB: true },
 ];
 const DEFAULTS = [
-  { key: 'alcohol', label: 'Drank alcohol', bad: true },
-  { key: 'social_media_before_9pm', label: 'Social media before 9pm', bad: true },
-  { key: 'wind_down_by_10pm', label: 'Wind down by 10pm', bad: false },
+  { key: 'alcohol', label: 'No alcohol', inDB: true },
+  { key: 'social_media_before_9pm', label: 'No social media before 9pm', inDB: true },
+  { key: 'wind_down_by_10pm', label: 'Wind down by 10pm', inDB: false },
 ];
 const MORNING = [
-  { key: 'no_snooze', label: 'No snooze', bad: false },
-  { key: 'morning_walk', label: 'Morning walk', bad: false },
-  { key: 'startup_sequence', label: 'Startup sequence', bad: false },
-  { key: 'read_flourishing_self', label: 'Read Flourishing Self', bad: false },
+  { key: 'no_snooze', label: 'No snooze', inDB: false },
+  { key: 'morning_walk', label: 'Morning walk', inDB: false },
+  { key: 'startup_sequence', label: 'Startup sequence', inDB: false },
+  { key: 'read_flourishing_self', label: 'Read Flourishing Self', inDB: false },
 ];
 const BODY = [
-  { key: 'protein_hit', label: '180g protein hit', bad: false },
-  { key: 'caffeine_cutoff_met', label: 'Caffeine cutoff met', bad: false },
+  { key: 'protein_hit', label: '180g protein', inDB: false },
+  { key: 'caffeine_cutoff_met', label: 'Caffeine cutoff met', inDB: false },
 ];
 
 // All trackable bool habits for the grid (excludes hard NOs which are violations)
@@ -241,7 +242,7 @@ const ALL_HABITS = [
   { key: 'alcohol', label: 'No alcohol', invert: true },
   { key: 'social_media_before_9pm', label: 'No social <9pm', invert: true },
   { key: 'porn', label: 'No porn', invert: true },
-  { key: 'phone_to_kill_silence', label: 'No phone silence', invert: true },
+  { key: 'phone_to_kill_silence', label: 'Sat with silence', invert: true },
   { key: 'weed', label: 'No weed', invert: true },
 ];
 
@@ -450,7 +451,7 @@ function toggleItem(item, field) {
 
   item.classList.remove('checked', 'checked-bad');
   if (toggleState[key]) {
-    item.classList.add(field.bad ? 'checked-bad' : 'checked');
+    item.classList.add('checked');
   }
 }
 
@@ -458,12 +459,14 @@ function setToggleFromData(data) {
   if (!data) return;
   const allFields = [...HARD_NOS, ...DEFAULTS, ...MORNING, ...BODY];
   allFields.forEach(f => {
-    toggleState[f.key] = data[f.key] || false;
+    const dbVal = data[f.key] || false;
+    // inDB=true means DB stores true=violation, so invert for display (checked=good)
+    toggleState[f.key] = f.inDB ? !dbVal : dbVal;
     const item = document.querySelector(`[data-key="${f.key}"]`);
     if (!item) return;
     item.classList.remove('checked', 'checked-bad');
     if (toggleState[f.key]) {
-      item.classList.add(f.bad ? 'checked-bad' : 'checked');
+      item.classList.add('checked');
     }
   });
   if (data.sleep_time) document.getElementById('sleep-time').value = data.sleep_time.slice(0, 5);
@@ -483,23 +486,30 @@ async function saveCheckin() {
   const notes = document.getElementById('notes').value || null;
 
   // wind_down_by_10pm: derive from toggle
+  // inDB fields: toggle=true means "did the good thing", but DB stores true=violation, so invert
+  const inDBKeys = ['porn', 'phone_to_kill_silence', 'weed', 'alcohol', 'social_media_before_9pm'];
+  function dbVal(key) {
+    const v = toggleState[key] || false;
+    return inDBKeys.includes(key) ? !v : v;
+  }
+
   const payload = {
     date,
     sleep_time: sleepTime,
     wake_time: wakeTime,
     notes,
-    porn: toggleState['porn'] || false,
-    phone_to_kill_silence: toggleState['phone_to_kill_silence'] || false,
-    weed: toggleState['weed'] || false,
-    alcohol: toggleState['alcohol'] || false,
-    social_media_before_9pm: toggleState['social_media_before_9pm'] || false,
-    wind_down_by_10pm: toggleState['wind_down_by_10pm'] || false,
-    no_snooze: toggleState['no_snooze'] || false,
-    morning_walk: toggleState['morning_walk'] || false,
-    startup_sequence: toggleState['startup_sequence'] || false,
-    read_flourishing_self: toggleState['read_flourishing_self'] || false,
-    protein_hit: toggleState['protein_hit'] || false,
-    caffeine_cutoff_met: toggleState['caffeine_cutoff_met'] || false,
+    porn: dbVal('porn'),
+    phone_to_kill_silence: dbVal('phone_to_kill_silence'),
+    weed: dbVal('weed'),
+    alcohol: dbVal('alcohol'),
+    social_media_before_9pm: dbVal('social_media_before_9pm'),
+    wind_down_by_10pm: dbVal('wind_down_by_10pm'),
+    no_snooze: dbVal('no_snooze'),
+    morning_walk: dbVal('morning_walk'),
+    startup_sequence: dbVal('startup_sequence'),
+    read_flourishing_self: dbVal('read_flourishing_self'),
+    protein_hit: dbVal('protein_hit'),
+    caffeine_cutoff_met: dbVal('caffeine_cutoff_met'),
   };
 
   const r = await fetch(`${SUPABASE_URL}/rest/v1/daily_checkins`, {
