@@ -159,20 +159,40 @@ function render() {
   app.innerHTML = tabs + content;
 }
 
+let calMonth = null, calYear = null;
 function renderSessions() {
   if (DATA.sessions.length === 0) return `<div class="loading">No sessions yet</div>`;
-  return DATA.sessions.map(sess => {
-    const sc2 = DATA.sets.filter(s=>s.date===sess.date&&s.workout_name===sess.workout).length;
-    return `<button class="session-btn" onclick="showDetail('session',DATA.sessions.find(x=>x.date==='${sess.date}'&&x.workout==='${sess.workout}'))">
-      <div style="width:8px;height:8px;border-radius:2px;background:${wc(sess.workout)};flex-shrink:0"></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:${wc(sess.workout)}">${esc(sess.workout)}</div>
-        <div style="font-size:11px;color:var(--dim)">${fmtFull(sess.date)}</div>
-      </div>
-      <span style="font-size:11px;color:var(--dim)">${sc2} sets</span>
-      <span style="color:var(--border)">›</span>
-    </button>`;
-  }).join('');
+  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  if (calMonth === null) { calMonth = now.getMonth(); calYear = now.getFullYear(); }
+  const sessMap = new Map();
+  DATA.sessions.forEach(s => sessMap.set(s.date, s));
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const monthName = ['January','February','March','April','May','June','July','August','September','October','November','December'][calMonth];
+  let html = `<div>
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calMonth--;if(calMonth<0){calMonth=11;calYear--;}render()">‹</button>
+      <span class="cal-month">${monthName} ${calYear}</span>
+      <button class="cal-nav" onclick="calMonth++;if(calMonth>11){calMonth=0;calYear++;}render()">›</button>
+    </div>
+    <div class="cal-grid">
+      ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+      ${Array(firstDay).fill('<div></div>').join('')}`;
+  for (let d=1; d<=daysInMonth; d++) {
+    const iso = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const s = sessMap.get(iso);
+    const isToday = iso===today;
+    const cls = `cal-day${s?' has-session':''}${isToday?' today':''}`;
+    const bg = s ? wc(s.workout) : 'transparent';
+    const click = s ? `onclick="showDetail('session',DATA.sessions.find(x=>x.date==='${iso}'&&x.workout==='${s.workout}'))"` : '';
+    const label = s ? `<span class="cal-day-label">${s.workout.replace('Arms + Shoulders','Arms')}</span>` : '';
+    html += `<button class="${cls}" style="background:${bg}" ${click}><span class="cal-day-num">${d}</span>${label}</button>`;
+  }
+  html += `</div>`;
+  const usedWorkouts = new Set(DATA.sessions.map(s=>s.workout));
+  html += `<div class="legend">${[...usedWorkouts].map(w=>`<div style="display:flex;align-items:center;gap:4px"><div class="legend-dot" style="background:${wc(w)}"></div><span class="legend-label">${w}</span></div>`).join('')}</div></div>`;
+  return html;
 }
 
 function renderSessionDetail(session) {
@@ -189,6 +209,13 @@ function renderSessionDetail(session) {
   return html;
 }
 
+async function toggleFavorite(id, currentVal) {
+  const ex = DATA.exercises.find(e => e.id === id);
+  if (ex) ex.favorite = !currentVal;
+  render();
+  await sb.from('exercises').update({ favorite: !currentVal }).eq('id', id);
+}
+
 function renderExercises() {
   if (!window._exSearch) window._exSearch = '';
   if (!window._exFilter) window._exFilter = 'All';
@@ -200,16 +227,28 @@ function renderExercises() {
     if (window._exSearch && !e.name.toLowerCase().includes(window._exSearch.toLowerCase())) return false;
     return true;
   }).map(e => ({...e, setCount: setCounts.get(e.name)||0}))
-    .sort((a,b) => { if(a.setCount>0&&b.setCount===0) return -1; if(a.setCount===0&&b.setCount>0) return 1; if(a.setCount!==b.setCount) return b.setCount-a.setCount; return a.name.localeCompare(b.name); });
+    .sort((a,b) => {
+      if (a.favorite && !b.favorite) return -1;
+      if (!a.favorite && b.favorite) return 1;
+      if (a.setCount>0 && b.setCount===0) return -1;
+      if (a.setCount===0 && b.setCount>0) return 1;
+      if (a.setCount !== b.setCount) return b.setCount - a.setCount;
+      return a.name.localeCompare(b.name);
+    });
   let html = `<input class="search-input" type="text" placeholder="Search exercises…" value="${esc(window._exSearch)}" oninput="window._exSearch=this.value;render()">`;
   html += `<div class="muscle-pills">${muscles.map(m => `<button class="muscle-pill${window._exFilter===m?' active':''}" onclick="window._exFilter='${m}';render()">${m}</button>`).join('')}</div>`;
   if (filtered.length === 0) html += `<div style="padding:40px;text-align:center;color:var(--muted);font-size:12px">No exercises match</div>`;
   for (const ex of filtered) {
-    html += `<button class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px;opacity:${ex.setCount===0?0.5:1}" onclick="showDetail('exercise',DATA.exercises.find(x=>x.id===${ex.id}))">
+    const starColor = ex.favorite ? '#fbbf24' : 'var(--border)';
+    const starFill = ex.favorite ? '#fbbf24' : 'none';
+    html += `<div class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px;opacity:${ex.setCount===0?0.5:1}" onclick="showDetail('exercise',DATA.exercises.find(x=>x.id===${ex.id}))">
+      <button onclick="event.stopPropagation();toggleFavorite(${ex.id},${ex.favorite})" style="background:none;border:none;padding:4px;cursor:pointer;display:flex;align-items:center" aria-label="Toggle favorite">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="${starFill}" stroke="${starColor}" stroke-width="2" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </button>
       <div class="exercise-bar" style="background:${mc(ex.muscle_group)}"></div>
       <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ex.name)}</div><div style="font-size:11px;color:var(--dim);margin-top:2px"><span style="color:${mc(ex.muscle_group)}">${ex.muscle_group||''}</span><span style="color:var(--border)"> · </span><span>${ex.equipment||''}</span></div></div>
       <span style="font-size:11px;color:var(--dim);background:var(--deep);padding:3px 8px;border-radius:8px">${ex.setCount} sets</span>
-      <span style="color:var(--border)">›</span></button>`;
+      <span style="color:var(--border)">›</span></div>`;
   }
   return html;
 }
