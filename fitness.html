@@ -139,7 +139,7 @@ function fmtFull(iso) { if(!iso) return ''; const [y,m,d]=iso.split('-'); return
 
 function setRow(s) {
   const rpeColor = s.rpe >= 9 ? 'var(--rpe-high)' : s.rpe >= 7 ? 'var(--rpe-mid)' : 'var(--rpe-low)';
-  const reps = s.actual_reps != null ? `x${s.actual_reps}` : (s.target_reps ? `x${s.target_reps} target` : '—');
+  const reps = s.reps != null ? `x${s.reps}` : '—';
   return `<div class="set-row"><span class="set-num">${s.set_number}</span><span class="set-wt">${s.weight != null ? s.weight+'lb' : '—'}</span><span class="set-reps">${reps}</span>${s.rpe ? `<span class="set-rpe" style="color:${rpeColor}">RPE ${s.rpe}</span>` : ''}</div>`;
 }
 
@@ -280,7 +280,7 @@ function renderExerciseDetail(exercise) {
   sessions.sort((a,b) => b.date.localeCompare(a.date));
   const totalSets = sets.length;
   const maxWt = sets.filter(s=>s.weight!=null).reduce((m,s)=>Math.max(m,s.weight),0);
-  const best1RM = sets.filter(s=>s.weight!=null&&s.actual_reps).reduce((m,s)=>Math.max(m,s.weight*(1+s.actual_reps/30)),0);
+  const best1RM = sets.filter(s=>s.weight!=null&&s.reps).reduce((m,s)=>Math.max(m,s.weight*(1+s.reps/30)),0);
   let html = `<div style="margin-bottom:18px"><h2 style="font-size:20px;font-weight:700">${esc(exercise.name)}</h2><div style="display:flex;gap:8px;margin-top:6px"><span class="pill" style="background:${mc(exercise.muscle_group)}22;color:${mc(exercise.muscle_group)}">${exercise.muscle_group||''}</span><span class="pill" style="background:var(--deep);color:var(--dim)">${exercise.equipment||''}</span></div></div>`;
   if (totalSets > 0) {
     html += `<div class="stat-grid"><div class="stat-tile"><div class="stat-val">${totalSets}</div><div class="stat-label">Sets</div></div><div class="stat-tile"><div class="stat-val">${maxWt>0?maxWt:'—'}</div><div class="stat-sub">lbs</div><div class="stat-label">Top weight</div></div><div class="stat-tile"><div class="stat-val">${best1RM>0?Math.round(best1RM):'—'}</div><div class="stat-sub">lbs</div><div class="stat-label">Est 1RM</div></div></div>`;
