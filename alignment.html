@@ -688,13 +688,44 @@ function renderHistory() {
   }).join('')}</tr>`;
 
   const bodyRows = rows.map(h => {
-    const cells = days.map(d => {
+    // Find the first day (chronologically) where this habit has any data.
+    // For non-derived: first day with hit !== null. For trained: first day in TRAINED_DATES.
+    let startedAtIdx = -1;
+    for (let i = 0; i < days.length; i++) {
+      const r = DATA[days[i]] || { date: days[i] };
+      const hv = habitHit(r, h);
+      if (hv !== null) { startedAtIdx = i; break; }
+    }
+
+    let prevMissed = false;
+    const cells = days.map((d, i) => {
       const row = DATA[d] || { date: d };
       const hit = habitHit(row, h);
       let cls = 'empty';
-      if (hit === true) cls = 'hit';
-      else if (hit === false) cls = (h.hardNo ? 'miss' : 'partial');
-      return `<td class="day-cell ${cls}" data-date="${d}" title="${fmtDayLabel(d)} — ${h.label}: ${hit === true ? 'hit' : hit === false ? 'missed' : 'no data'}"></td>`;
+      let title = `${fmtDayLabel(d)} — ${h.label}: ${hit === true ? 'hit' : hit === false ? 'missed' : 'no data'}`;
+
+      if (h.hardNo) {
+        // Hard NO: any explicit "no" is red. Hit is green. Null is gray.
+        if (hit === true) cls = 'hit';
+        else if (hit === false) cls = 'miss';
+        // No streak logic.
+      } else {
+        // Non-Hard-NO: yellow on first miss-in-a-stretch, red on 2nd-consecutive.
+        if (startedAtIdx === -1 || i < startedAtIdx) {
+          cls = 'empty'; // pre-data: gray
+        } else if (hit === true) {
+          cls = 'hit';
+          prevMissed = false;
+        } else {
+          // hit is false OR null after data started -> a miss
+          if (prevMissed) cls = 'miss'; // second consecutive
+          else cls = 'partial';          // first
+          prevMissed = true;
+        }
+      }
+
+      // Reset chain across rows (handled by closing this map iteration).
+      return `<td class="day-cell ${cls}" data-date="${d}" title="${title}"></td>`;
     }).join('');
     return `<tr><th class="row-label">${h.label}</th>${cells}</tr>`;
   }).join('');
@@ -723,8 +754,8 @@ function renderHistory() {
     </div>
     <div class="legend">
       <span><span class="legend-dot" style="background:var(--ok)"></span>Hit</span>
-      <span><span class="legend-dot" style="background:var(--hard-no)"></span>Hard NO broken</span>
-      <span><span class="legend-dot" style="background:var(--warn)"></span>Missed</span>
+      <span><span class="legend-dot" style="background:var(--warn)"></span>First miss</span>
+      <span><span class="legend-dot" style="background:var(--hard-no)"></span>Hard NO broken / 2nd miss in a row</span>
       <span><span class="legend-dot" style="background:#2c3441"></span>No data</span>
     </div>
 
