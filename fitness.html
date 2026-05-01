@@ -111,20 +111,23 @@ let DATA = { exercises:[], sessions:[], sets:[] };
 let STATE = { tab:'sessions', detail:null };
 
 async function loadData() {
-  const [exRes, setsRes] = await Promise.all([
+  const [exRes, sessRes, setsRes] = await Promise.all([
     sb.from('exercises').select('*').order('name'),
+    sb.from('sessions').select('*').order('date'),
     sb.from('sets_log').select('*, exercises(name, muscle_group, equipment)').order('date').order('exercise_order').order('set_number'),
   ]);
   DATA.exercises = exRes.data || [];
   DATA.sets = setsRes.data || [];
 
-  const sessMap = new Map();
-  for (const s of DATA.sets) {
-    const key = `${s.date}|${s.workout_name}`;
-    if (!sessMap.has(key)) sessMap.set(key, { date:s.date, workout:s.workout_name, style:s.style, sets:[] });
-    sessMap.get(key).sets.push(s);
-  }
-  DATA.sessions = Array.from(sessMap.values()).sort((a,b) => b.date.localeCompare(a.date));
+  const sessionsList = (sessRes.data || []).map(s => ({
+    id: s.id,
+    date: s.date,
+    style: s.style,
+    name: s.name,
+    notes: s.notes,
+    sets: DATA.sets.filter(set => set.session_id === s.id),
+  }));
+  DATA.sessions = sessionsList.sort((a,b) => b.date.localeCompare(a.date));
   render();
 }
 
@@ -185,8 +188,8 @@ function renderSessions() {
     const isToday = iso===today;
     const cls = `cal-day${s?' has-session':''}${isToday?' today':''}`;
     const bg = s ? wc(s.style) : 'transparent';
-    const click = s ? `onclick="showDetail('session',DATA.sessions.find(x=>x.date==='${iso}'&&x.workout==='${s.workout}'))"` : '';
-    const label = s ? `<span class="cal-day-label">${s.style||''}</span>` : '';
+    const click = s ? `onclick="showDetail('session',DATA.sessions.find(x=>x.id===${s.id}))"` : '';
+    const label = s ? `<span class="cal-day-label">${esc(s.style||'')}</span>` : '';
     html += `<button class="${cls}" style="background:${bg}" ${click}><span class="cal-day-num">${d}</span>${label}</button>`;
   }
   html += `</div>`;
@@ -196,15 +199,22 @@ function renderSessions() {
 }
 
 function renderSessionDetail(session) {
-  const sets = DATA.sets.filter(s => s.date===session.date && s.workout_name===session.workout);
+  const sets = DATA.sets.filter(s => s.session_id === session.id);
   const exerciseOrder = []; const seen = new Set();
   for (const s of sets) { const n = s.exercises?.name; if(n && !seen.has(n)){exerciseOrder.push(n);seen.add(n);} }
+  const subtitle = session.name ? ` · ${esc(session.name)}` : '';
   let html = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
-    <div><span style="font-size:16px;font-weight:700;color:${wc(session.style)}">${esc(session.style||'—')}</span><span style="font-size:12px;color:var(--muted);margin-left:8px">${fmt(session.date)}</span></div>
+    <div><span style="font-size:16px;font-weight:700;color:${wc(session.style)}">${esc(session.style||'—')}</span><span style="font-size:12px;color:var(--muted);margin-left:8px">${fmt(session.date)}${subtitle}</span></div>
   </div>`;
+  if (sets.length === 0) {
+    html += `<div style="padding:30px 0;text-align:center;color:var(--dim);font-size:13px">No sets logged${session.notes ? '' : ' for this session'}.</div>`;
+  }
   for (const exName of exerciseOrder) {
     const exSets = sets.filter(s=>s.exercises?.name===exName).sort((a,b)=>a.set_number-b.set_number);
     html += `<div style="margin-bottom:14px"><div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">${esc(exName)}</div><div style="display:flex;flex-direction:column;gap:3px">${exSets.map(s=>setRow(s)).join('')}</div></div>`;
+  }
+  if (session.notes) {
+    html += `<div style="margin-top:18px;padding:12px;background:var(--deep);border-radius:8px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Notes</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap">${esc(session.notes)}</div></div>`;
   }
   return html;
 }
@@ -255,10 +265,14 @@ function renderExercises() {
 
 function renderExerciseDetail(exercise) {
   const sets = DATA.sets.filter(s => s.exercise_id === exercise.id);
+  const sessionMap = new Map(DATA.sessions.map(s => [s.id, s]));
   const bySession = new Map();
   for (const s of sets) {
-    const key = `${s.date}|${s.workout_name}`;
-    if (!bySession.has(key)) bySession.set(key, {date:s.date, workout:s.workout_name, style:s.style, sets:[]});
+    const key = s.session_id;
+    if (!bySession.has(key)) {
+      const sess = sessionMap.get(key);
+      bySession.set(key, {date:s.date, style:sess?.style, name:sess?.name, sets:[]});
+    }
     bySession.get(key).sets.push(s);
   }
   const sessions = Array.from(bySession.values());
