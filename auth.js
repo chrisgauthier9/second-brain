@@ -30,8 +30,8 @@
 
   sb.auth.getSession().then(({ data: { session } }) => {
     if (!session) {
-      const here = window.location.pathname.split('/').pop() || 'index.html';
-      if (here !== 'login.html') {
+      const here = (window.location.pathname.split('/').pop() || 'index.html').replace(/\.html$/, '');
+      if (here !== 'login') {
         window.location.replace('login.html');
         return;
       }
@@ -43,8 +43,8 @@
   // If the user signs out elsewhere, kick them back to the login page.
   sb.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') {
-      const here = window.location.pathname.split('/').pop() || 'index.html';
-      if (here !== 'login.html') window.location.replace('login.html');
+      const here = (window.location.pathname.split('/').pop() || 'index.html').replace(/\.html$/, '');
+      if (here !== 'login') window.location.replace('login.html');
     }
   });
 
