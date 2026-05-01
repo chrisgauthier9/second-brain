@@ -149,16 +149,12 @@
   function addAnchors() {
     const tocLinks = document.getElementById('toc-links');
     tocLinks.innerHTML = '';
-    // Assign IDs to h1s too (for completeness)
     document.querySelectorAll('.content h1').forEach(h1 => {
-      const id = h1.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      h1.id = id;
-    });
-    // Build TOC from h2s
-    document.querySelectorAll('.content h2').forEach(h2 => {
-      const text = h2.textContent.trim();
+      const text = h1.textContent.trim();
+      // Skip the page title
+      if (text.toUpperCase().includes('FLOURISHING SELF')) return;
       const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      h2.id = id;
+      h1.id = id;
       const label = text.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
       const a = document.createElement('a');
       a.href = '#' + id;
