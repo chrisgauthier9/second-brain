@@ -14,7 +14,7 @@
       --bg: #111827; --card: #1f2937; --border: #374151; --deep: #0f172a;
       --text: #f3f4f6; --muted: #9ca3af; --dim: #6b7280;
       --accent: #7c3aed; --ok: #34d399; --warn: #fbbf24; --err: #f87171;
-      --hard-no: #f87171;
+      --hard-no: #f87171; --hard-no-bg: rgba(248,113,113,.08);
     }
     body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
     header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
@@ -27,53 +27,93 @@
     main { max-width: 720px; margin: 0 auto; padding: 20px 16px 60px; }
     h1 { font-size: 22px; font-weight: 700; margin-bottom: 16px; }
 
-    .tabs {
-      display: flex; gap: 4px; background: var(--deep); border-radius: 10px; padding: 3px; margin-bottom: 20px;
-    }
-    .tab {
-      flex: 1; padding: 10px 0; border: none; border-radius: 8px;
+    .tabs { display: flex; gap: 4px; background: var(--deep); border-radius: 10px; padding: 3px; margin-bottom: 20px; }
+    .tab { flex: 1; padding: 10px 0; border: none; border-radius: 8px;
       background: transparent; color: var(--dim); font-size: 13px; font-weight: 600;
-      cursor: pointer; font-family: inherit; letter-spacing: .03em;
-    }
+      cursor: pointer; font-family: inherit; letter-spacing: .03em; }
     .tab.active { background: var(--card); color: var(--text); }
 
-    /* Today summary card */
-    .today-summary {
+    /* === Day tab === */
+    .day-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
+    .day-title { font-size: 18px; font-weight: 700; }
+    .day-sub { font-size: 12px; color: var(--dim); }
+    .day-nav { display: flex; gap: 4px; }
+    .day-nav button {
+      background: var(--card); border: 1px solid var(--border); color: var(--muted);
+      padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px;
+    }
+    .day-nav button:hover { border-color: var(--accent); color: var(--text); }
+
+    .save-status { font-size: 11px; color: var(--dim); height: 14px; margin-bottom: 10px; }
+    .save-status.saving { color: var(--warn); }
+    .save-status.saved  { color: var(--ok); }
+    .save-status.error  { color: var(--err); }
+
+    section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    section h2 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin-bottom: 12px; }
+    section.hard-nos { border-color: rgba(248,113,113,.3); background: var(--hard-no-bg); }
+    section.hard-nos h2 { color: var(--hard-no); }
+
+    .hours-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .hours-cell label { display: block; font-size: 11px; color: var(--dim); margin-bottom: 4px; font-weight: 500; }
+    .hours-cell input {
+      width: 100%; padding: 12px; background: var(--deep); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: inherit; font-size: 18px; font-weight: 600;
+      text-align: center; outline: none;
+    }
+    .hours-cell input:focus { border-color: var(--accent); }
+
+    .times-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .time-cell label { display: block; font-size: 11px; color: var(--dim); margin-bottom: 4px; font-weight: 500; }
+    .time-cell input {
+      width: 100%; padding: 10px; background: var(--deep); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: inherit; font-size: 14px;
+      text-align: center; outline: none;
+    }
+    .time-cell input:focus { border-color: var(--accent); }
+
+    .toggle-list { display: flex; flex-direction: column; gap: 8px; }
+    .toggle-row {
       display: flex; align-items: center; justify-content: space-between;
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
-      margin-bottom: 12px; cursor: pointer; transition: border-color .15s;
+      padding: 12px 14px; background: var(--deep); border: 1px solid var(--border);
+      border-radius: 10px; cursor: pointer; user-select: none;
+      transition: border-color .15s, background .15s;
     }
-    .today-summary:hover { border-color: var(--accent); }
-    .today-summary .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin-bottom: 4px; }
-    .today-summary .date { font-size: 17px; font-weight: 700; }
-    .today-summary .arrow { color: var(--accent); font-size: 18px; }
-
-    /* Quick stats row */
-    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
-    .stat {
-      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      padding: 10px 12px; text-align: center;
+    .toggle-row:hover { border-color: var(--muted); }
+    .toggle-row .label { font-size: 14px; font-weight: 500; }
+    .toggle-row .switch {
+      width: 44px; height: 24px; background: #2c3441; border-radius: 999px; position: relative;
+      transition: background .2s; flex-shrink: 0;
     }
-    .stat .stat-val { font-size: 20px; font-weight: 700; line-height: 1.1; }
-    .stat .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin-top: 4px; }
-    .stat .stat-unit { font-size: 11px; color: var(--dim); margin-left: 1px; }
-
-    /* Section title */
-    h2 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 18px 0 10px; }
-
-    /* Mini habit cards on Today tab */
-    .habit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .habit-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      padding: 12px; display: flex; flex-direction: column; gap: 4px;
+    .toggle-row .switch::after {
+      content: ''; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px;
+      background: var(--muted); border-radius: 50%; transition: transform .2s, background .2s;
     }
-    .habit-card .h-label { font-size: 12px; color: var(--muted); }
-    .habit-card .h-val   { font-size: 14px; font-weight: 600; color: var(--text); }
-    .habit-card.broken { border-color: var(--hard-no); background: rgba(248,113,113,.08); }
-    .habit-card.broken .h-val { color: var(--hard-no); }
-    .habit-card.ok .h-val { color: var(--ok); }
+    .toggle-row.on .switch { background: rgba(52,211,153,.3); }
+    .toggle-row.on .switch::after { transform: translateX(20px); background: var(--ok); }
+    section.hard-nos .toggle-row.broken { border-color: var(--hard-no); background: rgba(248,113,113,.12); }
+    section.hard-nos .toggle-row.broken .switch { background: rgba(248,113,113,.3); }
+    section.hard-nos .toggle-row.broken .switch::after { background: var(--hard-no); }
 
-    /* HISTORY heatmap */
+    .trained-cell {
+      padding: 14px; background: var(--deep); border: 1px solid var(--border); border-radius: 10px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .trained-cell .label { font-size: 14px; font-weight: 500; }
+    .trained-cell .badge { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+    .trained-cell .badge.yes { background: rgba(52,211,153,.15); color: var(--ok); }
+    .trained-cell .badge.no  { background: rgba(107,114,128,.15); color: var(--dim); }
+    .trained-cell a { font-size: 12px; color: var(--accent); text-decoration: none; }
+
+    textarea.notes {
+      width: 100%; min-height: 100px; padding: 12px; background: var(--deep);
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-family: inherit; font-size: 13px; line-height: 1.5;
+      resize: vertical; outline: none;
+    }
+    textarea.notes:focus { border-color: var(--accent); }
+
+    /* === History tab === */
     .history-controls { display: flex; gap: 6px; margin-bottom: 14px; }
     .range-btn {
       background: var(--card); border: 1px solid var(--border); color: var(--muted);
@@ -105,27 +145,21 @@
     .legend { display: flex; gap: 12px; margin-top: 10px; font-size: 10px; color: var(--dim); flex-wrap: wrap; }
     .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
 
-    .streaks-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 18px;
-    }
-    .streak-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      padding: 10px 12px;
-    }
+    .streaks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 18px; }
+    .streak-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
     .streak-card .label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
     .streak-card .num { font-size: 20px; font-weight: 700; color: var(--ok); }
     .streak-card .num.zero { color: var(--dim); }
     .streak-card .sub { font-size: 10px; color: var(--dim); margin-top: 2px; }
 
     .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .help { font-size: 11px; color: var(--dim); margin-bottom: 12px; }
 
     /* MOBILE tweaks */
     @media (max-width: 520px) {
       .heatmap-table th.row-label { min-width: 90px; font-size: 10px; }
       .heatmap-table td.day-cell { width: 14px; height: 14px; }
-      .stats-row { grid-template-columns: 1fr 1fr 1fr; }
-      .stat .stat-val { font-size: 17px; }
+      h1 { font-size: 19px; }
+      .day-title { font-size: 16px; }
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -145,18 +179,38 @@
 <main>
   <h1>Alignment</h1>
   <div class="tabs">
-    <button class="tab active" id="tab-today">Today</button>
+    <button class="tab active" id="tab-day">Day</button>
     <button class="tab" id="tab-history">History</button>
   </div>
   <div id="view"><div class="loading">Loading…</div></div>
 </main>
 
 <script>
-// Hard NOs in the DB are inverted: true = bad behavior happened.
-const HARD_NOS = ['porn', 'phone_to_kill_silence', 'weed'];
-const DEFAULTS = ['alcohol', 'social_media_before_9pm', 'wind_down_by_10pm'];
+// ----- Config -----
+const HARD_NOS = [
+  { key: 'porn',                    label: 'Avoided porn' },
+  { key: 'phone_to_kill_silence',   label: 'Avoided phone to kill silence' },
+  { key: 'weed',                    label: 'No weed' },
+];
+const DEFAULTS = [
+  { key: 'alcohol',                 label: 'No alcohol' },
+  { key: 'social_media_before_9pm', label: 'No social media before 9pm' },
+  { key: 'wind_down_by_10pm',       label: 'Wind down by 10pm' },
+];
+const MORNING = [
+  { key: 'no_snooze',               label: 'No snooze' },
+  { key: 'morning_walk',            label: 'Morning walk (10 min)' },
+  { key: 'startup_sequence',        label: 'Startup sequence' },
+];
+const BODY = [
+  { key: 'protein_hit',             label: 'Hit 180g protein' },
+  { key: 'read_flourishing_self',   label: 'Read Flourishing Self' },
+];
+// Hard NO booleans in the DB are inverted: true = bad behavior happened.
 const HARD_NO_INVERTED = new Set(['porn', 'phone_to_kill_silence', 'weed', 'alcohol', 'social_media_before_9pm']);
+const HARD_NO_KEYS = new Set(['porn', 'phone_to_kill_silence', 'weed']);
 
+// History heatmap rows
 const HABIT_ROWS = [
   { key: 'porn',                    label: 'No porn',          inverted: true,  hardNo: true },
   { key: 'phone_to_kill_silence',   label: 'No phone silence', inverted: true,  hardNo: true },
@@ -172,13 +226,14 @@ const HABIT_ROWS = [
   { key: 'trained',                 label: 'Trained',          inverted: false, derived: true },
 ];
 
-const DAYS_BACK_HISTORY = 30; // initial range
+// ----- State -----
+let DATA = {};                              // date -> daily_checkins row (60d preloaded)
+let TRAINED_DATES = new Set();              // dates with at least one session
+let TAB = sessionStorage.getItem('alignTab') || 'day';
+let CURRENT_DATE = todayISO();              // which day the Day tab is currently editing
+let RANGE = 30;                             // history heatmap range
 
-let DATA = {};        // date -> daily_checkins row
-let TRAINED_DATES = new Set();
-let TAB = (sessionStorage.getItem('alignTab') || 'today');
-let RANGE = 30;
-
+// ----- Date helpers -----
 function todayISO() {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().split('T')[0];
@@ -195,10 +250,15 @@ function dateRange(daysBack) {
 }
 function fmtDayLabel(iso) {
   const d = new Date(iso + 'T12:00:00');
-  return d.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+}
+function shiftDate(iso, delta) {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  return d.toISOString().split('T')[0];
 }
 
-// "habit hit?" — returns true/false/null. Null = unset.
+// "habit hit?" — true/false/null. Null = unset.
 function habitHit(row, h) {
   if (h.derived && h.key === 'trained') return TRAINED_DATES.has(row.date);
   const v = row?.[h.key];
@@ -206,9 +266,10 @@ function habitHit(row, h) {
   return h.inverted ? !v : !!v;
 }
 
+// ----- Load -----
 async function load() {
   await window._authReadyPromise;
-  const cutoff = dateRange(60)[59]; // load 60 days; render slices the visible portion
+  const cutoff = dateRange(60)[59];
   const [checkinsRes, sessRes] = await Promise.all([
     window.sb.from('daily_checkins').select('*').gte('date', cutoff).order('date', { ascending: false }),
     window.sb.from('sessions').select('date').gte('date', cutoff),
@@ -224,71 +285,190 @@ async function load() {
 }
 
 function render() {
-  document.getElementById('tab-today').classList.toggle('active', TAB === 'today');
+  document.getElementById('tab-day').classList.toggle('active', TAB === 'day');
   document.getElementById('tab-history').classList.toggle('active', TAB === 'history');
-  if (TAB === 'today') renderToday();
+  if (TAB === 'day') renderDay();
   else renderHistory();
 }
 
-function renderToday() {
-  const today = todayISO();
-  const row = DATA[today] || { date: today };
-  const trained = TRAINED_DATES.has(today);
-
-  // Quick stats: hours
-  const h = (k) => row[k] != null ? Number(row[k]) : 0;
-  const hoot = h('hoot_hours'), finn = h('finnian_hours'), tempo = h('tempo_hours');
-
-  // Mini habit cards
-  const habitMini = HABIT_ROWS.filter(h => h.key !== 'trained').map(h => {
-    const v = habitHit(row, h);
-    const text = v === null ? '–' : v ? '✓' : '✗';
-    let cls = '';
-    if (v === true) cls = 'ok';
-    else if (v === false && h.hardNo) cls = 'broken';
-    return `<div class="habit-card ${cls}">
-      <span class="h-label">${h.label}</span>
-      <span class="h-val">${text}</span>
-    </div>`;
-  }).join('');
+// ----- Day tab — full editor -----
+function renderDay() {
+  const row = DATA[CURRENT_DATE] || { date: CURRENT_DATE };
+  const trained = TRAINED_DATES.has(CURRENT_DATE);
+  const isToday = CURRENT_DATE === todayISO();
 
   document.getElementById('view').innerHTML = `
-    <div class="today-summary" id="open-today">
+    <div class="day-header">
       <div>
-        <div class="label">Today</div>
-        <div class="date">${fmtDayLabel(today)}</div>
+        <div class="day-title">${fmtDayLabel(CURRENT_DATE)}${isToday ? ' <span style="color:var(--accent);font-size:13px">· today</span>' : ''}</div>
+        <div class="day-sub">${CURRENT_DATE}</div>
       </div>
-      <div class="arrow">→ Edit</div>
+      <div class="day-nav">
+        <button id="prev-day">← Prev</button>
+        <button id="today-btn">Today</button>
+        <button id="next-day">Next →</button>
+      </div>
     </div>
 
-    <div class="stats-row">
-      <div class="stat"><div class="stat-val" style="color:var(--ok)">${hoot.toFixed(1)}<span class="stat-unit">h</span></div><div class="stat-label">Hoot</div></div>
-      <div class="stat"><div class="stat-val" style="color:#60a5fa">${finn.toFixed(1)}<span class="stat-unit">h</span></div><div class="stat-label">Finnian</div></div>
-      <div class="stat"><div class="stat-val" style="color:#f472b6">${tempo.toFixed(1)}<span class="stat-unit">h</span></div><div class="stat-label">Tempo</div></div>
-    </div>
+    <div class="save-status" id="save-status"></div>
 
-    <div class="stats-row">
-      <div class="stat"><div class="stat-val" style="color:${trained ? 'var(--ok)' : 'var(--dim)'}">${trained ? '✓' : '–'}</div><div class="stat-label">Trained</div></div>
-      <div class="stat"><div class="stat-val">${row.sleep_time ? String(row.sleep_time).slice(0,5) : '–'}</div><div class="stat-label">Sleep</div></div>
-      <div class="stat"><div class="stat-val">${row.wake_time ? String(row.wake_time).slice(0,5) : '–'}</div><div class="stat-label">Wake</div></div>
-    </div>
+    <section>
+      <h2>Hours</h2>
+      <div class="hours-grid">
+        <div class="hours-cell">
+          <label>Hoot</label>
+          <input type="number" step="0.25" min="0" max="24" data-col="hoot_hours" data-type="num" value="${fmtNum(row.hoot_hours)}" placeholder="0">
+        </div>
+        <div class="hours-cell">
+          <label>Finnian</label>
+          <input type="number" step="0.25" min="0" max="24" data-col="finnian_hours" data-type="num" value="${fmtNum(row.finnian_hours)}" placeholder="0">
+        </div>
+        <div class="hours-cell">
+          <label>Tempo</label>
+          <input type="number" step="0.25" min="0" max="24" data-col="tempo_hours" data-type="num" value="${fmtNum(row.tempo_hours)}" placeholder="0">
+        </div>
+      </div>
+    </section>
 
-    <h2>Hard NOs & defaults</h2>
-    <div class="habit-grid">${habitMini}</div>
+    <section>
+      <h2>Sleep & body</h2>
+      <div class="times-row" style="margin-bottom:12px">
+        <div class="time-cell">
+          <label>Sleep</label>
+          <input type="time" data-col="sleep_time" data-type="time" value="${fmtTime(row.sleep_time)}">
+        </div>
+        <div class="time-cell">
+          <label>Wake</label>
+          <input type="time" data-col="wake_time" data-type="time" value="${fmtTime(row.wake_time)}">
+        </div>
+        <div class="time-cell">
+          <label>Last caffeine</label>
+          <input type="time" data-col="last_caffeine" data-type="time" value="${fmtTime(row.last_caffeine)}">
+        </div>
+      </div>
+      <div class="toggle-list">
+        ${MORNING.concat(BODY).map(t => toggleHTML(t, row)).join('')}
+      </div>
+    </section>
 
-    <div class="help" style="margin-top:14px">Tap "Today" above to edit details, or jump to <a href="day.html" style="color:var(--accent)">today's full view</a>.</div>
+    <section>
+      <h2>Trained</h2>
+      <div class="trained-cell">
+        <span class="label">${trained ? 'Session logged' : 'No session yet'}</span>
+        ${trained
+          ? '<span class="badge yes">✓ Trained</span>'
+          : `<a href="fitness.html">Log a session →</a>`}
+      </div>
+    </section>
+
+    <section class="hard-nos">
+      <h2>Hard NOs</h2>
+      <div class="toggle-list">
+        ${HARD_NOS.map(t => toggleHTML(t, row)).join('')}
+      </div>
+    </section>
+
+    <section>
+      <h2>Defaults</h2>
+      <div class="toggle-list">
+        ${DEFAULTS.map(t => toggleHTML(t, row)).join('')}
+      </div>
+    </section>
+
+    <section>
+      <h2>Notes</h2>
+      <textarea class="notes" data-col="notes" data-type="text" placeholder="What went down today?">${(row.notes || '').replace(/</g,'&lt;')}</textarea>
+    </section>
   `;
 
-  document.getElementById('open-today').addEventListener('click', () => {
-    window.location.href = 'day.html';
+  // Day nav
+  document.getElementById('prev-day').addEventListener('click', () => { CURRENT_DATE = shiftDate(CURRENT_DATE, -1); render(); });
+  document.getElementById('next-day').addEventListener('click', () => { CURRENT_DATE = shiftDate(CURRENT_DATE, 1); render(); });
+  document.getElementById('today-btn').addEventListener('click', () => { CURRENT_DATE = todayISO(); render(); });
+
+  // Inputs
+  document.querySelectorAll('input[data-col], textarea[data-col]').forEach(input => {
+    input.addEventListener('blur', () => saveCell(input));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && input.tagName !== 'TEXTAREA') input.blur();
+    });
+  });
+
+  // Toggles
+  document.querySelectorAll('.toggle-row').forEach(rowEl => {
+    rowEl.addEventListener('click', () => {
+      const col = rowEl.dataset.col;
+      const inverted = HARD_NO_INVERTED.has(col);
+      const currentlyOn = rowEl.classList.contains('on');
+      const newOn = !currentlyOn;
+      const dbVal = inverted ? !newOn : newOn;
+      const r = DATA[CURRENT_DATE] || (DATA[CURRENT_DATE] = { date: CURRENT_DATE });
+      r[col] = dbVal;
+      // Update row class without full re-render so the toggle animates
+      rowEl.classList.toggle('on', newOn);
+      const isHardNo = HARD_NO_KEYS.has(col);
+      rowEl.classList.toggle('broken', isHardNo && !newOn);
+      saveValue(col, dbVal);
+    });
   });
 }
 
+function toggleHTML(item, row) {
+  const v = row?.[item.key];
+  const inverted = HARD_NO_INVERTED.has(item.key);
+  const on = v == null ? false : (inverted ? !v : !!v);
+  const isHardNo = HARD_NO_KEYS.has(item.key);
+  const broken = isHardNo && !on && v !== null && v !== undefined;
+  return `<div class="toggle-row${on ? ' on' : ''}${broken ? ' broken' : ''}" data-col="${item.key}">
+    <span class="label">${item.label}</span>
+    <span class="switch"></span>
+  </div>`;
+}
+
+function fmtNum(v) { return v != null ? Number(v).toFixed(2).replace(/\.?0+$/, '') : ''; }
+function fmtTime(v) { return v ? String(v).slice(0,5) : ''; }
+
+function setStatus(state, msg) {
+  const el = document.getElementById('save-status');
+  if (!el) return;
+  el.className = 'save-status ' + state;
+  el.textContent = msg;
+}
+
+async function saveCell(input) {
+  const col = input.dataset.col;
+  const type = input.dataset.type;
+  const raw = input.value.trim();
+  let value;
+  if (raw === '') value = null;
+  else if (type === 'num') {
+    value = Number(raw);
+    if (isNaN(value) || value < 0 || value > 24) { setStatus('error', 'Out of range'); return; }
+  } else {
+    value = raw;
+  }
+  const r = DATA[CURRENT_DATE] || (DATA[CURRENT_DATE] = { date: CURRENT_DATE });
+  r[col] = value;
+  await saveValue(col, value);
+}
+
+async function saveValue(col, value) {
+  setStatus('saving', 'Saving…');
+  const payload = { date: CURRENT_DATE, [col]: value };
+  const { error } = await window.sb.from('daily_checkins').upsert(payload, { onConflict: 'date' });
+  if (error) {
+    setStatus('error', 'Save failed: ' + error.message);
+    return;
+  }
+  setStatus('saved', 'Saved');
+  setTimeout(() => { const el = document.getElementById('save-status'); if (el && el.classList.contains('saved')) el.textContent = ''; }, 1200);
+}
+
+// ----- History tab -----
 function renderHistory() {
-  const days = dateRange(RANGE).reverse(); // oldest first, so heatmap reads left→right
+  const days = dateRange(RANGE).reverse();
   const rows = HABIT_ROWS;
 
-  // Streaks (current streak from today backward)
   function streakFor(h) {
     let n = 0;
     for (const d of dateRange(60)) {
@@ -296,13 +476,11 @@ function renderHistory() {
       const hit = habitHit(r, h);
       if (hit === true) n++;
       else if (hit === false) break;
-      else if (n === 0 && hit === null) break;
       else break;
     }
     return n;
   }
 
-  // Build heatmap grid
   const headerRow = `<tr><th class="row-label"></th>${days.map(d => {
     const dt = new Date(d + 'T12:00:00');
     const isFirstOfMonth = dt.getDate() === 1;
@@ -315,7 +493,7 @@ function renderHistory() {
       const row = DATA[d] || { date: d };
       const hit = habitHit(row, h);
       let cls = 'empty';
-      if (hit === true)  cls = 'hit';
+      if (hit === true) cls = 'hit';
       else if (hit === false) cls = (h.hardNo ? 'miss' : 'partial');
       return `<td class="day-cell ${cls}" data-date="${d}" title="${fmtDayLabel(d)} — ${h.label}: ${hit === true ? 'hit' : hit === false ? 'missed' : 'no data'}"></td>`;
     }).join('');
@@ -351,24 +529,25 @@ function renderHistory() {
       <span><span class="legend-dot" style="background:#2c3441"></span>No data</span>
     </div>
 
-    <h2>Streaks</h2>
+    <h2 style="font-size:11px;color:var(--dim);margin:20px 0 10px;text-transform:uppercase;letter-spacing:.08em">Streaks</h2>
     <div class="streaks-grid">${streakCards}</div>
   `;
 
   document.querySelectorAll('.range-btn').forEach(b => {
-    b.addEventListener('click', () => {
-      RANGE = Number(b.dataset.range);
-      render();
-    });
+    b.addEventListener('click', () => { RANGE = Number(b.dataset.range); render(); });
   });
   document.querySelectorAll('.day-cell').forEach(c => {
     c.addEventListener('click', () => {
-      window.location.href = 'day.html?date=' + c.dataset.date;
+      CURRENT_DATE = c.dataset.date;
+      TAB = 'day';
+      sessionStorage.setItem('alignTab', 'day');
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   });
 }
 
-document.getElementById('tab-today').addEventListener('click', () => { TAB = 'today'; sessionStorage.setItem('alignTab','today'); render(); });
+document.getElementById('tab-day').addEventListener('click', () => { TAB = 'day'; sessionStorage.setItem('alignTab','day'); render(); });
 document.getElementById('tab-history').addEventListener('click', () => { TAB = 'history'; sessionStorage.setItem('alignTab','history'); render(); });
 
 load();
