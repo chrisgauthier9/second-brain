@@ -104,7 +104,7 @@ const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_3AzsiWvSIyBQ876U61ahbQ_vQtkdO6J';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const workoutColors = {"Upper A":"var(--upper-a)","Lower A":"var(--lower-a)","Upper B":"var(--upper-b)","Lower B":"var(--lower-b)","Arms + Shoulders":"var(--arms)","Push A":"var(--misc)","Full Body":"var(--upper-a)"};
+const styleColors = {"Weightlifting":"var(--upper-a)","CrossFit":"var(--lower-a)"};
 const muscleColors = {Back:"var(--back)",Biceps:"var(--biceps)",Calves:"var(--calves)",Chest:"var(--chest)",Glutes:"var(--glutes)",Hamstrings:"var(--hamstrings)",Quads:"var(--quads)",Shoulders:"var(--shoulders)",Triceps:"var(--triceps)"};
 
 let DATA = { exercises:[], sessions:[], sets:[] };
@@ -121,14 +121,14 @@ async function loadData() {
   const sessMap = new Map();
   for (const s of DATA.sets) {
     const key = `${s.date}|${s.workout_name}`;
-    if (!sessMap.has(key)) sessMap.set(key, { date:s.date, workout:s.workout_name, sets:[] });
+    if (!sessMap.has(key)) sessMap.set(key, { date:s.date, workout:s.workout_name, style:s.style, sets:[] });
     sessMap.get(key).sets.push(s);
   }
   DATA.sessions = Array.from(sessMap.values()).sort((a,b) => b.date.localeCompare(a.date));
   render();
 }
 
-function wc(w) { return workoutColors[w] || 'var(--misc)'; }
+function wc(s) { return styleColors[s] || 'var(--misc)'; }
 function mc(m) { return muscleColors[m] || 'var(--misc)'; }
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmt(iso) { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]} ${+d}`; }
@@ -184,14 +184,14 @@ function renderSessions() {
     const s = sessMap.get(iso);
     const isToday = iso===today;
     const cls = `cal-day${s?' has-session':''}${isToday?' today':''}`;
-    const bg = s ? wc(s.workout) : 'transparent';
+    const bg = s ? wc(s.style) : 'transparent';
     const click = s ? `onclick="showDetail('session',DATA.sessions.find(x=>x.date==='${iso}'&&x.workout==='${s.workout}'))"` : '';
-    const label = s ? `<span class="cal-day-label">${s.workout.replace('Arms + Shoulders','Arms')}</span>` : '';
+    const label = s ? `<span class="cal-day-label">${s.style||''}</span>` : '';
     html += `<button class="${cls}" style="background:${bg}" ${click}><span class="cal-day-num">${d}</span>${label}</button>`;
   }
   html += `</div>`;
-  const usedWorkouts = new Set(DATA.sessions.map(s=>s.workout));
-  html += `<div class="legend">${[...usedWorkouts].map(w=>`<div style="display:flex;align-items:center;gap:4px"><div class="legend-dot" style="background:${wc(w)}"></div><span class="legend-label">${w}</span></div>`).join('')}</div></div>`;
+  const usedStyles = new Set(DATA.sessions.map(s=>s.style).filter(Boolean));
+  html += `<div class="legend">${[...usedStyles].map(st=>`<div style="display:flex;align-items:center;gap:4px"><div class="legend-dot" style="background:${wc(st)}"></div><span class="legend-label">${st}</span></div>`).join('')}</div></div>`;
   return html;
 }
 
@@ -200,7 +200,7 @@ function renderSessionDetail(session) {
   const exerciseOrder = []; const seen = new Set();
   for (const s of sets) { const n = s.exercises?.name; if(n && !seen.has(n)){exerciseOrder.push(n);seen.add(n);} }
   let html = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
-    <div><span style="font-size:16px;font-weight:700;color:${wc(session.workout)}">${session.workout}</span><span style="font-size:12px;color:var(--muted);margin-left:8px">${fmt(session.date)}</span></div>
+    <div><span style="font-size:16px;font-weight:700;color:${wc(session.style)}">${esc(session.style||'—')}</span><span style="font-size:12px;color:var(--muted);margin-left:8px">${fmt(session.date)}</span></div>
   </div>`;
   for (const exName of exerciseOrder) {
     const exSets = sets.filter(s=>s.exercises?.name===exName).sort((a,b)=>a.set_number-b.set_number);
@@ -258,7 +258,7 @@ function renderExerciseDetail(exercise) {
   const bySession = new Map();
   for (const s of sets) {
     const key = `${s.date}|${s.workout_name}`;
-    if (!bySession.has(key)) bySession.set(key, {date:s.date, workout:s.workout_name, sets:[]});
+    if (!bySession.has(key)) bySession.set(key, {date:s.date, workout:s.workout_name, style:s.style, sets:[]});
     bySession.get(key).sets.push(s);
   }
   const sessions = Array.from(bySession.values());
@@ -274,7 +274,7 @@ function renderExerciseDetail(exercise) {
   if (sessions.length > 0) {
     html += `<h3 class="section-label">History (${sessions.length} sessions)</h3>`;
     for (const sess of sessions) {
-      html += `<div style="margin-bottom:14px"><div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><span style="font-size:12px;font-weight:600">${fmtFull(sess.date)}</span><span style="font-size:11px;color:${wc(sess.workout)};font-weight:600">${sess.workout}</span><span style="flex:1"></span><span style="font-size:11px;color:var(--dim)">${sess.sets.length} sets</span></div><div style="display:flex;flex-direction:column;gap:3px">${sess.sets.map(s=>setRow(s)).join('')}</div></div>`;
+      html += `<div style="margin-bottom:14px"><div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><span style="font-size:12px;font-weight:600">${fmtFull(sess.date)}</span><span style="font-size:11px;color:${wc(sess.style)};font-weight:600">${esc(sess.style||'')}</span><span style="flex:1"></span><span style="font-size:11px;color:var(--dim)">${sess.sets.length} sets</span></div><div style="display:flex;flex-direction:column;gap:3px">${sess.sets.map(s=>setRow(s)).join('')}</div></div>`;
     }
   }
   return html;
