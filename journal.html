@@ -101,6 +101,29 @@
 
     .loading-state { padding: 40px; text-align: center; color: #4b5563; font-size: 13px; }
     .count-badge { font-size: 11px; color: #6b7280; padding: 12px 20px 8px; font-weight: 500; }
+    /* ===== Mobile hamburger menu ===== */
+    .nav-toggle {
+      display: none; background: transparent; border: none; cursor: pointer;
+      padding: 6px 8px; margin-left: auto; color: var(--text, #f3f4f6);
+      font-family: inherit;
+    }
+    .nav-toggle svg { display: block; width: 22px; height: 22px; }
+    @media (max-width: 600px) {
+      .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+      .nav-links {
+        position: absolute; top: 100%; left: 0; right: 0;
+        background: #1f2937; border-bottom: 1px solid #374151;
+        flex-direction: column; gap: 0; padding: 6px 0;
+        margin-left: 0; align-items: stretch;
+        max-height: 0; overflow: hidden; transition: max-height .2s ease, padding .2s ease;
+      }
+      .nav-links.open { max-height: 360px; padding: 6px 0; }
+      .nav-links a {
+        padding: 12px 24px; border-radius: 0; font-size: 14px;
+      }
+      header { position: relative; }
+    }
+
 
   </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="auth.js"></script>
@@ -480,6 +503,44 @@ async function load() {
   renderList();
 })();
 </script>
+
+<!-- MOBILE_NAV_HAMBURGER_INJECTED -->
+
+<script>
+(function () {
+  // Build a hamburger button and inject it before .nav-links if not already present
+  var nav = document.querySelector('header .nav-links');
+  var hdr = document.querySelector('header');
+  if (!nav || !hdr || hdr.querySelector('.nav-toggle')) return;
+  var btn = document.createElement('button');
+  btn.className = 'nav-toggle';
+  btn.setAttribute('aria-label', 'Open menu');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
+  hdr.insertBefore(btn, nav);
+
+  function close() {
+    nav.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var open = nav.classList.toggle('open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  // Close on outside tap
+  document.addEventListener('click', function (e) {
+    if (!nav.classList.contains('open')) return;
+    if (nav.contains(e.target) || btn.contains(e.target)) return;
+    close();
+  });
+  // Close after picking a link
+  nav.addEventListener('click', function (e) {
+    if (e.target.tagName === 'A') close();
+  });
+})();
+</script>
+
 </body>
 </html>
 
