@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Second Brain">
+  <meta name="theme-color" content="#111827">
+  <title>Alignment · Second Brain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #111827; color: #f3f4f6; min-height: 100vh; font-size: 14px; }
+
+    header { background: #1f2937; border-bottom: 1px solid #374151; padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+    .logo { font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; white-space: nowrap; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; align-items: center; }
+    .nav-links a { font-size: 13px; color: #9ca3af; text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: background .15s; white-space: nowrap; }
+    .nav-links a:hover { background: #374151; color: #f3f4f6; }
+    .nav-links a.active { background: #7c3aed; color: #fff; }
+
+    main { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .page-subtitle { font-size: 13px; color: #6b7280; margin-bottom: 36px; }
+
+    /* Alert Banner */
+    #skip-alert { display: none; background: #7f1d1d; border: 1px solid #dc2626; border-radius: 10px; padding: 14px 18px; margin-bottom: 24px; }
+    #skip-alert.visible { display: block; }
+    #skip-alert .alert-title { font-size: 13px; font-weight: 700; color: #fca5a5; margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
+    #skip-alert .alert-items { font-size: 13px; color: #fecaca; line-height: 1.8; }
+
+    /* Section */
+    .section { margin-bottom: 40px; }
+    .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280; margin-bottom: 14px; }
+
+    /* Stat row */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: #1f2937; border: 1px solid #374151; border-radius: 10px; padding: 16px; }
+    .stat-card .stat-val { font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+    .stat-card .stat-label { font-size: 12px; color: #6b7280; }
+    .stat-card.good .stat-val { color: #34d399; }
+    .stat-card.warn .stat-val { color: #fbbf24; }
+    .stat-card.bad .stat-val { color: #f87171; }
+    .stat-card.neutral .stat-val { color: #a78bfa; }
+
+    /* Habit grid */
+    .habit-grid-wrap { background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 20px; overflow-x: auto; }
+    .habit-grid-header { display: grid; gap: 2px; margin-bottom: 6px; }
+    .habit-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .habit-name { font-size: 12px; color: #9ca3af; width: 160px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .habit-cells { display: flex; gap: 3px; }
+    .habit-cell { width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0; position: relative; cursor: default; }
+    .habit-cell[title]:hover::after { content: attr(title); position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); background: #374151; color: #f3f4f6; font-size: 11px; padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 10; pointer-events: none; }
+    .cell-good { background: #059669; }
+    .cell-bad { background: #dc2626; }
+    .cell-ok { background: #374151; }
+    .cell-empty { background: #1f2937; border: 1px solid #374151; }
+    .cell-skip2 { background: #dc2626; outline: 2px solid #fbbf24; outline-offset: 1px; }
+
+    /* Date labels */
+    .date-labels { display: flex; gap: 3px; margin-left: 168px; margin-bottom: 4px; }
+    .date-label { width: 20px; font-size: 9px; color: #4b5563; text-align: center; flex-shrink: 0; }
+
+    /* Log form */
+    .log-form { background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 24px; }
+    .form-date-row { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+    .form-date-row label { font-size: 13px; color: #9ca3af; }
+    .form-date-row input[type="date"] { background: #111827; border: 1px solid #374151; color: #f3f4f6; border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: inherit; }
+
+    .bool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .bool-item { display: flex; align-items: center; gap: 10px; background: #111827; border: 1px solid #374151; border-radius: 8px; padding: 10px 14px; cursor: pointer; transition: border-color .15s; user-select: none; }
+    .bool-item:hover { border-color: #6b7280; }
+    .bool-item.checked { border-color: #059669; background: #064e3b22; }
+    .bool-item.checked-bad { border-color: #dc2626; background: #7f1d1d22; }
+    .bool-item .toggle { width: 36px; height: 20px; border-radius: 10px; background: #374151; position: relative; flex-shrink: 0; transition: background .15s; }
+    .bool-item.checked .toggle { background: #059669; }
+    .bool-item.checked-bad .toggle { background: #dc2626; }
+    .bool-item .toggle::after { content: ''; position: absolute; width: 14px; height: 14px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: left .15s; }
+    .bool-item.checked .toggle::after, .bool-item.checked-bad .toggle::after { left: 19px; }
+    .bool-item .bool-label { font-size: 12px; color: #9ca3af; line-height: 1.3; }
+    .bool-item.checked .bool-label, .bool-item.checked-bad .bool-label { color: #f3f4f6; }
+
+    .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .time-field { display: flex; flex-direction: column; gap: 6px; }
+    .time-field label { font-size: 12px; color: #6b7280; }
+    .time-field input { background: #111827; border: 1px solid #374151; color: #f3f4f6; border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit; }
+
+    .notes-field { margin-bottom: 20px; }
+    .notes-field label { font-size: 12px; color: #6b7280; display: block; margin-bottom: 6px; }
+    .notes-field textarea { width: 100%; background: #111827; border: 1px solid #374151; color: #f3f4f6; border-radius: 6px; padding: 10px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 80px; }
+
+    .save-btn { background: #7c3aed; color: #fff; border: none; border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .15s; }
+    .save-btn:hover { background: #6d28d9; }
+    .save-btn:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+    .save-msg { font-size: 13px; color: #34d399; margin-left: 12px; display: none; }
+    .save-msg.visible { display: inline; }
+
+    .section-divider { border: none; border-top: 1px solid #374151; margin: 40px 0; }
+
+    footer { text-align: center; padding: 24px; color: #374151; font-size: 12px; }
+
+    .hard-no-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; color: #f87171; margin-left: 4px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">Second Brain</a>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="fitness.html">Fitness</a>
+    <a href="balance.html">Balance</a>
+    <a href="alignment.html" class="active">Alignment</a>
+    <a href="journal.html">Journal</a>
+    <a href="flourishing-self.html">Flourishing Self</a>
+  </nav>
+</header>
+
+<main>
+  <div class="page-title">Alignment</div>
+  <div class="page-subtitle">Daily habits tracked against the Flourishing Self. Never skip twice.</div>
+
+  <div id="skip-alert">
+    <div class="alert-title">⚠ Never Skip Twice — Act Today</div>
+    <div class="alert-items" id="skip-alert-body"></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="section">
+    <div class="section-label">Last 30 Days</div>
+    <div class="stat-row" id="stat-row">
+      <div class="stat-card neutral"><div class="stat-val" id="stat-days">—</div><div class="stat-label">Days logged</div></div>
+      <div class="stat-card" id="stat-trained-card"><div class="stat-val" id="stat-trained">—</div><div class="stat-label">Days trained</div></div>
+      <div class="stat-card" id="stat-read-card"><div class="stat-val" id="stat-read">—</div><div class="stat-label">Read FS</div></div>
+      <div class="stat-card" id="stat-sleep-card"><div class="stat-val" id="stat-sleep">—</div><div class="stat-label">Wind down ✓</div></div>
+      <div class="stat-card" id="stat-violations-card"><div class="stat-val" id="stat-violations">—</div><div class="stat-label">Hard NO violations</div></div>
+    </div>
+  </div>
+
+  <!-- Habit Grid -->
+  <div class="section">
+    <div class="section-label">30-Day Habit Grid</div>
+    <div class="habit-grid-wrap">
+      <div class="date-labels" id="date-labels"></div>
+      <div id="habit-grid-rows"></div>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- Log Today -->
+  <div class="section">
+    <div class="section-label">Log a Day</div>
+    <div class="log-form">
+      <div class="form-date-row">
+        <label>Date</label>
+        <input type="date" id="log-date">
+      </div>
+
+      <div class="section-label" style="margin-bottom:10px;">🔴 Hard NOs — violations only</div>
+      <div class="bool-grid" id="hard-nos"></div>
+
+      <div class="section-label" style="margin-bottom:10px; margin-top:20px;">🟡 Defaults</div>
+      <div class="bool-grid" id="defaults"></div>
+
+      <div class="section-label" style="margin-bottom:10px; margin-top:20px;">🟢 Morning Protocol</div>
+      <div class="bool-grid" id="morning"></div>
+
+      <div class="section-label" style="margin-bottom:10px; margin-top:20px;">🟢 Body</div>
+      <div class="bool-grid" id="body"></div>
+
+      <div class="section-label" style="margin-bottom:10px; margin-top:20px;">🕐 Sleep</div>
+      <div class="time-row">
+        <div class="time-field">
+          <label>Wind down time</label>
+          <input type="time" id="wind-down-time" placeholder="22:00">
+        </div>
+        <div class="time-field">
+          <label>Sleep time (lights out)</label>
+          <input type="time" id="sleep-time" placeholder="23:00">
+        </div>
+        <div class="time-field">
+          <label>Wake time</label>
+          <input type="time" id="wake-time" placeholder="07:30">
+        </div>
+      </div>
+
+      <div class="notes-field">
+        <label>Notes — anything worth naming</label>
+        <textarea id="notes" placeholder="Deciding or drifting? Anything to name?"></textarea>
+      </div>
+
+      <button class="save-btn" id="save-btn" onclick="saveCheckin()">Save Check-in</button>
+      <span class="save-msg" id="save-msg">✓ Saved</span>
+    </div>
+  </div>
+</main>
+
+<footer>chrisgauthier9 · second-brain</footer>
+
+<script>
+const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrZGJ6b3B0Ym9pbnlzc3BucGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjA0NjIsImV4cCI6MjA5MTMzNjQ2Mn0.ccbJRVXNfqmgXuH1J9vL8DgttCAFJ-36gulWpL6R_cQ';
+
+// Field definitions
+const HARD_NOS = [
+  { key: 'porn', label: 'Porn', bad: true },
+  { key: 'phone_to_kill_silence', label: 'Phone to kill silence', bad: true },
+  { key: 'weed', label: 'Weed', bad: true },
+];
+const DEFAULTS = [
+  { key: 'alcohol', label: 'Drank alcohol', bad: true },
+  { key: 'social_media_before_9pm', label: 'Social media before 9pm', bad: true },
+  { key: 'wind_down_by_10pm', label: 'Wind down by 10pm', bad: false },
+];
+const MORNING = [
+  { key: 'no_snooze', label: 'No snooze', bad: false },
+  { key: 'morning_walk', label: 'Morning walk', bad: false },
+  { key: 'startup_sequence', label: 'Startup sequence', bad: false },
+  { key: 'read_flourishing_self', label: 'Read Flourishing Self', bad: false },
+];
+const BODY = [
+  { key: 'protein_hit', label: '180g protein hit', bad: false },
+  { key: 'caffeine_cutoff_met', label: 'Caffeine cutoff met', bad: false },
+];
+
+// All trackable bool habits for the grid (excludes hard NOs which are violations)
+const ALL_HABITS = [
+  { key: 'read_flourishing_self', label: 'Read FS', invert: false },
+  { key: 'no_snooze', label: 'No snooze', invert: false },
+  { key: 'morning_walk', label: 'Morning walk', invert: false },
+  { key: 'startup_sequence', label: 'Startup sequence', invert: false },
+  { key: 'wind_down_by_10pm', label: 'Wind down 10pm', invert: false },
+  { key: 'protein_hit', label: 'Protein 180g', invert: false },
+  { key: 'caffeine_cutoff_met', label: 'Caffeine cutoff', invert: false },
+  { key: 'alcohol', label: 'No alcohol', invert: true },
+  { key: 'social_media_before_9pm', label: 'No social <9pm', invert: true },
+  { key: 'porn', label: 'No porn', invert: true },
+  { key: 'phone_to_kill_silence', label: 'No phone silence', invert: true },
+  { key: 'weed', label: 'No weed', invert: true },
+];
+
+let checkinData = [];
+let todayCheckin = null;
+let toggleState = {};
+
+async function query(sql) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/execute_sql`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': ANON_KEY,
+      'Authorization': `Bearer ${ANON_KEY}`
+    },
+    body: JSON.stringify({ query: sql })
+  });
+  // Use PostgREST direct table access instead
+  return null;
+}
+
+async function fetchCheckins() {
+  const thirtyAgo = new Date();
+  thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+  const from = thirtyAgo.toISOString().split('T')[0];
+
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/daily_checkins?date=gte.${from}&order=date.asc`, {
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+  });
+  return r.ok ? r.json() : [];
+}
+
+async function fetchTodaySetsLog() {
+  const today = new Date().toISOString().split('T')[0];
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/sets_log?date=eq.${today}&limit=1`, {
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+  });
+  if (!r.ok) return false;
+  const rows = await r.json();
+  return rows.length > 0;
+}
+
+function getToday() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function buildDateRange() {
+  const dates = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return dates;
+}
+
+function getCheckinForDate(date) {
+  return checkinData.find(c => c.date === date) || null;
+}
+
+function habitValue(checkin, habit) {
+  if (!checkin) return null;
+  const raw = checkin[habit.key];
+  if (raw === null || raw === undefined) return null;
+  if (habit.invert) return !raw; // for bad habits, true = violated = bad
+  return raw;
+}
+
+function renderDateLabels(dates) {
+  const wrap = document.getElementById('date-labels');
+  wrap.innerHTML = '';
+  dates.forEach(d => {
+    const day = new Date(d + 'T12:00:00').getDate();
+    const el = document.createElement('div');
+    el.className = 'date-label';
+    el.textContent = day;
+    wrap.appendChild(el);
+  });
+}
+
+function renderHabitGrid(dates) {
+  const wrap = document.getElementById('habit-grid-rows');
+  wrap.innerHTML = '';
+
+  ALL_HABITS.forEach(habit => {
+    const row = document.createElement('div');
+    row.className = 'habit-row';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'habit-name';
+    nameEl.textContent = habit.label;
+    row.appendChild(nameEl);
+
+    const cells = document.createElement('div');
+    cells.className = 'habit-cells';
+
+    dates.forEach((date, i) => {
+      const checkin = getCheckinForDate(date);
+      const val = habitValue(checkin, habit);
+      const cell = document.createElement('div');
+      cell.className = 'habit-cell';
+
+      // Check never-skip-twice: if val is false and previous was also false
+      const prevDate = dates[i - 1];
+      const prevCheckin = prevDate ? getCheckinForDate(prevDate) : null;
+      const prevVal = prevCheckin ? habitValue(prevCheckin, habit) : null;
+      const skip2 = val === false && prevVal === false;
+
+      if (checkin === null) {
+        cell.classList.add('cell-empty');
+      } else if (val === null) {
+        cell.classList.add('cell-ok'); // logged but not filled
+      } else if (skip2) {
+        cell.classList.add('cell-skip2');
+      } else if (val === true) {
+        cell.classList.add('cell-good');
+      } else {
+        cell.classList.add('cell-bad');
+      }
+
+      const displayDate = new Date(date + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+      cell.title = `${displayDate}: ${val === null ? 'not logged' : val ? '✓' : '✗'}`;
+      cells.appendChild(cell);
+    });
+
+    row.appendChild(cells);
+    wrap.appendChild(row);
+  });
+}
+
+function checkNeverSkipTwice() {
+  const dates = buildDateRange();
+  const violations = [];
+
+  ALL_HABITS.forEach(habit => {
+    // Check last two logged days
+    const lastTwo = dates.slice(-2);
+    const vals = lastTwo.map(d => {
+      const c = getCheckinForDate(d);
+      return c ? habitValue(c, habit) : null;
+    });
+    if (vals[0] === false && vals[1] === false) {
+      violations.push(habit.label);
+    }
+  });
+
+  const alert = document.getElementById('skip-alert');
+  const body = document.getElementById('skip-alert-body');
+  if (violations.length > 0) {
+    alert.classList.add('visible');
+    body.innerHTML = violations.map(v => `• ${v} — missed 2 days in a row. Do it today.`).join('<br>');
+  }
+}
+
+function renderStats() {
+  const days = checkinData.length;
+  document.getElementById('stat-days').textContent = days;
+
+  if (days === 0) return;
+
+  const trained = checkinData.filter(c => c.trained).length;
+  const read = checkinData.filter(c => c.read_flourishing_self).length;
+  const windDown = checkinData.filter(c => c.wind_down_by_10pm).length;
+  const violations = checkinData.filter(c => c.porn || c.weed || c.phone_to_kill_silence).length;
+
+  const trainedPct = Math.round((trained / days) * 100);
+  const readPct = Math.round((read / days) * 100);
+  const sleepPct = Math.round((windDown / days) * 100);
+
+  document.getElementById('stat-trained').textContent = `${trainedPct}%`;
+  document.getElementById('stat-read').textContent = `${readPct}%`;
+  document.getElementById('stat-sleep').textContent = `${sleepPct}%`;
+  document.getElementById('stat-violations').textContent = violations;
+
+  setStatColor('stat-trained-card', trainedPct, 80, 50);
+  setStatColor('stat-read-card', readPct, 80, 50);
+  setStatColor('stat-sleep-card', sleepPct, 80, 50);
+  document.getElementById('stat-violations-card').className = `stat-card ${violations === 0 ? 'good' : 'bad'}`;
+}
+
+function setStatColor(id, pct, goodThresh, warnThresh) {
+  const el = document.getElementById(id);
+  if (pct >= goodThresh) el.className = 'stat-card good';
+  else if (pct >= warnThresh) el.className = 'stat-card warn';
+  else el.className = 'stat-card bad';
+}
+
+function buildToggleGroup(containerId, fields) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  fields.forEach(f => {
+    const item = document.createElement('div');
+    item.className = 'bool-item';
+    item.dataset.key = f.key;
+    item.dataset.bad = f.bad ? 'true' : 'false';
+    item.innerHTML = `<div class="toggle"></div><div class="bool-label">${f.label}${f.bad && f.key !== 'wind_down_by_10pm' ? '' : ''}</div>`;
+    item.addEventListener('click', () => toggleItem(item, f));
+    container.appendChild(item);
+  });
+}
+
+function toggleItem(item, field) {
+  const key = field.key;
+  const current = toggleState[key] || false;
+  toggleState[key] = !current;
+
+  item.classList.remove('checked', 'checked-bad');
+  if (toggleState[key]) {
+    item.classList.add(field.bad ? 'checked-bad' : 'checked');
+  }
+}
+
+function setToggleFromData(data) {
+  if (!data) return;
+  const allFields = [...HARD_NOS, ...DEFAULTS, ...MORNING, ...BODY];
+  allFields.forEach(f => {
+    toggleState[f.key] = data[f.key] || false;
+    const item = document.querySelector(`[data-key="${f.key}"]`);
+    if (!item) return;
+    item.classList.remove('checked', 'checked-bad');
+    if (toggleState[f.key]) {
+      item.classList.add(f.bad ? 'checked-bad' : 'checked');
+    }
+  });
+  if (data.sleep_time) document.getElementById('sleep-time').value = data.sleep_time.slice(0, 5);
+  if (data.wake_time) document.getElementById('wake-time').value = data.wake_time.slice(0, 5);
+  if (data.notes) document.getElementById('notes').value = data.notes;
+}
+
+async function saveCheckin() {
+  const btn = document.getElementById('save-btn');
+  const msg = document.getElementById('save-msg');
+  btn.disabled = true;
+  msg.classList.remove('visible');
+
+  const date = document.getElementById('log-date').value;
+  const sleepTime = document.getElementById('sleep-time').value || null;
+  const wakeTime = document.getElementById('wake-time').value || null;
+  const notes = document.getElementById('notes').value || null;
+
+  // wind_down_by_10pm: derive from toggle
+  const payload = {
+    date,
+    sleep_time: sleepTime,
+    wake_time: wakeTime,
+    notes,
+    porn: toggleState['porn'] || false,
+    phone_to_kill_silence: toggleState['phone_to_kill_silence'] || false,
+    weed: toggleState['weed'] || false,
+    alcohol: toggleState['alcohol'] || false,
+    social_media_before_9pm: toggleState['social_media_before_9pm'] || false,
+    wind_down_by_10pm: toggleState['wind_down_by_10pm'] || false,
+    no_snooze: toggleState['no_snooze'] || false,
+    morning_walk: toggleState['morning_walk'] || false,
+    startup_sequence: toggleState['startup_sequence'] || false,
+    read_flourishing_self: toggleState['read_flourishing_self'] || false,
+    protein_hit: toggleState['protein_hit'] || false,
+    caffeine_cutoff_met: toggleState['caffeine_cutoff_met'] || false,
+  };
+
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/daily_checkins`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': ANON_KEY,
+      'Authorization': `Bearer ${ANON_KEY}`,
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  btn.disabled = false;
+  if (r.ok || r.status === 201 || r.status === 200) {
+    msg.classList.add('visible');
+    setTimeout(() => msg.classList.remove('visible'), 3000);
+    await init();
+  } else {
+    const err = await r.text();
+    alert('Error saving: ' + err);
+  }
+}
+
+async function init() {
+  // Set today's date
+  const today = getToday();
+  document.getElementById('log-date').value = today;
+
+  // Build form groups
+  buildToggleGroup('hard-nos', HARD_NOS);
+  buildToggleGroup('defaults', DEFAULTS);
+  buildToggleGroup('morning', MORNING);
+  buildToggleGroup('body', BODY);
+
+  // Fetch data
+  checkinData = await fetchCheckins();
+  const trained = await fetchTodaySetsLog();
+
+  // Pre-fill form with today's data if exists
+  todayCheckin = getCheckinForDate(today);
+  if (todayCheckin) {
+    setToggleFromData(todayCheckin);
+  }
+
+  // Render
+  const dates = buildDateRange();
+  renderDateLabels(dates);
+  renderHabitGrid(dates);
+  renderStats();
+  checkNeverSkipTwice();
+
+  // Date change: load existing data
+  document.getElementById('log-date').addEventListener('change', function() {
+    const existing = getCheckinForDate(this.value);
+    toggleState = {};
+    buildToggleGroup('hard-nos', HARD_NOS);
+    buildToggleGroup('defaults', DEFAULTS);
+    buildToggleGroup('morning', MORNING);
+    buildToggleGroup('body', BODY);
+    document.getElementById('sleep-time').value = '';
+    document.getElementById('wake-time').value = '';
+    document.getElementById('notes').value = '';
+    if (existing) setToggleFromData(existing);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
