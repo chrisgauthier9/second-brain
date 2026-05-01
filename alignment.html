@@ -61,6 +61,10 @@
     input.cell.text { min-width: 220px; }
     .cell-checkbox-wrap { display: flex; align-items: center; justify-content: center; cursor: pointer; }
     .cell-checkbox-wrap input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+    .cell-derived {
+      width: 100%; height: 32px; display: flex; align-items: center; justify-content: center;
+      color: var(--ok); font-weight: 600;
+    }
 
     /* Save state indicators on the row */
     tr.saving td.col-date::after { content: '·'; color: var(--warn); margin-left: 6px; font-size: 18px; line-height: 0; }
@@ -90,20 +94,20 @@
 </main>
 
 <script>
-// Column definitions, in render order. type: 'num' | 'time' | 'bool' | 'text'
+// Column definitions, in render order. type: 'num' | 'time' | 'bool' | 'text' | 'derived'
 const COLS = [
   { key: 'hoot_hours',              label: 'Hoot (h)',     type: 'num' },
   { key: 'finnian_hours',           label: 'Finnian (h)',  type: 'num' },
   { key: 'tempo_hours',             label: 'Tempo (h)',    type: 'num' },
   { key: 'sleep_time',              label: 'Sleep',        type: 'time' },
   { key: 'wake_time',               label: 'Wake',         type: 'time' },
-  { key: 'trained',                 label: 'Trained',      type: 'bool' },
+  { key: 'last_caffeine',           label: 'Last caffeine',type: 'time' },
+  { key: 'trained',                 label: 'Trained',      type: 'derived' },
   { key: 'read_flourishing_self',   label: 'Read FS',      type: 'bool' },
   { key: 'morning_walk',            label: 'Walk',         type: 'bool' },
   { key: 'no_snooze',               label: 'No snooze',    type: 'bool' },
   { key: 'startup_sequence',        label: 'Startup seq',  type: 'bool' },
   { key: 'wind_down_by_10pm',       label: 'Wind down 10', type: 'bool' },
-  { key: 'caffeine_cutoff_met',     label: 'Caff cutoff',  type: 'bool' },
   { key: 'protein_hit',             label: 'Protein',      type: 'bool' },
   { key: 'porn',                    label: 'Porn',         type: 'bool' },
   { key: 'phone_to_kill_silence',   label: 'Phone silence',type: 'bool' },
@@ -134,8 +138,13 @@ function fmtDateLabel(iso) {
 }
 
 let DATA = {};
+let TRAINED_DATES = new Set();
 
 function cellHTML(col, row) {
+  if (col.type === 'derived' && col.key === 'trained') {
+    const trained = TRAINED_DATES.has(row.date);
+    return `<div class="cell-derived" title="${trained ? 'Session logged on this date' : 'No session logged'}">${trained ? '✓' : '<span style="color:var(--dim)">–</span>'}</div>`;
+  }
   const v = row?.[col.key];
   if (col.type === 'bool') {
     const checked = v === true ? 'checked' : '';
@@ -241,18 +250,18 @@ async function saveCell(input) {
 async function load() {
   await window._authReadyPromise;
   const cutoff = dateRange(DAYS_BACK)[DAYS_BACK - 1];
-  const { data, error } = await window.sb
-    .from('daily_checkins')
-    .select('*')
-    .gte('date', cutoff)
-    .order('date', { ascending: false });
+  const [checkinsRes, sessionsRes] = await Promise.all([
+    window.sb.from('daily_checkins').select('*').gte('date', cutoff).order('date', { ascending: false }),
+    window.sb.from('sessions').select('date').gte('date', cutoff),
+  ]);
 
-  if (error) {
-    document.getElementById('app').innerHTML = `<div class="loading">Error: ${error.message}</div>`;
+  if (checkinsRes.error) {
+    document.getElementById('app').innerHTML = `<div class="loading">Error: ${checkinsRes.error.message}</div>`;
     return;
   }
   DATA = {};
-  for (const row of (data || [])) DATA[row.date] = row;
+  for (const row of (checkinsRes.data || [])) DATA[row.date] = row;
+  TRAINED_DATES = new Set((sessionsRes.data || []).map(s => s.date));
   render();
 }
 
