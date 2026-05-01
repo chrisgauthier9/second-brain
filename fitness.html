@@ -114,7 +114,7 @@ async function loadData() {
   const [exRes, sessRes, setsRes] = await Promise.all([
     sb.from('exercises').select('*').order('name'),
     sb.from('sessions').select('*').order('date'),
-    sb.from('sets_log').select('*, exercises(name, muscle_group, equipment)').order('date').order('exercise_order').order('set_number'),
+    sb.from('sets_log').select('*, exercises(name, muscle_group, equipment)').order('date').order('id').order('set_number'),
   ]);
   DATA.exercises = exRes.data || [];
   DATA.sets = setsRes.data || [];
