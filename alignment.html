@@ -117,6 +117,21 @@
     }
     textarea.notes:focus { border-color: var(--accent); }
 
+    .journal-title {
+      width: 100%; padding: 10px 12px; background: var(--deep);
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-family: inherit; font-size: 15px; font-weight: 600;
+      margin-bottom: 8px; outline: none;
+    }
+    .journal-title:focus { border-color: var(--accent); }
+    textarea.journal-body {
+      width: 100%; min-height: 160px; padding: 12px; background: var(--deep);
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-family: 'Lora', Georgia, serif; font-size: 14px; line-height: 1.65;
+      resize: vertical; outline: none;
+    }
+    textarea.journal-body:focus { border-color: var(--accent); }
+
     /* === History tab === */
     .history-controls { display: flex; gap: 6px; margin-bottom: 14px; }
     .range-btn {
@@ -233,6 +248,7 @@ const HABIT_ROWS = [
 // ----- State -----
 let DATA = {};                              // date -> daily_checkins row (60d preloaded)
 let TRAINED_DATES = new Set();              // dates with at least one session
+let JOURNALS = {};                          // date -> array of journal_entries rows (most recent first)
 let TAB = sessionStorage.getItem('alignTab') || 'day';
 let CURRENT_DATE = todayISO();              // which day the Day tab is currently editing
 let RANGE = 30;                             // history heatmap range
@@ -280,9 +296,10 @@ function habitHit(row, h) {
 async function load() {
   await window._authReadyPromise;
   const cutoff = dateRange(60)[59];
-  const [checkinsRes, sessRes] = await Promise.all([
+  const [checkinsRes, sessRes, journalsRes] = await Promise.all([
     window.sb.from('daily_checkins').select('*').gte('date', cutoff).order('date', { ascending: false }),
     window.sb.from('sessions').select('date').gte('date', cutoff),
+    window.sb.from('journal_entries').select('id, entry_date, title, body, source').gte('entry_date', cutoff).order('entry_date', { ascending: false }).order('id', { ascending: false }),
   ]);
   if (checkinsRes.error) {
     document.getElementById('view').innerHTML = `<div class="loading">Error: ${checkinsRes.error.message}</div>`;
@@ -291,6 +308,11 @@ async function load() {
   DATA = {};
   for (const r of (checkinsRes.data || [])) DATA[r.date] = r;
   TRAINED_DATES = new Set((sessRes.data || []).map(s => s.date));
+  JOURNALS = {};
+  for (const j of (journalsRes.data || [])) {
+    if (!JOURNALS[j.entry_date]) JOURNALS[j.entry_date] = [];
+    JOURNALS[j.entry_date].push(j);
+  }
   render();
 }
 
@@ -390,6 +412,11 @@ function renderDay() {
       <h2>Notes</h2>
       <textarea class="notes" data-col="notes" data-type="text" placeholder="What went down today?">${(row.notes || '').replace(/</g,'&lt;')}</textarea>
     </section>
+
+    <section>
+      <h2>Daily journal${(JOURNALS[CURRENT_DATE]||[]).length > 1 ? ` <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">· editing most recent of ${(JOURNALS[CURRENT_DATE]||[]).length}</span>` : ''}</h2>
+      ${journalSectionHTML()}
+    </section>
   `;
 
   // Day nav
@@ -402,6 +429,16 @@ function renderDay() {
     input.addEventListener('blur', () => saveCell(input));
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && input.tagName !== 'TEXTAREA') input.blur();
+    });
+  });
+
+  // Journal title + body — save on blur
+  document.querySelectorAll('[data-jfield]').forEach(el => {
+    el.addEventListener('blur', () => {
+      saveJournalField(el.dataset.jfield, el.value.trim());
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && el.tagName !== 'TEXTAREA') el.blur();
     });
   });
 
@@ -482,6 +519,57 @@ function toggleHTML(item, row) {
 
 function fmtNum(v) { return v != null ? Number(v).toFixed(2).replace(/\.?0+$/, '') : ''; }
 function fmtTime(v) { return v ? String(v).slice(0,5) : ''; }
+
+function escAttr(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+function escText(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+function journalSectionHTML() {
+  const list = JOURNALS[CURRENT_DATE] || [];
+  const entry = list[0]; // most recent (or undefined for new)
+  const title = entry?.title || '';
+  const body  = entry?.body  || '';
+  return `
+    <input class="journal-title" type="text" placeholder="Title (optional)" value="${escAttr(title)}" data-jfield="title">
+    <textarea class="journal-body" placeholder="Today's entry…" data-jfield="body">${escText(body)}</textarea>
+  `;
+}
+
+async function saveJournalField(field, value) {
+  setStatus('saving', 'Saving…');
+  const list = JOURNALS[CURRENT_DATE] || [];
+  let entry = list[0];
+
+  if (entry) {
+    // UPDATE existing
+    const patch = { [field]: value === '' ? null : value };
+    const { data, error } = await window.sb
+      .from('journal_entries')
+      .update(patch)
+      .eq('id', entry.id)
+      .select('id, entry_date, title, body, source')
+      .single();
+    if (error) { setStatus('error', 'Save failed: ' + error.message); return; }
+    JOURNALS[CURRENT_DATE][0] = data;
+  } else {
+    // INSERT new
+    if (value === '' || value == null) {
+      // Don't create an empty entry
+      setStatus('saved', 'Saved');
+      setTimeout(() => { const el = document.getElementById('save-status'); if (el && el.classList.contains('saved')) el.textContent = ''; }, 1200);
+      return;
+    }
+    const payload = { entry_date: CURRENT_DATE, source: 'manual', [field]: value };
+    const { data, error } = await window.sb
+      .from('journal_entries')
+      .insert(payload)
+      .select('id, entry_date, title, body, source')
+      .single();
+    if (error) { setStatus('error', 'Save failed: ' + error.message); return; }
+    JOURNALS[CURRENT_DATE] = [data, ...(JOURNALS[CURRENT_DATE] || [])];
+  }
+  setStatus('saved', 'Saved');
+  setTimeout(() => { const el = document.getElementById('save-status'); if (el && el.classList.contains('saved')) el.textContent = ''; }, 1200);
+}
 
 function sleepDurationLabel(bedtime, wake) {
   if (!bedtime || !wake) return '&nbsp;';
