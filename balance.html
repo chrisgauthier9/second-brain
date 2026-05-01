@@ -76,7 +76,6 @@
     <a href="balance.html" class="active">Balance</a>
     <a href="journal.html">Journal</a>
     <a href="alignment.html">Alignment</a>
-    <span class="nav-meta" id="last-updated"></span>
     <a href="flourishing-self.html">Flourishing Self</a>
   </nav>
 </header>
@@ -203,7 +202,8 @@ function render(logs) {
     </div>
   `;
 
-  document.getElementById('last-updated').textContent = `refreshed ${new Date().toLocaleTimeString()}`;
+  const lu = document.getElementById('last-updated');
+  if (lu) lu.textContent = `refreshed ${new Date().toLocaleTimeString()}`;
 }
 
 async function load() {
