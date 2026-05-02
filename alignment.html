@@ -44,7 +44,8 @@
     }
     .day-nav button:hover { border-color: var(--accent); color: var(--text); }
 
-    .save-status { font-size: 11px; color: var(--dim); height: 14px; margin-bottom: 10px; }
+    .save-status { font-size: 11px; color: var(--dim); min-height: 14px; margin-bottom: 10px; line-height: 14px; }
+    .save-status:empty { display: none; }
     .save-status.saving { color: var(--warn); }
     .save-status.saved  { color: var(--ok); }
     .save-status.error  { color: var(--err); }
@@ -203,11 +204,11 @@
       header { position: relative; }
 
       /* Mobile compaction */
-      h1 { font-size: 18px; margin-bottom: 12px; }
-      main { padding: 14px 12px 60px; }
+      h1 { font-size: 18px; margin-bottom: 10px; }
+      main { padding: 12px 12px 60px; }
       section { padding: 12px; margin-bottom: 10px; border-radius: 10px; }
       section h2 { font-size: 10px; margin-bottom: 10px; }
-      .day-header { gap: 8px; margin-bottom: 10px; }
+      .day-header { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 10px; flex-wrap: nowrap; }
       .day-title { font-size: 16px; line-height: 1.25; }
       .day-sub { font-size: 11px; }
       .day-nav { width: 100%; gap: 4px; }
@@ -218,7 +219,7 @@
       .toggle-row { padding: 10px 12px; gap: 8px; }
       .toggle-row .label { font-size: 13px; }
       .yn-btn { padding: 6px 10px; min-width: 40px; font-size: 11px; }
-      .tabs { margin-bottom: 14px; }
+      .tabs { margin-bottom: 12px; }
       .tab { padding: 9px 0; font-size: 12px; }
       textarea.notes { min-height: 80px; }
       textarea.journal-body { min-height: 130px; }
@@ -380,7 +381,6 @@ function renderDay() {
     <div class="day-header">
       <div>
         <div class="day-title">${fmtDayLabel(CURRENT_DATE)}${isToday ? ' <span style="color:var(--accent);font-size:13px">· today</span>' : ''}</div>
-        <div class="day-sub">${CURRENT_DATE}</div>
       </div>
       <div class="day-nav">
         <button id="prev-day">← Prev</button>
@@ -425,12 +425,11 @@ function renderDay() {
           <input type="time" data-col="last_caffeine" data-type="time" value="${fmtTime(row.last_caffeine)}">
         </div>
       </div>
-      <div class="times-row" style="margin-bottom:12px;grid-template-columns:1fr 2fr">
-        <div class="time-cell">
+      <div style="margin-bottom:12px">
+        <div class="time-cell" style="max-width:200px">
           <label>Wind down</label>
           <input type="time" data-col="wind_down_time" data-type="time" value="${fmtTime(row.wind_down_time)}">
         </div>
-        <div></div>
       </div>
       <div id="sleep-duration" style="font-size:12px;color:var(--dim);margin-bottom:12px;text-align:center">${sleepDurationLabel(row.bedtime, row.wake_time)}</div>
       <div class="toggle-list">
