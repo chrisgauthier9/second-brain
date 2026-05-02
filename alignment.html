@@ -282,17 +282,31 @@ const HARD_NO_KEYS = new Set(['porn', 'phone_to_kill_silence', 'weed']);
 
 // History heatmap rows
 const HABIT_ROWS = [
+  // Hours — minimum 1.0h each
+  { key: 'hoot_hours',              label: 'Hoot ≥1h',         derived: true, dtype: 'min', col: 'hoot_hours',    threshold: 1.0 },
+  { key: 'finnian_hours',           label: 'Finnian ≥1h',      derived: true, dtype: 'min', col: 'finnian_hours', threshold: 1.0 },
+  { key: 'tempo_hours',             label: 'Tempo ≥1h',        derived: true, dtype: 'min', col: 'tempo_hours',   threshold: 1.0 },
+  // Sleep — bedtime ≤ 23:00, wake ≤ 07:30, sleep ≥ 8.5h, last_caffeine ≤ 15:00, wind_down ≤ 22:00
+  { key: 'bedtime',                 label: 'Bed ≤11pm',        derived: true, dtype: 'time_max', col: 'bedtime',         threshold: '23:00', allowAfterMidnight: true },
+  { key: 'wake_time',               label: 'Wake ≤7:30',       derived: true, dtype: 'time_max', col: 'wake_time',       threshold: '07:30' },
+  { key: 'sleep_duration',          label: 'Sleep ≥8.5h',      derived: true, dtype: 'sleep_duration', threshold: 8.5 },
+  { key: 'last_caffeine',           label: 'Caff ≤3pm',        derived: true, dtype: 'time_max', col: 'last_caffeine',   threshold: '15:00' },
+  { key: 'wind_down_time',          label: 'Wind down ≤10pm',  derived: true, dtype: 'time_max', col: 'wind_down_time',  threshold: '22:00' },
+  // Hard NOs
   { key: 'porn',                    label: 'No porn',          inverted: true,  hardNo: true },
   { key: 'phone_to_kill_silence',   label: 'No phone silence', inverted: true,  hardNo: true },
   { key: 'weed',                    label: 'No weed',          inverted: true,  hardNo: true },
+  // Defaults (booleans, inverted)
   { key: 'alcohol',                 label: 'No alcohol',       inverted: true },
   { key: 'social_media_before_9pm', label: 'No SM <9pm',       inverted: true },
+  // Morning + body
   { key: 'no_snooze',               label: 'No snooze',        inverted: false },
   { key: 'morning_walk',            label: 'Morning walk',     inverted: false },
   { key: 'startup_sequence',        label: 'Startup seq',      inverted: false },
   { key: 'protein_hit',             label: '180g protein',     inverted: false },
   { key: 'read_flourishing_self',   label: 'Read FS',          inverted: false },
-  { key: 'trained',                 label: 'Trained',          inverted: false, derived: true },
+  // Trained — its own special rule (single skip OK, 2-in-a-row red)
+  { key: 'trained',                 label: 'Trained',          inverted: false, derived: true, dtype: 'trained' },
 ];
 
 // ----- State -----
@@ -330,9 +344,58 @@ function shiftDate(iso, delta) {
 
 // "habit hit?" — true/false/null. Null = unset / didn't track / N/A.
 function habitHit(row, h) {
-  if (h.derived && h.key === 'trained') {
-    return TRAINED_DATES.has(row.date) ? true : null;
+  // ----- Derived rows -----
+  if (h.derived) {
+    // Trained: special-cased at the cell level (single skip OK), so here just
+    // report true if a session exists, null otherwise.
+    if (h.dtype === 'trained' || h.key === 'trained') {
+      return TRAINED_DATES.has(row.date) ? true : null;
+    }
+    // Minimum-value threshold (e.g. hours ≥ 1.0)
+    if (h.dtype === 'min') {
+      const v = row?.[h.col];
+      if (v == null) return null;
+      return Number(v) >= h.threshold;
+    }
+    // Time must be no later than threshold ("HH:MM"). Times stored as "HH:MM:SS".
+    if (h.dtype === 'time_max') {
+      const v = row?.[h.col];
+      if (v == null) return null;
+      const [th, tm] = h.threshold.split(':').map(Number);
+      const [vh, vm] = String(v).slice(0,5).split(':').map(Number);
+      const tMin = th * 60 + tm;
+      const vMin = vh * 60 + vm;
+      // For bedtime: late-night times (e.g. 11:30 PM) and post-midnight times (12:30 AM)
+      // both come from "yesterday going to bed." Treat anything between noon and 11:59 PM
+      // as "evening of the previous day" — measured against threshold normally.
+      // Anything 00:00-11:59 AM is "early morning after going to bed late" — always a miss
+      // for bedtime, since threshold is 23:00 and you went to bed after midnight.
+      if (h.allowAfterMidnight) {
+        // bedtime 22:00 → hit; 00:30 → miss (you went to bed after midnight, past 23:00)
+        // Express in minutes-from-noon to make comparison sensible:
+        // <noon means after midnight ⇒ definitely past 23:00 of previous day ⇒ miss.
+        if (vMin < 12 * 60) return false;
+        return vMin <= tMin;
+      }
+      return vMin <= tMin;
+    }
+    // Sleep duration ≥ threshold hours
+    if (h.dtype === 'sleep_duration') {
+      const bed = row?.bedtime;
+      const wake = row?.wake_time;
+      if (!bed || !wake) return null;
+      const [bh, bm] = String(bed).slice(0,5).split(':').map(Number);
+      const [wh, wm] = String(wake).slice(0,5).split(':').map(Number);
+      let bedMin = bh * 60 + bm;
+      const wakeMin = wh * 60 + wm;
+      let durationMin;
+      if (bedMin > wakeMin) durationMin = (24*60 - bedMin) + wakeMin;
+      else durationMin = wakeMin - bedMin;
+      return (durationMin / 60) >= h.threshold;
+    }
   }
+
+  // ----- Direct boolean / text rows -----
   const v = row?.[h.key];
   if (v == null) return null;
   // protein_hit is text: 'yes' | 'no' | 'untracked'
@@ -752,7 +815,7 @@ function renderHistory() {
         if (hit === true) cls = 'hit';
         else if (hit === false) cls = 'miss';
         // No streak logic.
-      } else if (h.derived && h.key === 'trained') {
+      } else if (h.derived && (h.dtype === 'trained' || h.key === 'trained')) {
         // Trained: a single skip is fine (gray). Two skips in a row -> red.
         if (startedAtIdx === -1 || i < startedAtIdx) {
           cls = 'empty';
@@ -767,16 +830,20 @@ function renderHistory() {
         }
       } else {
         // Non-Hard-NO: yellow on first miss-in-a-stretch, red on 2nd-consecutive.
+        // Null = no data (gray), does not count as a miss or break a streak.
         if (startedAtIdx === -1 || i < startedAtIdx) {
-          cls = 'empty'; // pre-data: gray
+          cls = 'empty';
         } else if (hit === true) {
           cls = 'hit';
           prevMissed = false;
-        } else {
-          // hit is false OR null after data started -> a miss
+        } else if (hit === false) {
           if (prevMissed) cls = 'miss'; // second consecutive
           else cls = 'partial';          // first
           prevMissed = true;
+        } else {
+          // hit === null: no data
+          cls = 'empty';
+          // Don't reset prevMissed — gaps don't break streaks
         }
       }
 
