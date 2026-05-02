@@ -65,6 +65,7 @@
     .hours-cell input:focus { border-color: var(--accent); }
 
     .times-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .times-row.times-4 { grid-template-columns: repeat(4, 1fr); }
     .time-cell label { display: block; font-size: 11px; color: var(--dim); margin-bottom: 4px; font-weight: 500; }
     .time-cell input {
       width: 100%; padding: 10px; background: var(--deep); border: 1px solid var(--border);
@@ -215,6 +216,7 @@
       .day-nav button { flex: 1; padding: 8px 6px; font-size: 12px; }
       .hours-cell input { padding: 10px; font-size: 16px; }
       .hours-grid, .times-row { gap: 6px; }
+      .times-row.times-4 { grid-template-columns: repeat(2, 1fr); }
       .time-cell input { padding: 8px; font-size: 13px; }
       .toggle-row { padding: 10px 12px; gap: 8px; }
       .toggle-row .label { font-size: 13px; }
@@ -411,27 +413,25 @@ function renderDay() {
 
     <section>
       <h2>Sleep & body</h2>
-      <div class="times-row" style="margin-bottom:12px">
+      <div class="times-row times-4">
         <div class="time-cell">
-          <label>Bedtime <span style="color:var(--dim);font-size:10px">(last night)</span></label>
+          <label>Bedtime</label>
           <input type="time" data-col="bedtime" data-type="time" value="${fmtTime(row.bedtime)}">
         </div>
         <div class="time-cell">
-          <label>Wake <span style="color:var(--dim);font-size:10px">(this morning)</span></label>
+          <label>Wake</label>
           <input type="time" data-col="wake_time" data-type="time" value="${fmtTime(row.wake_time)}">
         </div>
         <div class="time-cell">
           <label>Last caffeine</label>
           <input type="time" data-col="last_caffeine" data-type="time" value="${fmtTime(row.last_caffeine)}">
         </div>
-      </div>
-      <div style="margin-bottom:12px">
-        <div class="time-cell" style="max-width:200px">
+        <div class="time-cell">
           <label>Wind down</label>
           <input type="time" data-col="wind_down_time" data-type="time" value="${fmtTime(row.wind_down_time)}">
         </div>
       </div>
-      <div id="sleep-duration" style="font-size:12px;color:var(--dim);margin-bottom:12px;text-align:center">${sleepDurationLabel(row.bedtime, row.wake_time)}</div>
+      <div id="sleep-duration" style="font-size:12px;color:var(--dim);margin:8px 0 12px;text-align:center">${sleepDurationLabel(row.bedtime, row.wake_time)}</div>
       <div class="toggle-list">
         ${MORNING.concat(BODY).map(t => toggleHTML(t, row)).join('')}
       </div>
