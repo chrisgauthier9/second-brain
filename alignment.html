@@ -341,6 +341,12 @@ function habitHit(row, h) {
     if (v === 'no')  return false;
     return null; // untracked treated as "no data" on the heatmap
   }
+  // no_snooze is text: 'yes' | 'no' | 'no_alarm'
+  if (h.key === 'no_snooze') {
+    if (v === 'yes') return true;
+    if (v === 'no')  return false;
+    return null; // 'no_alarm' treated as "no data" — not a miss, you didn't have an alarm to defy
+  }
   return h.inverted ? !v : !!v;
 }
 
@@ -545,6 +551,18 @@ function toggleHTML(item, row) {
         <button class="yn-btn yes${v === 'yes' ? ' active' : ''}" data-display="yes">Yes</button>
         <button class="yn-btn no${v === 'no' ? ' active' : ''}" data-display="no">No</button>
         <button class="yn-btn untracked${v === 'untracked' ? ' active' : ''}" data-display="untracked">Didn't track</button>
+      </div>
+    </div>`;
+  }
+  // Special case: no_snooze can be 'yes' | 'no' | 'no_alarm' | null (e.g. weekends without alarm)
+  if (item.key === 'no_snooze') {
+    const v = row?.[item.key];
+    return `<div class="toggle-row" data-col="${item.key}" data-tri="1">
+      <span class="label">${item.label}</span>
+      <div class="yn-group">
+        <button class="yn-btn yes${v === 'yes' ? ' active' : ''}" data-display="yes">Yes</button>
+        <button class="yn-btn no${v === 'no' ? ' active' : ''}" data-display="no">No</button>
+        <button class="yn-btn untracked${v === 'no_alarm' ? ' active' : ''}" data-display="no_alarm">No alarm</button>
       </div>
     </div>`;
   }
