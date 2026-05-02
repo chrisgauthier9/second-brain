@@ -774,18 +774,6 @@ function renderHistory() {
   const days = dateRange(RANGE).reverse();
   const rows = HABIT_ROWS;
 
-  function streakFor(h) {
-    let n = 0;
-    for (const d of dateRange(60)) {
-      const r = DATA[d] || { date: d };
-      const hit = habitHit(r, h);
-      if (hit === true) n++;
-      else if (hit === false) break;
-      else break;
-    }
-    return n;
-  }
-
   const headerRow = `<tr><th class="row-label"></th>${days.map(d => {
     const dt = new Date(d + 'T12:00:00');
     const isFirstOfMonth = dt.getDate() === 1;
@@ -853,15 +841,6 @@ function renderHistory() {
     return `<tr><th class="row-label">${h.label}</th>${cells}</tr>`;
   }).join('');
 
-  const streakCards = HABIT_ROWS.filter(h => h.hardNo || h.key === 'trained' || h.key === 'read_flourishing_self').map(h => {
-    const n = streakFor(h);
-    return `<div class="streak-card">
-      <div class="label">${h.label}</div>
-      <div class="num ${n === 0 ? 'zero' : ''}">${n}</div>
-      <div class="sub">day${n === 1 ? '' : 's'}</div>
-    </div>`;
-  }).join('');
-
   document.getElementById('view').innerHTML = `
     <div class="history-controls">
       <button class="range-btn ${RANGE===7?'active':''}" data-range="7">7d</button>
@@ -881,9 +860,6 @@ function renderHistory() {
       <span><span class="legend-dot" style="background:var(--hard-no)"></span>Hard NO broken / 2nd miss in a row</span>
       <span><span class="legend-dot" style="background:#2c3441"></span>No data</span>
     </div>
-
-    <h2 style="font-size:11px;color:var(--dim);margin:20px 0 10px;text-transform:uppercase;letter-spacing:.08em">Streaks</h2>
-    <div class="streaks-grid">${streakCards}</div>
   `;
 
   document.querySelectorAll('.range-btn').forEach(b => {
