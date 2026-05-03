@@ -265,7 +265,7 @@ function renderFlags(rows, days) {
   const flags = [];
 
   // Hard NOs — any breach is red
-  const hardNOs = { porn: 'Porn', phone_to_kill_silence: 'Phone to kill silence', weed: 'Weed' };
+  const hardNOs = { no_porn: 'Porn', no_phone_silence: 'Phone to kill silence', no_weed: 'Weed' };
   for (const [col, label] of Object.entries(hardNOs)) {
     const breaches = rows.filter(r => r[col] === false);
     if (breaches.length) {
@@ -325,11 +325,11 @@ function renderHours(rows, days) {
 
 function renderHabits(rows, days) {
   const HABIT_COLS = [
-    { key: 'porn',                  label: 'No porn',             hardNo: true,  invert: false },
-    { key: 'phone_to_kill_silence', label: 'No phone silence',    hardNo: true,  invert: false },
-    { key: 'weed',                  label: 'No weed',             hardNo: true,  invert: false },
-    { key: 'alcohol',               label: 'No alcohol',          hardNo: false, invert: false },
-    { key: 'social_media_before_9pm', label: 'No SM <9pm',        hardNo: false, invert: false },
+    { key: 'no_porn',                  label: 'No porn',             hardNo: true,  invert: false },
+    { key: 'no_phone_silence', label: 'No phone silence',    hardNo: true,  invert: false },
+    { key: 'no_weed',                  label: 'No weed',             hardNo: true,  invert: false },
+    { key: 'no_alcohol',               label: 'No alcohol',          hardNo: false, invert: false },
+    { key: 'no_social_before_9pm', label: 'No SM <9pm',        hardNo: false, invert: false },
     { key: 'no_snooze',             label: 'No snooze',           hardNo: false, invert: false, tri: true },
     { key: 'morning_walk',          label: 'Morning walk',        hardNo: false, invert: false },
     { key: 'startup_sequence',      label: 'Startup sequence',    hardNo: false, invert: false },
