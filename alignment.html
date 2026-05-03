@@ -293,9 +293,9 @@ const HARD_NO_KEYS = new Set(['porn', 'phone_to_kill_silence', 'weed']);
 // History heatmap rows
 const HABIT_ROWS = [
   // Hours — minimum 1.0h each
-  { key: 'hoot_hours',              label: 'Hoot ≥1h',         derived: true, dtype: 'min', col: 'hoot_hours',    threshold: 1.0 },
-  { key: 'finnian_hours',           label: 'Finnian ≥1h',      derived: true, dtype: 'min', col: 'finnian_hours', threshold: 1.0 },
-  { key: 'tempo_hours',             label: 'Tempo ≥1h',        derived: true, dtype: 'min', col: 'tempo_hours',   threshold: 1.0 },
+  { key: 'hoot_hours',              label: 'Hoot',             derived: true, dtype: 'min', col: 'hoot_hours',    threshold: 0 },
+  { key: 'finnian_hours',           label: 'Finnian',          derived: true, dtype: 'min', col: 'finnian_hours', threshold: 0 },
+  { key: 'tempo_hours',             label: 'Tempo',            derived: true, dtype: 'min', col: 'tempo_hours',   threshold: 0 },
   // Sleep — bedtime ≤ 23:00, wake ≤ 07:30, sleep ≥ 8.5h, last_caffeine ≤ 15:00, wind_down ≤ 22:00
   { key: 'bedtime',                 label: 'Bed ≤11pm',        derived: true, dtype: 'time_max', col: 'bedtime',         threshold: '23:00', allowAfterMidnight: true },
   { key: 'wake_time',               label: 'Wake ≤7:30',       derived: true, dtype: 'time_max', col: 'wake_time',       threshold: '07:30' },
@@ -365,7 +365,7 @@ function habitHit(row, h) {
     if (h.dtype === 'min') {
       const v = row?.[h.col];
       if (v == null) return null;
-      return Number(v) >= h.threshold;
+      return v != null && Number(v) > h.threshold;
     }
     // Time must be no later than threshold ("HH:MM"). Times stored as "HH:MM:SS".
     if (h.dtype === 'time_max') {
