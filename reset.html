@@ -160,10 +160,18 @@
 <script>
 // ---- Date helpers ----
 function lastSundayOf(iso) {
-  // Returns the most recent Sunday on or before the given date
+  // Returns the Sunday that started the most recently completed Sun-Sat week.
+  // The completed week always ended yesterday (Sat) or earlier.
+  // So we go back to the Saturday that most recently passed, then back one more to Sunday.
+  // Simpler: find the most recent Saturday, then subtract 6 to get the Sunday.
   const d = new Date(iso + 'T12:00:00');
-  const day = d.getDay(); // 0=Sun
-  d.setDate(d.getDate() - day);
+  const day = d.getDay(); // 0=Sun, 6=Sat
+  // Days since last Saturday (including today if Sat)
+  const daysSinceSat = day === 6 ? 0 : (day + 1); // Sat=0, Sun=1, Mon=2...
+  // Most recent Saturday
+  d.setDate(d.getDate() - daysSinceSat);
+  // Go back 6 more to get that week's Sunday
+  d.setDate(d.getDate() - 6);
   return d.toISOString().slice(0,10);
 }
 function saturdayOf(sundayISO) {
