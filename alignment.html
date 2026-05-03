@@ -278,6 +278,7 @@ const HARD_NOS = [
 const DEFAULTS = [
   { key: 'alcohol',                 label: 'No alcohol' },
   { key: 'social_media_before_9pm', label: 'No social media before 9pm' },
+  { key: 'scheduled_tomorrow',      label: 'Scheduled tomorrow' },
 ];
 const MORNING = [
   { key: 'no_snooze',               label: 'No snooze' },
@@ -317,6 +318,7 @@ const HABIT_ROWS = [
   { key: 'protein_grams',           label: 'Protein',          derived: true, dtype: 'min', col: 'protein_grams',  threshold: 0 },
   { key: 'read_flourishing_self',   label: 'Read FS' },
   // Trained — its own special rule (single skip OK, 2-in-a-row red)
+  { key: 'scheduled_tomorrow',      label: 'Scheduled tmrw' },
   { key: 'trained',                 label: 'Trained',          inverted: false, derived: true, dtype: 'trained' },
 ];
 
