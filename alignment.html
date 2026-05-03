@@ -66,6 +66,7 @@
 
     .times-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .times-row.times-4 { grid-template-columns: repeat(4, 1fr); }
+    .times-row.times-2 { grid-template-columns: repeat(2, 1fr); }
     .time-cell { min-width: 0; }
     .time-cell label { display: block; font-size: 11px; color: var(--dim); margin-bottom: 4px; font-weight: 500; }
     .time-cell input {
@@ -284,7 +285,6 @@ const MORNING = [
   { key: 'startup_sequence',        label: 'Startup sequence' },
 ];
 const BODY = [
-  { key: 'protein_hit',             label: 'Hit 180g protein' },
   { key: 'read_flourishing_self',   label: 'Read Flourishing Self' },
 ];
 // All booleans: true = good (rule held / habit done), false = bad.
@@ -313,7 +313,8 @@ const HABIT_ROWS = [
   { key: 'no_snooze',               label: 'No snooze' },
   { key: 'morning_walk',            label: 'Morning walk' },
   { key: 'startup_sequence',        label: 'Startup seq' },
-  { key: 'protein_hit',             label: '180g protein' },
+  { key: 'calories',                label: 'Calories',         derived: true, dtype: 'min', col: 'calories',       threshold: 0 },
+  { key: 'protein_grams',           label: 'Protein',          derived: true, dtype: 'min', col: 'protein_grams',  threshold: 0 },
   { key: 'read_flourishing_self',   label: 'Read FS' },
   // Trained — its own special rule (single skip OK, 2-in-a-row red)
   { key: 'trained',                 label: 'Trained',          inverted: false, derived: true, dtype: 'trained' },
@@ -409,12 +410,7 @@ function habitHit(row, h) {
   // ----- Direct boolean / text rows -----
   const v = row?.[h.key];
   if (v == null) return null;
-  // protein_hit is text: 'yes' | 'no' | 'untracked'
-  if (h.key === 'protein_hit') {
-    if (v === 'yes') return true;
-    if (v === 'no')  return false;
-    return null; // untracked treated as "no data" on the heatmap
-  }
+
   // no_snooze is text: 'yes' | 'no' | 'no_alarm'
   if (h.key === 'no_snooze') {
     if (v === 'yes') return true;
@@ -517,6 +513,16 @@ function renderDay() {
         </div>
       </div>
       <div id="sleep-duration" style="font-size:12px;color:var(--dim);margin:8px 0 12px;text-align:center">${sleepDurationLabel(row.bedtime, row.wake_time)}</div>
+      <div class="times-row times-2" style="margin-bottom:12px">
+        <div class="time-cell">
+          <label>Calories</label>
+          <input type="number" step="1" min="0" max="9999" data-col="calories" data-type="num-int" value="${row.calories != null ? row.calories : ''}" placeholder="—">
+        </div>
+        <div class="time-cell">
+          <label>Protein (g)</label>
+          <input type="number" step="1" min="0" max="999" data-col="protein_grams" data-type="num-int" value="${row.protein_grams != null ? row.protein_grams : ''}" placeholder="—">
+        </div>
+      </div>
       <div class="toggle-list">
         ${MORNING.concat(BODY).map(t => toggleHTML(t, row)).join('')}
       </div>
@@ -599,7 +605,7 @@ function renderDay() {
 
         let dbVal;
         if (isTri) {
-          // protein/no_snooze: store the display string directly
+          // no_snooze: store the display string directly
           dbVal = newDisplay;
         } else {
           // Standard yes/no: true = good, false = bad, no inversion
@@ -624,18 +630,6 @@ function renderDay() {
 }
 
 function toggleHTML(item, row) {
-  // Special case: protein_hit is a tri-state (yes/no/untracked), stored as text.
-  if (item.key === 'protein_hit') {
-    const v = row?.[item.key]; // 'yes' | 'no' | 'untracked' | null
-    return `<div class="toggle-row" data-col="${item.key}" data-tri="1">
-      <span class="label">${item.label}</span>
-      <div class="yn-group">
-        <button class="yn-btn yes${v === 'yes' ? ' active' : ''}" data-display="yes">Yes</button>
-        <button class="yn-btn no${v === 'no' ? ' active' : ''}" data-display="no">No</button>
-        <button class="yn-btn untracked${v === 'untracked' ? ' active' : ''}" data-display="untracked">Didn't track</button>
-      </div>
-    </div>`;
-  }
   // Special case: no_snooze can be 'yes' | 'no' | 'no_alarm' | null (e.g. weekends without alarm)
   if (item.key === 'no_snooze') {
     const v = row?.[item.key];
@@ -756,6 +750,9 @@ async function saveCell(input) {
   else if (type === 'num') {
     value = Number(raw);
     if (isNaN(value) || value < 0 || value > 24) { setStatus('error', 'Out of range'); return; }
+  } else if (type === 'num-int') {
+    value = parseInt(raw, 10);
+    if (isNaN(value) || value < 0) { setStatus('error', 'Out of range'); return; }
   } else {
     value = raw;
   }
