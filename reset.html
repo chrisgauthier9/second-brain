@@ -159,15 +159,15 @@
 
 <script>
 // ---- Date helpers ----
-function mondayOf(iso) {
+function lastSundayOf(iso) {
+  // Returns the most recent Sunday on or before the given date
   const d = new Date(iso + 'T12:00:00');
   const day = d.getDay(); // 0=Sun
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
+  d.setDate(d.getDate() - day);
   return d.toISOString().slice(0,10);
 }
-function sundayOf(mondayISO) {
-  const d = new Date(mondayISO + 'T12:00:00');
+function saturdayOf(sundayISO) {
+  const d = new Date(sundayISO + 'T12:00:00');
   d.setDate(d.getDate() + 6);
   return d.toISOString().slice(0,10);
 }
@@ -196,8 +196,8 @@ function daysBetween(a, b) {
 }
 
 // ---- State ----
-let WEEK_START = mondayOf(todayISO());
-const MAX_WEEK = mondayOf(todayISO());
+let WEEK_START = lastSundayOf(todayISO());
+const MAX_WEEK = lastSundayOf(todayISO());
 
 // ---- Data ----
 let CHECKINS = {};
@@ -207,7 +207,7 @@ let REVIEW = null;
 
 // ---- Load ----
 async function load() {
-  const weekEnd = sundayOf(WEEK_START);
+  const weekEnd = saturdayOf(WEEK_START);
   document.getElementById('week-label').textContent =
     `${fmtDate(WEEK_START)} – ${fmtDate(weekEnd)}`;
   document.getElementById('next-week').disabled = WEEK_START >= MAX_WEEK;
@@ -231,7 +231,7 @@ async function load() {
 
 // ---- Render ----
 function render() {
-  const weekEnd = sundayOf(WEEK_START);
+  const weekEnd = saturdayOf(WEEK_START);
   const days = daysBetween(WEEK_START, weekEnd);
   const rows = days.map(d => CHECKINS[d] || { date: d });
 
