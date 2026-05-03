@@ -115,6 +115,7 @@
     }
 
   </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="auth.js"></script>
 
 </head>
@@ -141,15 +142,17 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const styleColors = {"Weightlifting":"var(--upper-a)","CrossFit":"var(--lower-a)"};
 const muscleColors = {Back:"var(--back)",Biceps:"var(--biceps)",Calves:"var(--calves)",Chest:"var(--chest)",Glutes:"var(--glutes)",Hamstrings:"var(--hamstrings)",Quads:"var(--quads)",Shoulders:"var(--shoulders)",Triceps:"var(--triceps)"};
 
-let DATA = { exercises:[], sessions:[], sets:[] };
+let DATA = { exercises:[], sessions:[], sets:[], weights:[] };
 let STATE = { tab:'sessions', detail:null };
 
 async function loadData() {
-  const [exRes, sessRes, setsRes] = await Promise.all([
+  const [exRes, sessRes, setsRes, wtRes] = await Promise.all([
     sb.from('exercises').select('*').order('name'),
     sb.from('sessions').select('*').order('date'),
     sb.from('sets_log').select('*, exercises(name, muscle_group, equipment)').order('date').order('id').order('set_number'),
+    sb.from('bodyweight_log').select('date, weight').order('date'),
   ]);
+  DATA.weights = (wtRes.data || []).sort((a,b) => a.date.localeCompare(b.date));
   DATA.exercises = exRes.data || [];
   DATA.sets = setsRes.data || [];
 
@@ -189,11 +192,13 @@ function render() {
     app.innerHTML = html;
     return;
   }
-  const tabs = `<div class="tabs">${['sessions','exercises'].map(t=>`<button class="tab${STATE.tab===t?' active':''}" onclick="STATE.tab='${t}';render()">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('')}</div>`;
+  const tabs = `<div class="tabs">${['sessions','exercises','weight'].map(t=>`<button class="tab${STATE.tab===t?' active':''}" onclick="STATE.tab='${t}';render()">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('')}</div>`;
   let content = '';
   if (STATE.tab === 'sessions') content = renderSessions();
-  else content = renderExercises();
+  else if (STATE.tab === 'exercises') content = renderExercises();
+  else content = renderWeight();
   app.innerHTML = tabs + content;
+  if (STATE.tab === 'weight') requestAnimationFrame(initWeightChart);
 }
 
 let calMonth = null, calYear = null;
@@ -333,6 +338,129 @@ function renderExerciseDetail(exercise) {
     }
   }
   return html;
+}
+
+
+function renderWeight() {
+  const weights = DATA.weights;
+  if (!weights.length) {
+    return `<div style="text-align:center;color:var(--dim);padding:60px 0;font-size:14px">No weigh-ins logged yet.<br><span style="font-size:12px;opacity:.6">Log your weight daily on the Alignment page.</span></div>`;
+  }
+
+  // Stats
+  const vals = weights.map(w => w.weight);
+  const latest = vals[vals.length - 1];
+  const earliest = vals[0];
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const avg = (vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(1);
+  const trend = (latest - earliest).toFixed(1);
+  const trendColor = trend < 0 ? 'var(--ok)' : trend > 0 ? 'var(--rpe-high)' : 'var(--dim)';
+  const trendSign = trend > 0 ? '+' : '';
+
+  // Table rows (most recent first)
+  const rows = [...weights].reverse().map(w => {
+    const d = new Date(w.date + 'T12:00:00');
+    const label = d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `<tr><td style="color:var(--dim);font-size:12px">${label}</td><td style="text-align:right;font-weight:600">${w.weight} lbs</td></tr>`;
+  }).join('');
+
+  return `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:11px;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Latest</div>
+        <div style="font-size:20px;font-weight:700">${latest}</div>
+        <div style="font-size:11px;color:var(--dim)">lbs</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:11px;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Trend</div>
+        <div style="font-size:20px;font-weight:700;color:${trendColor}">${trendSign}${trend}</div>
+        <div style="font-size:11px;color:var(--dim)">since start</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:11px;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Low</div>
+        <div style="font-size:20px;font-weight:700">${min}</div>
+        <div style="font-size:11px;color:var(--dim)">lbs</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:11px;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">High</div>
+        <div style="font-size:20px;font-weight:700">${max}</div>
+        <div style="font-size:11px;color:var(--dim)">lbs</div>
+      </div>
+    </div>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px">
+      <div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Weight Over Time</div>
+      <canvas id="weight-chart" height="180"></canvas>
+    </div>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:10px 14px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Date</th>
+          <th style="text-align:right;padding:10px 14px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Weight</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function initWeightChart() {
+  const canvas = document.getElementById('weight-chart');
+  if (!canvas || !DATA.weights.length) return;
+  if (window._weightChart) window._weightChart.destroy();
+  const labels = DATA.weights.map(w => {
+    const d = new Date(w.date + 'T12:00:00');
+    return d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+  });
+  const vals = DATA.weights.map(w => w.weight);
+  // Goal line at 180
+  const goalVals = vals.map(() => 180);
+  window._weightChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Weight (lbs)',
+          data: vals,
+          borderColor: '#a78bfa',
+          backgroundColor: 'rgba(167,139,250,0.08)',
+          borderWidth: 2,
+          pointBackgroundColor: '#a78bfa',
+          pointRadius: 4,
+          tension: 0.3,
+          fill: true,
+        },
+        {
+          label: 'Goal (180 lbs)',
+          data: goalVals,
+          borderColor: 'rgba(52,211,153,0.4)',
+          borderWidth: 1.5,
+          borderDash: [4, 4],
+          pointRadius: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: '#9ca3af', font: { size: 11 } } },
+        tooltip: { backgroundColor: '#1f2937', titleColor: '#f3f4f6', bodyColor: '#d1d5db' }
+      },
+      scales: {
+        x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: {
+          ticks: { color: '#6b7280', font: { size: 10 }, callback: v => v + ' lb' },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          suggestedMin: Math.min(...vals) - 5,
+          suggestedMax: Math.max(Math.max(...vals), 180) + 5,
+        }
+      }
+    }
+  });
 }
 
 loadData();
