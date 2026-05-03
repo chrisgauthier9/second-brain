@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111827">
+  <title>Sunday Reset – Second Brain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #111827; --card: #1f2937; --border: #374151; --deep: #0f172a;
+      --text: #f3f4f6; --muted: #9ca3af; --dim: #6b7280;
+      --accent: #7c3aed; --ok: #34d399; --warn: #fbbf24; --err: #f87171;
+      --hard-no: #f87171;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+    header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 50; padding-top: max(12px, env(safe-area-inset-top)); }
+    .logo { font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; white-space: nowrap; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; align-items: center; }
+    .nav-links a { font-size: 13px; color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 6px; }
+    .nav-links a:hover { background: var(--border); color: var(--text); }
+    .nav-links a.active { background: var(--accent); color: #fff; }
+
+    main { max-width: 760px; margin: 0 auto; padding: 20px 16px 80px; }
+
+    .page-header { margin-bottom: 20px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+    .page-header p { font-size: 13px; color: var(--dim); margin-top: 4px; }
+
+    /* Week nav */
+    .week-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .week-nav button {
+      background: var(--card); border: 1px solid var(--border); color: var(--muted);
+      padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px;
+    }
+    .week-nav button:hover { border-color: var(--accent); color: var(--text); }
+    .week-nav button:disabled { opacity: .35; cursor: default; }
+    .week-label { font-size: 14px; font-weight: 600; flex: 1; text-align: center; }
+
+    /* Save status */
+    .save-status { font-size: 11px; color: var(--dim); min-height: 14px; margin-bottom: 10px; text-align: right; }
+    .save-status.saving { color: var(--warn); }
+    .save-status.saved  { color: var(--ok); }
+    .save-status.error  { color: var(--err); }
+
+    section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    section h2 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin-bottom: 14px; }
+
+    /* Stats grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stat-card {
+      background: var(--deep); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .stat-card .label { font-size: 11px; color: var(--dim); margin-bottom: 6px; font-weight: 500; }
+    .stat-card .value { font-size: 20px; font-weight: 700; line-height: 1; }
+    .stat-card .sub { font-size: 11px; color: var(--dim); margin-top: 3px; }
+    .stat-card.ok .value { color: var(--ok); }
+    .stat-card.warn .value { color: var(--warn); }
+    .stat-card.err .value { color: var(--err); }
+
+    /* Habit compliance table */
+    .habit-table { width: 100%; border-collapse: collapse; }
+    .habit-table tr { border-bottom: 1px solid var(--border); }
+    .habit-table tr:last-child { border-bottom: none; }
+    .habit-table td { padding: 8px 4px; font-size: 13px; }
+    .habit-table td:first-child { color: var(--muted); }
+    .habit-table td:last-child { text-align: right; font-weight: 600; }
+    .habit-table .dots { display: flex; gap: 3px; justify-content: center; }
+    .habit-table .dot { width: 10px; height: 10px; border-radius: 2px; background: var(--deep); }
+    .habit-table .dot.hit { background: var(--ok); }
+    .habit-table .dot.miss { background: #374151; }
+    .habit-table .dot.hardmiss { background: var(--hard-no); }
+    .hard-no-row td:first-child { color: var(--hard-no); }
+
+    /* Training list */
+    .session-list { display: flex; flex-direction: column; gap: 6px; }
+    .session-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--deep); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; font-size: 13px;
+    }
+    .session-row .date { color: var(--dim); font-size: 12px; }
+    .session-row .name { font-weight: 500; }
+    .no-data { color: var(--dim); font-size: 13px; font-style: italic; padding: 8px 0; }
+
+    /* Sleep row */
+    .sleep-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .sleep-cell { background: var(--deep); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; text-align: center; }
+    .sleep-cell .label { font-size: 11px; color: var(--dim); margin-bottom: 4px; }
+    .sleep-cell .value { font-size: 15px; font-weight: 600; }
+
+    /* Flags */
+    .flags { display: flex; flex-direction: column; gap: 6px; }
+    .flag {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--deep); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; font-size: 13px;
+    }
+    .flag.red { border-color: rgba(248,113,113,.4); background: rgba(248,113,113,.06); }
+    .flag.yellow { border-color: rgba(251,191,36,.3); background: rgba(251,191,36,.06); }
+    .flag.green { border-color: rgba(52,211,153,.3); background: rgba(52,211,153,.06); }
+    .flag-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .flag.red .flag-dot { background: var(--hard-no); }
+    .flag.yellow .flag-dot { background: var(--warn); }
+    .flag.green .flag-dot { background: var(--ok); }
+
+    /* Reflection / Targets */
+    textarea.review-text {
+      width: 100%; min-height: 120px; padding: 12px; background: var(--deep);
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-family: inherit; font-size: 13px; line-height: 1.6;
+      resize: vertical; outline: none;
+    }
+    textarea.review-text:focus { border-color: var(--accent); }
+    textarea.review-text::placeholder { color: var(--dim); }
+
+    .loading { text-align: center; color: var(--dim); padding: 60px 0; font-size: 13px; }
+
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: repeat(2,1fr); }
+      .sleep-row { grid-template-columns: repeat(2,1fr); }
+      .nav-links a[data-hide-mobile] { display: none; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="auth.js"></script>
+</head>
+<body>
+  <header>
+    <a class="logo" href="index.html">Second Brain</a>
+    <nav class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="alignment.html">Alignment</a>
+      <a href="fitness.html">Fitness</a>
+      <a href="reset.html" class="active">Reset</a>
+      <a href="journal.html">Journal</a>
+    </nav>
+  </header>
+  <main>
+    <div class="page-header">
+      <h1>Sunday Reset</h1>
+      <p>Weekly review — data, reflection, and targets for the week ahead.</p>
+    </div>
+
+    <div class="week-nav">
+      <button id="prev-week">← Prev</button>
+      <div class="week-label" id="week-label">—</div>
+      <button id="next-week" id="next-week">Next →</button>
+    </div>
+
+    <div class="save-status" id="save-status"></div>
+    <div id="app"><div class="loading">Loading…</div></div>
+  </main>
+
+<script>
+// ---- Date helpers ----
+function mondayOf(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  const day = d.getDay(); // 0=Sun
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0,10);
+}
+function sundayOf(mondayISO) {
+  const d = new Date(mondayISO + 'T12:00:00');
+  d.setDate(d.getDate() + 6);
+  return d.toISOString().slice(0,10);
+}
+function todayISO() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
+}
+function addWeeks(iso, n) {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() + n * 7);
+  return d.toISOString().slice(0,10);
+}
+function fmtDate(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+}
+function fmtDateFull(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function daysBetween(a, b) {
+  const days = [];
+  const cur = new Date(a + 'T12:00:00');
+  const end = new Date(b + 'T12:00:00');
+  while (cur <= end) { days.push(cur.toISOString().slice(0,10)); cur.setDate(cur.getDate()+1); }
+  return days;
+}
+
+// ---- State ----
+let WEEK_START = mondayOf(todayISO());
+const MAX_WEEK = mondayOf(todayISO());
+
+// ---- Data ----
+let CHECKINS = {};
+let SESSIONS = [];
+let WEIGHTS = {};
+let REVIEW = null;
+
+// ---- Load ----
+async function load() {
+  const weekEnd = sundayOf(WEEK_START);
+  document.getElementById('week-label').textContent =
+    `${fmtDate(WEEK_START)} – ${fmtDate(weekEnd)}`;
+  document.getElementById('next-week').disabled = WEEK_START >= MAX_WEEK;
+
+  const [checkinRes, sessRes, weightRes, reviewRes] = await Promise.all([
+    window.sb.from('daily_checkins').select('*').gte('date', WEEK_START).lte('date', weekEnd),
+    window.sb.from('sessions').select('id, date, style, name').gte('date', WEEK_START).lte('date', weekEnd).order('date'),
+    window.sb.from('bodyweight_log').select('date, weight').gte('date', WEEK_START).lte('date', weekEnd),
+    window.sb.from('weekly_reviews').select('*').eq('week_start', WEEK_START).maybeSingle(),
+  ]);
+
+  CHECKINS = {};
+  for (const r of (checkinRes.data || [])) CHECKINS[r.date] = r;
+  SESSIONS = sessRes.data || [];
+  WEIGHTS = {};
+  for (const w of (weightRes.data || [])) WEIGHTS[w.date] = w.weight;
+  REVIEW = reviewRes.data || null;
+
+  render();
+}
+
+// ---- Render ----
+function render() {
+  const weekEnd = sundayOf(WEEK_START);
+  const days = daysBetween(WEEK_START, weekEnd);
+  const rows = days.map(d => CHECKINS[d] || { date: d });
+
+  document.getElementById('app').innerHTML = `
+    ${renderFlags(rows, days)}
+    ${renderHours(rows, days)}
+    ${renderHabits(rows, days)}
+    ${renderTraining()}
+    ${renderSleep(rows)}
+    ${renderWeight()}
+    ${renderReflection()}
+    ${renderTargets()}
+  `;
+
+  // Wire textarea saves
+  document.querySelectorAll('textarea[data-field]').forEach(el => {
+    el.addEventListener('blur', () => saveReviewField(el.dataset.field, el.value.trim()));
+  });
+}
+
+// ---- Sections ----
+function renderFlags(rows, days) {
+  const flags = [];
+
+  // Hard NOs — any breach is red
+  const hardNOs = { porn: 'Porn', phone_to_kill_silence: 'Phone to kill silence', weed: 'Weed' };
+  for (const [col, label] of Object.entries(hardNOs)) {
+    const breaches = rows.filter(r => r[col] === false);
+    if (breaches.length) {
+      flags.push({ level: 'red', msg: `Hard NO broken: ${label} (${breaches.map(r=>fmtDate(r.date)).join(', ')})` });
+    }
+  }
+
+  // Project days with zero
+  const projects = { hoot_hours: 'Hoot', finnian_hours: 'Finnian', tempo_hours: 'Tempo' };
+  for (const [col, label] of Object.entries(projects)) {
+    const missed = rows.filter(r => !r[col] || Number(r[col]) === 0);
+    if (missed.length >= 5) flags.push({ level: 'red', msg: `${label} only active ${7 - missed.length}/7 days` });
+    else if (missed.length >= 3) flags.push({ level: 'yellow', msg: `${label} missed ${missed.length} days` });
+  }
+
+  // Consecutive training rest days
+  let maxRest = 0, cur = 0;
+  for (const d of days) {
+    if (!SESSIONS.find(s => s.date === d)) { cur++; maxRest = Math.max(maxRest, cur); }
+    else cur = 0;
+  }
+  if (maxRest >= 3) flags.push({ level: 'yellow', msg: `${maxRest} consecutive rest days` });
+
+  // Wins
+  const trainedDays = new Set(SESSIONS.map(s => s.date));
+  if (trainedDays.size >= 4) flags.push({ level: 'green', msg: `Trained ${trainedDays.size} days this week` });
+  const allProjectsHit = rows.every(r =>
+    (Number(r.hoot_hours)||0) > 0 && (Number(r.finnian_hours)||0) > 0 && (Number(r.tempo_hours)||0) > 0
+  );
+  if (allProjectsHit) flags.push({ level: 'green', msg: 'All three projects touched every day' });
+
+  if (!flags.length) flags.push({ level: 'green', msg: 'No flags this week — clean run.' });
+
+  return `<section>
+    <h2>Flags</h2>
+    <div class="flags">
+      ${flags.map(f => `<div class="flag ${f.level}"><div class="flag-dot"></div><span>${f.msg}</span></div>`).join('')}
+    </div>
+  </section>`;
+}
+
+function renderHours(rows, days) {
+  const sum = col => rows.reduce((a,r) => a + (Number(r[col])||0), 0);
+  const active = col => rows.filter(r => (Number(r[col])||0) > 0).length;
+  const hoot = sum('hoot_hours'), finn = sum('finnian_hours'), tempo = sum('tempo_hours');
+
+  const card = (label, total, days) => {
+    const cls = days >= 5 ? 'ok' : days >= 3 ? 'warn' : 'err';
+    return `<div class="stat-card ${cls}">
+      <div class="label">${label}</div>
+      <div class="value">${total.toFixed(1)}h</div>
+      <div class="sub">${days}/7 days</div>
+    </div>`;
+  };
+
+  return `<section>
+    <h2>Project Hours</h2>
+    <div class="stats-grid">
+      ${card('Hoot', hoot, active('hoot_hours'))}
+      ${card('Finnian', finn, active('finnian_hours'))}
+      ${card('Tempo', tempo, active('tempo_hours'))}
+    </div>
+  </section>`;
+}
+
+function renderHabits(rows, days) {
+  const HABIT_COLS = [
+    { key: 'porn',                  label: 'No porn',             hardNo: true,  invert: false },
+    { key: 'phone_to_kill_silence', label: 'No phone silence',    hardNo: true,  invert: false },
+    { key: 'weed',                  label: 'No weed',             hardNo: true,  invert: false },
+    { key: 'alcohol',               label: 'No alcohol',          hardNo: false, invert: false },
+    { key: 'social_media_before_9pm', label: 'No SM <9pm',        hardNo: false, invert: false },
+    { key: 'no_snooze',             label: 'No snooze',           hardNo: false, invert: false, tri: true },
+    { key: 'morning_walk',          label: 'Morning walk',        hardNo: false, invert: false },
+    { key: 'startup_sequence',      label: 'Startup sequence',    hardNo: false, invert: false },
+    { key: 'read_flourishing_self', label: 'Read FS',             hardNo: false, invert: false },
+    { key: 'scheduled_tomorrow',    label: 'Scheduled tomorrow',  hardNo: false, invert: false },
+  ];
+
+  const hitCount = (h) => rows.filter(r => {
+    const v = r[h.key];
+    if (v == null) return false;
+    if (h.tri) return v === 'yes';
+    return v === true;
+  }).length;
+
+  const dotRow = (h) => days.map(d => {
+    const r = CHECKINS[d] || {};
+    const v = r[h.key];
+    let cls = 'miss';
+    if (v == null) cls = 'miss';
+    else if (h.tri) cls = v === 'yes' ? 'hit' : v === 'no' ? (h.hardNo ? 'hardmiss' : 'miss') : 'miss';
+    else cls = v === true ? 'hit' : (h.hardNo ? 'hardmiss' : 'miss');
+    return `<div class="dot ${cls}" title="${d}"></div>`;
+  }).join('');
+
+  const tableRows = HABIT_COLS.map(h => {
+    const count = hitCount(h);
+    const pct = Math.round(count / 7 * 100);
+    const color = pct === 100 ? 'var(--ok)' : pct >= 70 ? 'var(--warn)' : 'var(--err)';
+    return `<tr class="${h.hardNo ? 'hard-no-row' : ''}">
+      <td>${h.label}</td>
+      <td><div class="dots">${dotRow(h)}</div></td>
+      <td style="color:${color}">${count}/7</td>
+    </tr>`;
+  }).join('');
+
+  return `<section>
+    <h2>Habit Compliance</h2>
+    <table class="habit-table">${tableRows}</table>
+  </section>`;
+}
+
+function renderTraining() {
+  if (!SESSIONS.length) {
+    return `<section><h2>Training</h2><p class="no-data">No sessions logged this week.</p></section>`;
+  }
+  const rows = SESSIONS.map(s =>
+    `<div class="session-row">
+      <span class="date">${fmtDateFull(s.date)}</span>
+      <span class="name">${s.name || s.style || 'Session'}</span>
+      <span style="font-size:12px;color:var(--dim)">${s.style}</span>
+    </div>`
+  ).join('');
+  return `<section>
+    <h2>Training — ${SESSIONS.length} session${SESSIONS.length !== 1 ? 's' : ''}</h2>
+    <div class="session-list">${rows}</div>
+  </section>`;
+}
+
+function renderSleep(rows) {
+  const times = rows.filter(r => r.bedtime && r.wake_time);
+  if (!times.length) {
+    return `<section><h2>Sleep</h2><p class="no-data">No sleep data logged this week.</p></section>`;
+  }
+
+  function toMins(t) {
+    const [h,m] = String(t).slice(0,5).split(':').map(Number);
+    let mins = h * 60 + m;
+    if (h < 12) mins += 24 * 60; // after midnight
+    return mins;
+  }
+  function minsToHM(m) {
+    const h = Math.floor(m/60) % 24;
+    const mn = m % 60;
+    return `${h}:${String(mn).padStart(2,'0')}`;
+  }
+  function duration(bed, wake) {
+    const bm = toMins(bed), wm = toMins(wake);
+    let d = wm + (wm < bm ? 24*60 : 0) - bm;
+    return d / 60;
+  }
+
+  const avgBed = minsToHM(Math.round(times.reduce((a,r) => a + toMins(r.bedtime), 0) / times.length) % (24*60));
+  const avgWake = String(times[0].wake_time).slice(0,5); // just show first as proxy
+  const avgDur = (times.reduce((a,r) => a + duration(r.bedtime, r.wake_time), 0) / times.length).toFixed(1);
+  const durColor = Number(avgDur) >= 8.5 ? 'var(--ok)' : Number(avgDur) >= 7.5 ? 'var(--warn)' : 'var(--err)';
+
+  return `<section>
+    <h2>Sleep — ${times.length} nights logged</h2>
+    <div class="sleep-row">
+      <div class="sleep-cell"><div class="label">Avg Bedtime</div><div class="value">${avgBed}</div></div>
+      <div class="sleep-cell"><div class="label">Avg Wake</div><div class="value">${String(times.reduce((a,r,i,arr) => {
+        const [h,m] = String(r.wake_time).slice(0,5).split(':').map(Number);
+        return a + h*60+m;
+      }, 0) / times.length | 0).padStart(4,'0').replace(/(\d{1,2})(\d{2})/, '$1:$2')}</div></div>
+      <div class="sleep-cell"><div class="label">Avg Duration</div><div class="value" style="color:${durColor}">${avgDur}h</div></div>
+      <div class="sleep-cell"><div class="label">Nights ≥8.5h</div><div class="value">${times.filter(r => duration(r.bedtime, r.wake_time) >= 8.5).length}/${times.length}</div></div>
+    </div>
+  </section>`;
+}
+
+function renderWeight() {
+  const entries = Object.entries(WEIGHTS);
+  if (!entries.length) {
+    return `<section><h2>Weight</h2><p class="no-data">No weigh-ins logged this week.</p></section>`;
+  }
+  entries.sort(([a],[b]) => a.localeCompare(b));
+  const first = entries[0][1], last = entries[entries.length-1][1];
+  const delta = (last - first).toFixed(1);
+  const deltaColor = delta < 0 ? 'var(--ok)' : delta > 0 ? 'var(--warn)' : 'var(--dim)';
+
+  return `<section>
+    <h2>Weight</h2>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card"><div class="label">Start</div><div class="value">${first}</div><div class="sub">lbs</div></div>
+      <div class="stat-card"><div class="label">End</div><div class="value">${last}</div><div class="sub">lbs</div></div>
+      <div class="stat-card"><div class="label">Delta</div><div class="value" style="color:${deltaColor}">${delta > 0 ? '+' : ''}${delta}</div><div class="sub">lbs</div></div>
+    </div>
+  </section>`;
+}
+
+function renderReflection() {
+  const val = REVIEW?.reflection || '';
+  return `<section>
+    <h2>Reflection</h2>
+    <textarea class="review-text" data-field="reflection" placeholder="What happened this week? Patterns, wins, struggles, things worth naming…">${val.replace(/</g,'&lt;')}</textarea>
+  </section>`;
+}
+
+function renderTargets() {
+  const val = REVIEW?.targets || '';
+  return `<section>
+    <h2>Targets — Next Week</h2>
+    <textarea class="review-text" data-field="targets" placeholder="What are you aiming for next week? Be specific.">${val.replace(/</g,'&lt;')}</textarea>
+  </section>`;
+}
+
+// ---- Save ----
+function setStatus(state, msg) {
+  const el = document.getElementById('save-status');
+  if (!el) return;
+  el.className = 'save-status ' + state;
+  el.textContent = msg;
+}
+
+async function saveReviewField(field, value) {
+  setStatus('saving', 'Saving…');
+  if (!REVIEW) {
+    const { data, error } = await window.sb
+      .from('weekly_reviews')
+      .insert({ week_start: WEEK_START, [field]: value })
+      .select().single();
+    if (error) { setStatus('error', 'Save failed'); return; }
+    REVIEW = data;
+  } else {
+    const { error } = await window.sb
+      .from('weekly_reviews')
+      .update({ [field]: value })
+      .eq('week_start', WEEK_START);
+    if (error) { setStatus('error', 'Save failed'); return; }
+    if (REVIEW) REVIEW[field] = value;
+  }
+  setStatus('saved', 'Saved');
+  setTimeout(() => { const el = document.getElementById('save-status'); if (el?.classList.contains('saved')) el.textContent = ''; }, 1200);
+}
+
+// ---- Nav ----
+document.getElementById('prev-week').addEventListener('click', () => {
+  WEEK_START = addWeeks(WEEK_START, -1);
+  load();
+});
+document.getElementById('next-week').addEventListener('click', () => {
+  if (WEEK_START < MAX_WEEK) { WEEK_START = addWeeks(WEEK_START, 1); load(); }
+});
+
+// ---- Boot ----
+window._authReadyPromise.then(() => load());
+</script>
+</body>
+</html>
