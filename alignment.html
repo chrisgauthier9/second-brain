@@ -325,6 +325,7 @@ let TRAINED_DATES = new Set();              // dates with at least one session
 let JOURNALS = {};                          // date -> array of journal_entries rows (most recent first)
 let TAB = sessionStorage.getItem('alignTab') || 'day';
 let CURRENT_DATE = todayISO();              // which day the Day tab is currently editing
+let WEIGHT_LOG = {};                        // date -> weight (lbs)
 let RANGE = 30;                             // history heatmap range
 
 // ----- Date helpers -----
@@ -427,10 +428,11 @@ function habitHit(row, h) {
 async function load() {
   await window._authReadyPromise;
   const cutoff = dateRange(60)[59];
-  const [checkinsRes, sessRes, journalsRes] = await Promise.all([
+  const [checkinsRes, sessRes, journalsRes, weightRes] = await Promise.all([
     window.sb.from('daily_checkins').select('*').gte('date', cutoff).order('date', { ascending: false }),
     window.sb.from('sessions').select('date').gte('date', cutoff),
     window.sb.from('journal_entries').select('id, entry_date, title, body, source').gte('entry_date', cutoff).order('entry_date', { ascending: false }).order('id', { ascending: false }),
+    window.sb.from('bodyweight_log').select('date, weight').gte('date', cutoff).order('date', { ascending: false }),
   ]);
   if (checkinsRes.error) {
     document.getElementById('view').innerHTML = `<div class="loading">Error: ${checkinsRes.error.message}</div>`;
@@ -444,6 +446,8 @@ async function load() {
     if (!JOURNALS[j.entry_date]) JOURNALS[j.entry_date] = [];
     JOURNALS[j.entry_date].push(j);
   }
+  WEIGHT_LOG = {};
+  for (const w of (weightRes.data || [])) WEIGHT_LOG[w.date] = w.weight;
   render();
 }
 
@@ -519,12 +523,18 @@ function renderDay() {
     </section>
 
     <section>
-      <h2>Trained</h2>
+      <h2>Fitness</h2>
       <div class="trained-cell">
-        <span class="label">${trained ? 'Session logged' : 'No session yet'}</span>
+        <span class="label">${trained ? 'Gym session logged' : 'No session yet'}</span>
         ${trained
           ? '<span class="badge yes">✓ Trained</span>'
           : `<a href="fitness.html">Log a session →</a>`}
+      </div>
+      <div class="time-row" style="margin-top:12px">
+        <div class="time-cell">
+          <label>Weight (lbs)</label>
+          <input type="number" step="0.1" min="0" max="500" id="weight-input" data-col="weight_lbs" data-type="weight" value="${WEIGHT_LOG[CURRENT_DATE] != null ? WEIGHT_LOG[CURRENT_DATE] : ''}" placeholder="—" style="width:100%">
+        </div>
       </div>
     </section>
 
@@ -749,6 +759,11 @@ async function saveCell(input) {
   } else {
     value = raw;
   }
+  // Weight logs to bodyweight_log, not daily_checkins
+  if (type === 'weight') {
+    await saveWeight(value);
+    return;
+  }
   const r = DATA[CURRENT_DATE] || (DATA[CURRENT_DATE] = { date: CURRENT_DATE });
   r[col] = value;
   // Refresh sleep duration display if bedtime or wake changed
@@ -757,6 +772,19 @@ async function saveCell(input) {
     if (el) el.innerHTML = sleepDurationLabel(r.bedtime, r.wake_time);
   }
   await saveValue(col, value);
+}
+
+async function saveWeight(value) {
+  setStatus('saving', 'Saving…');
+  if (value === null) { setStatus('saved', 'Saved'); return; }
+  const { error } = await window.sb.from('bodyweight_log').upsert(
+    { date: CURRENT_DATE, weight: value },
+    { onConflict: 'date' }
+  );
+  if (error) { setStatus('error', 'Save failed: ' + error.message); return; }
+  WEIGHT_LOG[CURRENT_DATE] = value;
+  setStatus('saved', 'Saved');
+  setTimeout(() => { const el = document.getElementById('save-status'); if (el && el.classList.contains('saved')) el.textContent = ''; }, 1200);
 }
 
 async function saveValue(col, value) {
