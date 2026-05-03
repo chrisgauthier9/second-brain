@@ -173,6 +173,8 @@
       pointer-events: none;
     }
     .heatmap-table td.day-cell.partial { background: var(--warn); }
+    .heatmap-table td.day-cell.neutral { background: #3b5b7a; }
+    .heatmap-table td.day-cell.neutral-flag { background: #5a8bbf; }
     .heatmap-table td.day-cell.empty { background: #2c3441; opacity: .4; }
     .heatmap-table .col-header {
       font-size: 9px; color: var(--dim); writing-mode: vertical-rl; transform: rotate(180deg);
@@ -424,7 +426,7 @@ function habitHit(row, h) {
   if (h.key === 'no_snooze') {
     if (v === 'yes') return true;
     if (v === 'no')  return false;
-    return null; // 'no_alarm' treated as "no data" — not a miss, you didn't have an alarm to defy
+    return 'neutral'; // 'no_alarm' is intentional (e.g. weekend) — neither hit nor miss
   }
   return !!v;
 }
@@ -828,11 +830,13 @@ function renderHistory() {
     }
 
     let prevMissed = false;
+    let neutralStreak = 0;
     const cells = days.map((d, i) => {
       const row = DATA[d] || { date: d };
       const hit = habitHit(row, h);
       let cls = 'empty';
-      let title = `${fmtDayLabel(d)} — ${h.label}: ${hit === true ? 'hit' : hit === false ? 'missed' : 'no data'}`;
+      const hitLabel = hit === true ? 'hit' : hit === false ? 'missed' : hit === 'neutral' ? 'no alarm (neutral)' : 'no data';
+      let title = `${fmtDayLabel(d)} — ${h.label}: ${hitLabel}`;
 
       if (h.hardNo) {
         // Hard NO: any explicit "no" is red WITH an X. Hit is green. Null is gray.
@@ -855,19 +859,27 @@ function renderHistory() {
       } else {
         // Non-Hard-NO: yellow on first miss-in-a-stretch, red on 2nd-consecutive.
         // Null = no data (gray), does not count as a miss or break a streak.
+        // 'neutral' = intentional non-event (e.g. no alarm on weekend) — own color, doesn't affect miss streak.
         if (startedAtIdx === -1 || i < startedAtIdx) {
           cls = 'empty';
+          neutralStreak = 0;
+        } else if (hit === 'neutral') {
+          neutralStreak += 1;
+          cls = neutralStreak >= 3 ? 'neutral-flag' : 'neutral';
+          // Don't touch prevMissed — neutral is not a miss
         } else if (hit === true) {
           cls = 'hit';
           prevMissed = false;
+          neutralStreak = 0;
         } else if (hit === false) {
           if (prevMissed) cls = 'miss'; // second consecutive
           else cls = 'partial';          // first
           prevMissed = true;
+          neutralStreak = 0;
         } else {
           // hit === null: no data
           cls = 'empty';
-          // Don't reset prevMissed — gaps don't break streaks
+          // Don't reset prevMissed or neutralStreak — gaps don't break either
         }
       }
 
@@ -895,6 +907,8 @@ function renderHistory() {
       <span><span class="legend-dot" style="background:var(--warn)"></span>First miss</span>
       <span><span class="legend-dot" style="background:var(--hard-no)"></span>2nd miss in a row</span>
       <span><span class="legend-dot" style="background:var(--hard-no);position:relative;color:#fff;text-align:center;line-height:10px;font-size:8px;font-weight:800">✕</span>Hard NO broken</span>
+      <span><span class="legend-dot" style="background:#3b5b7a"></span>Neutral (no alarm)</span>
+      <span><span class="legend-dot" style="background:#5a8bbf"></span>Neutral 3+ in a row</span>
       <span><span class="legend-dot" style="background:#2c3441"></span>No data</span>
     </div>
   `;
