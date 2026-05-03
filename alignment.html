@@ -287,8 +287,7 @@ const BODY = [
   { key: 'protein_hit',             label: 'Hit 180g protein' },
   { key: 'read_flourishing_self',   label: 'Read Flourishing Self' },
 ];
-// Hard NO booleans in the DB are inverted: true = bad behavior happened.
-const HARD_NO_INVERTED = new Set(['porn', 'phone_to_kill_silence', 'weed', 'alcohol', 'social_media_before_9pm']);
+// All booleans: true = good (rule held / habit done), false = bad.
 const HARD_NO_KEYS = new Set(['porn', 'phone_to_kill_silence', 'weed']);
 
 // History heatmap rows
@@ -304,18 +303,18 @@ const HABIT_ROWS = [
   { key: 'last_caffeine',           label: 'Caff ≤3pm',        derived: true, dtype: 'time_max', col: 'last_caffeine',   threshold: '15:00' },
   { key: 'wind_down_time',          label: 'Wind down ≤10pm',  derived: true, dtype: 'time_max', col: 'wind_down_time',  threshold: '22:00' },
   // Hard NOs
-  { key: 'porn',                    label: 'No porn',          inverted: true,  hardNo: true },
-  { key: 'phone_to_kill_silence',   label: 'No phone silence', inverted: true,  hardNo: true },
-  { key: 'weed',                    label: 'No weed',          inverted: true,  hardNo: true },
-  // Defaults (booleans, inverted)
-  { key: 'alcohol',                 label: 'No alcohol',       inverted: true },
-  { key: 'social_media_before_9pm', label: 'No SM <9pm',       inverted: true },
+  { key: 'porn',                    label: 'No porn',          hardNo: true },
+  { key: 'phone_to_kill_silence',   label: 'No phone silence', hardNo: true },
+  { key: 'weed',                    label: 'No weed',          hardNo: true },
+  // Defaults (booleans)
+  { key: 'alcohol',                 label: 'No alcohol' },
+  { key: 'social_media_before_9pm', label: 'No SM <9pm' },
   // Morning + body
-  { key: 'no_snooze',               label: 'No snooze',        inverted: false },
-  { key: 'morning_walk',            label: 'Morning walk',     inverted: false },
-  { key: 'startup_sequence',        label: 'Startup seq',      inverted: false },
-  { key: 'protein_hit',             label: '180g protein',     inverted: false },
-  { key: 'read_flourishing_self',   label: 'Read FS',          inverted: false },
+  { key: 'no_snooze',               label: 'No snooze' },
+  { key: 'morning_walk',            label: 'Morning walk' },
+  { key: 'startup_sequence',        label: 'Startup seq' },
+  { key: 'protein_hit',             label: '180g protein' },
+  { key: 'read_flourishing_self',   label: 'Read FS' },
   // Trained — its own special rule (single skip OK, 2-in-a-row red)
   { key: 'trained',                 label: 'Trained',          inverted: false, derived: true, dtype: 'trained' },
 ];
@@ -421,7 +420,7 @@ function habitHit(row, h) {
     if (v === 'no')  return false;
     return null; // 'no_alarm' treated as "no data" — not a miss, you didn't have an alarm to defy
   }
-  return h.inverted ? !v : !!v;
+  return !!v;
 }
 
 // ----- Load -----
@@ -590,13 +589,12 @@ function renderDay() {
 
         let dbVal;
         if (isTri) {
-          // protein: store the display string directly
+          // protein/no_snooze: store the display string directly
           dbVal = newDisplay;
         } else {
-          // Standard yes/no: map to boolean (with inversion for Hard NOs)
-          const inverted = HARD_NO_INVERTED.has(col);
-          if (newDisplay === 'yes') dbVal = inverted ? false : true;
-          else if (newDisplay === 'no') dbVal = inverted ? true  : false;
+          // Standard yes/no: true = good, false = bad, no inversion
+          if (newDisplay === 'yes') dbVal = true;
+          else if (newDisplay === 'no') dbVal = false;
           else dbVal = null;
         }
 
@@ -641,18 +639,11 @@ function toggleHTML(item, row) {
     </div>`;
   }
   const v = row?.[item.key];
-  const inverted = HARD_NO_INVERTED.has(item.key);
-  // "on" semantics = the *good* outcome.
-  // For inverted columns: db false (or null mapped to false) means good.
-  // We track three display states based on raw db value:
-  //   v === null/undefined -> neither active (null state)
-  //   v === true  -> for inverted: NO active (bad). For normal: YES active (good).
-  //   v === false -> for inverted: YES active (good). For normal: NO active (bad).
-  let displayState = null; // 'yes' | 'no' | null
-  if (v === true)  displayState = inverted ? 'no'  : 'yes';
-  else if (v === false) displayState = inverted ? 'yes' : 'no';
-
   const isHardNo = HARD_NO_KEYS.has(item.key);
+  // true = good (yes), false = bad (no), null = unset
+  let displayState = null;
+  if (v === true)  displayState = 'yes';
+  else if (v === false) displayState = 'no';
   const broken = isHardNo && displayState === 'no';
 
   return `<div class="toggle-row${broken ? ' broken' : ''}" data-col="${item.key}">
