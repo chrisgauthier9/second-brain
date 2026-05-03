@@ -281,14 +281,6 @@ function renderFlags(rows, days) {
   }
   if (maxRest >= 3) flags.push({ level: 'yellow', msg: `${maxRest} consecutive rest days` });
 
-  // Wins
-  const trainedDays = new Set(SESSIONS.map(s => s.date));
-  if (trainedDays.size >= 4) flags.push({ level: 'green', msg: `Trained ${trainedDays.size} days this week` });
-  const allProjectsHit = rows.every(r =>
-    (Number(r.hoot_hours)||0) > 0 && (Number(r.finnian_hours)||0) > 0 && (Number(r.tempo_hours)||0) > 0
-  );
-  if (allProjectsHit) flags.push({ level: 'green', msg: 'All three projects touched every day' });
-
   if (!flags.length) flags.push({ level: 'green', msg: 'No flags this week — clean run.' });
 
   return `<section>
