@@ -174,7 +174,6 @@
     }
     .heatmap-table td.day-cell.partial { background: var(--warn); }
     .heatmap-table td.day-cell.neutral { background: #3b5b7a; }
-    .heatmap-table td.day-cell.neutral-flag { background: #5a8bbf; }
     .heatmap-table td.day-cell.empty { background: #2c3441; opacity: .4; }
     .heatmap-table .col-header {
       font-size: 9px; color: var(--dim); writing-mode: vertical-rl; transform: rotate(180deg);
@@ -830,7 +829,6 @@ function renderHistory() {
     }
 
     let prevMissed = false;
-    let neutralStreak = 0;
     const cells = days.map((d, i) => {
       const row = DATA[d] || { date: d };
       const hit = habitHit(row, h);
@@ -862,24 +860,20 @@ function renderHistory() {
         // 'neutral' = intentional non-event (e.g. no alarm on weekend) — own color, doesn't affect miss streak.
         if (startedAtIdx === -1 || i < startedAtIdx) {
           cls = 'empty';
-          neutralStreak = 0;
         } else if (hit === 'neutral') {
-          neutralStreak += 1;
-          cls = neutralStreak >= 3 ? 'neutral-flag' : 'neutral';
+          cls = 'neutral';
           // Don't touch prevMissed — neutral is not a miss
         } else if (hit === true) {
           cls = 'hit';
           prevMissed = false;
-          neutralStreak = 0;
         } else if (hit === false) {
           if (prevMissed) cls = 'miss'; // second consecutive
           else cls = 'partial';          // first
           prevMissed = true;
-          neutralStreak = 0;
         } else {
           // hit === null: no data
           cls = 'empty';
-          // Don't reset prevMissed or neutralStreak — gaps don't break either
+          // Don't reset prevMissed — gaps don't break streaks
         }
       }
 
@@ -908,7 +902,6 @@ function renderHistory() {
       <span><span class="legend-dot" style="background:var(--hard-no)"></span>2nd miss in a row</span>
       <span><span class="legend-dot" style="background:var(--hard-no);position:relative;color:#fff;text-align:center;line-height:10px;font-size:8px;font-weight:800">✕</span>Hard NO broken</span>
       <span><span class="legend-dot" style="background:#3b5b7a"></span>Neutral (no alarm)</span>
-      <span><span class="legend-dot" style="background:#5a8bbf"></span>Neutral 3+ in a row</span>
       <span><span class="legend-dot" style="background:#2c3441"></span>No data</span>
     </div>
   `;
