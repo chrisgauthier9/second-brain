@@ -272,13 +272,13 @@
 <script>
 // ----- Config -----
 const HARD_NOS = [
-  { key: 'porn',                    label: 'Avoided porn' },
-  { key: 'phone_to_kill_silence',   label: 'Avoided phone to kill silence' },
-  { key: 'weed',                    label: 'No weed' },
+  { key: 'no_porn',                    label: 'Avoided porn' },
+  { key: 'no_phone_silence',   label: 'Avoided phone to kill silence' },
+  { key: 'no_weed',                    label: 'No weed' },
 ];
 const DEFAULTS = [
-  { key: 'alcohol',                 label: 'No alcohol' },
-  { key: 'social_media_before_9pm', label: 'No social media before 9pm' },
+  { key: 'no_alcohol',                 label: 'No alcohol' },
+  { key: 'no_social_before_9pm', label: 'No social media before 9pm' },
   { key: 'scheduled_tomorrow',      label: 'Scheduled tomorrow' },
 ];
 const MORNING = [
@@ -290,7 +290,7 @@ const BODY = [
   { key: 'read_flourishing_self',   label: 'Read Flourishing Self' },
 ];
 // All booleans: true = good (rule held / habit done), false = bad.
-const HARD_NO_KEYS = new Set(['porn', 'phone_to_kill_silence', 'weed']);
+const HARD_NO_KEYS = new Set(['no_porn', 'no_phone_silence', 'no_weed']);
 
 // History heatmap rows
 const HABIT_ROWS = [
@@ -305,12 +305,12 @@ const HABIT_ROWS = [
   { key: 'last_caffeine',           label: 'Caff ≤3pm',        derived: true, dtype: 'time_max', col: 'last_caffeine',   threshold: '15:00' },
   { key: 'wind_down_time',          label: 'Wind down ≤10pm',  derived: true, dtype: 'time_max', col: 'wind_down_time',  threshold: '22:00' },
   // Hard NOs
-  { key: 'porn',                    label: 'No porn',          hardNo: true },
-  { key: 'phone_to_kill_silence',   label: 'No phone silence', hardNo: true },
-  { key: 'weed',                    label: 'No weed',          hardNo: true },
+  { key: 'no_porn',                    label: 'No porn',          hardNo: true },
+  { key: 'no_phone_silence',   label: 'No phone silence', hardNo: true },
+  { key: 'no_weed',                    label: 'No weed',          hardNo: true },
   // Defaults (booleans)
-  { key: 'alcohol',                 label: 'No alcohol' },
-  { key: 'social_media_before_9pm', label: 'No SM <9pm' },
+  { key: 'no_alcohol',                 label: 'No alcohol' },
+  { key: 'no_social_before_9pm', label: 'No SM <9pm' },
   // Morning + body
   { key: 'no_snooze',               label: 'No snooze' },
   { key: 'morning_walk',            label: 'Morning walk' },
