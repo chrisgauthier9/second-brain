@@ -320,6 +320,7 @@ const HABIT_ROWS = [
   // Trained — its own special rule (single skip OK, 2-in-a-row red)
   { key: 'scheduled_tomorrow',      label: 'Scheduled tmrw' },
   { key: 'trained',                 label: 'Trained',          inverted: false, derived: true, dtype: 'trained' },
+  { key: 'journaled',               label: 'Journaled',        derived: true, dtype: 'journal' },
 ];
 
 // ----- State -----
@@ -362,6 +363,9 @@ function habitHit(row, h) {
   if (h.derived) {
     // Trained: special-cased at the cell level (single skip OK), so here just
     // report true if a session exists, null otherwise.
+    if (h.dtype === 'journal' || h.key === 'journaled') {
+      return (JOURNALS[row.date] && JOURNALS[row.date].length > 0) ? true : null;
+    }
     if (h.dtype === 'trained' || h.key === 'trained') {
       return TRAINED_DATES.has(row.date) ? true : null;
     }
