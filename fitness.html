@@ -80,11 +80,10 @@
     .session-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--deep); border-radius: 8px; border: 1px solid var(--border); cursor: pointer; margin-bottom: 4px; font-family: inherit; text-align: left; color: var(--text); transition: border-color .15s; }
     .session-btn:hover { border-color: #7c3aed; }
     .workout-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
-    /* ===== Mobile hamburger menu ===== */
+    /* ===== Mobile hamburger ===== */
     .nav-toggle {
       display: none; background: transparent; border: none; cursor: pointer;
       padding: 6px 8px; margin-left: auto; color: var(--text, #f3f4f6);
-      font-family: inherit;
     }
     .nav-toggle svg { display: block; width: 22px; height: 22px; }
     @media (max-width: 600px) {
@@ -94,27 +93,13 @@
         background: #1f2937; border-bottom: 1px solid #374151;
         flex-direction: column; gap: 0; padding: 6px 0;
         margin-left: 0; align-items: stretch;
-        max-height: 0; overflow-y: auto; transition: max-height .25s ease, padding .25s ease;
+        max-height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
         z-index: 100;
       }
-      .nav-links.open { max-height: calc(100vh - 49px); padding: 6px 0; }
-      .nav-links a {
-        padding: 14px 24px; border-radius: 0; font-size: 15px;
-      }
+      .nav-links.open { max-height: calc(100vh - 49px); overflow-y: auto; padding: 6px 0; }
+      .nav-links a { padding: 14px 24px; border-radius: 0; font-size: 15px; }
       header { position: sticky; top: 0; z-index: 101; }
-
-      /* Mobile compaction */
-      h1, .page-title { font-size: 18px; }
-      main { padding: 20px 12px 60px; }
-      .tabs { margin-bottom: 14px; }
-      .tab { padding: 9px 0; font-size: 12px; }
-      .session-card { padding: 12px; border-radius: 10px; }
-      .session-card .session-name { font-size: 14px; }
-      .exercise-row { padding: 8px 10px; }
-      .set-pill { padding: 4px 8px; font-size: 11px; }
-      .set-wt { min-width: 48px; font-size: 12px; }
     }
-
   </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="auth.js"></script>
@@ -451,11 +436,9 @@ function initWeightChart() {
 loadData();
 </script>
 
-<!-- MOBILE_NAV_HAMBURGER_INJECTED -->
 
 <script>
 (function () {
-  // Build a hamburger button and inject it before .nav-links if not already present
   var nav = document.querySelector('header .nav-links');
   var hdr = document.querySelector('header');
   if (!nav || !hdr || hdr.querySelector('.nav-toggle')) return;
@@ -465,29 +448,20 @@ loadData();
   btn.setAttribute('aria-expanded', 'false');
   btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
   hdr.insertBefore(btn, nav);
-
-  function close() {
-    nav.classList.remove('open');
-    btn.setAttribute('aria-expanded', 'false');
-  }
-  btn.addEventListener('click', function (e) {
+  function close() { nav.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  btn.addEventListener('click', function(e) {
     e.stopPropagation();
     var open = nav.classList.toggle('open');
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
-  // Close on outside tap
-  document.addEventListener('click', function (e) {
+  document.addEventListener('click', function(e) {
     if (!nav.classList.contains('open')) return;
     if (nav.contains(e.target) || btn.contains(e.target)) return;
     close();
   });
-  // Close after picking a link
-  nav.addEventListener('click', function (e) {
-    if (e.target.tagName === 'A') close();
-  });
+  nav.addEventListener('click', function(e) { if (e.target.tagName === 'A') close(); });
 })();
 </script>
-
 </body>
 </html>
 
