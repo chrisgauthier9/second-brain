@@ -408,18 +408,17 @@ function habitHit(row, h) {
 
 // ----- Load -----
 async function load() {
-  await window._authReadyPromise;
   const cutoff = dateRange(60)[59];
 
   // Core queries — page cannot render without these
   const [checkinsRes, sessRes, journalsRes] = await Promise.all([
-    window.sb.from('daily_checkins').select('*').gte('date', cutoff).order('date', { ascending: false }),
-    window.sb.from('sessions').select('date').gte('date', cutoff),
-    window.sb.from('journal_entries').select('id, entry_date, title, body, source').gte('entry_date', cutoff).order('entry_date', { ascending: false }).order('id', { ascending: false }),
+    sb.from('daily_checkins').select('*').gte('date', cutoff).order('date', { ascending: false }),
+    sb.from('sessions').select('date').gte('date', cutoff),
+    sb.from('journal_entries').select('id, entry_date, title, body, source').gte('entry_date', cutoff).order('entry_date', { ascending: false }).order('id', { ascending: false }),
   ]);
 
   if (checkinsRes.error) {
-    document.getElementById('view').innerHTML = `<div class="loading">Error loading data: ${checkinsRes.error.message}</div>`;
+    document.getElementById('view').innerHTML = `<div class="loading">Error: ${checkinsRes.error.message}</div>`;
     return;
   }
 
@@ -435,7 +434,7 @@ async function load() {
   // Bodyweight is optional — don't let a failure here block the page
   WEIGHT_LOG = {};
   try {
-    const weightRes = await window.sb.from('bodyweight_log').select('date, weight').gte('date', cutoff).order('date', { ascending: false });
+    const weightRes = await sb.from('bodyweight_log').select('date, weight').gte('date', cutoff).order('date', { ascending: false });
     if (!weightRes.error) {
       for (const w of (weightRes.data || [])) WEIGHT_LOG[w.date] = w.weight;
     }
@@ -681,7 +680,7 @@ async function saveJournalField(field, value) {
   if (entry) {
     // UPDATE existing
     const patch = { [field]: value === '' ? null : value };
-    const { data, error } = await window.sb
+    const { data, error } = await sb
       .from('journal_entries')
       .update(patch)
       .eq('id', entry.id)
@@ -698,7 +697,7 @@ async function saveJournalField(field, value) {
       return;
     }
     const payload = { entry_date: CURRENT_DATE, source: 'manual', [field]: value };
-    const { data, error } = await window.sb
+    const { data, error } = await sb
       .from('journal_entries')
       .insert(payload)
       .select('id, entry_date, title, body, source')
@@ -771,7 +770,7 @@ async function saveCell(input) {
 async function saveWeight(value) {
   setStatus('saving', 'Saving…');
   if (value === null) { setStatus('saved', 'Saved'); return; }
-  const { error } = await window.sb.from('bodyweight_log').upsert(
+  const { error } = await sb.from('bodyweight_log').upsert(
     { date: CURRENT_DATE, weight: value },
     { onConflict: 'date' }
   );
@@ -784,7 +783,7 @@ async function saveWeight(value) {
 async function saveValue(col, value) {
   setStatus('saving', 'Saving…');
   const payload = { date: CURRENT_DATE, [col]: value };
-  const { error } = await window.sb.from('daily_checkins').upsert(payload, { onConflict: 'date' });
+  const { error } = await sb.from('daily_checkins').upsert(payload, { onConflict: 'date' });
   if (error) {
     setStatus('error', 'Save failed: ' + error.message);
     return;
