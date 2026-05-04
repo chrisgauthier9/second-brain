@@ -101,11 +101,10 @@
 
     .loading-state { padding: 40px; text-align: center; color: #4b5563; font-size: 13px; }
     .count-badge { font-size: 11px; color: #6b7280; padding: 12px 20px 8px; font-weight: 500; }
-    /* ===== Mobile hamburger menu ===== */
+    /* ===== Mobile hamburger ===== */
     .nav-toggle {
       display: none; background: transparent; border: none; cursor: pointer;
       padding: 6px 8px; margin-left: auto; color: var(--text, #f3f4f6);
-      font-family: inherit;
     }
     .nav-toggle svg { display: block; width: 22px; height: 22px; }
     @media (max-width: 600px) {
@@ -115,24 +114,13 @@
         background: #1f2937; border-bottom: 1px solid #374151;
         flex-direction: column; gap: 0; padding: 6px 0;
         margin-left: 0; align-items: stretch;
-        max-height: 0; overflow-y: auto; transition: max-height .25s ease, padding .25s ease;
+        max-height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
         z-index: 100;
       }
-      .nav-links.open { max-height: calc(100vh - 49px); padding: 6px 0; }
-      .nav-links a {
-        padding: 14px 24px; border-radius: 0; font-size: 15px;
-      }
+      .nav-links.open { max-height: calc(100vh - 49px); overflow-y: auto; padding: 6px 0; }
+      .nav-links a { padding: 14px 24px; border-radius: 0; font-size: 15px; }
       header { position: sticky; top: 0; z-index: 101; }
-
-      /* Mobile compaction */
-      main { padding: 0; }
-      .sidebar { padding: 12px; }
-      .entry-panel { padding: 16px; }
-      .entry-weekday { font-size: 20px; margin-bottom: 14px; }
-      .entry-body { font-size: 15px; line-height: 1.6; }
     }
-
-
   </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="auth.js"></script>
 
@@ -513,11 +501,9 @@ async function load() {
 })();
 </script>
 
-<!-- MOBILE_NAV_HAMBURGER_INJECTED -->
 
 <script>
 (function () {
-  // Build a hamburger button and inject it before .nav-links if not already present
   var nav = document.querySelector('header .nav-links');
   var hdr = document.querySelector('header');
   if (!nav || !hdr || hdr.querySelector('.nav-toggle')) return;
@@ -527,29 +513,20 @@ async function load() {
   btn.setAttribute('aria-expanded', 'false');
   btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
   hdr.insertBefore(btn, nav);
-
-  function close() {
-    nav.classList.remove('open');
-    btn.setAttribute('aria-expanded', 'false');
-  }
-  btn.addEventListener('click', function (e) {
+  function close() { nav.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  btn.addEventListener('click', function(e) {
     e.stopPropagation();
     var open = nav.classList.toggle('open');
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
-  // Close on outside tap
-  document.addEventListener('click', function (e) {
+  document.addEventListener('click', function(e) {
     if (!nav.classList.contains('open')) return;
     if (nav.contains(e.target) || btn.contains(e.target)) return;
     close();
   });
-  // Close after picking a link
-  nav.addEventListener('click', function (e) {
-    if (e.target.tagName === 'A') close();
-  });
+  nav.addEventListener('click', function(e) { if (e.target.tagName === 'A') close(); });
 })();
 </script>
-
 </body>
 </html>
 
