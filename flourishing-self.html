@@ -82,23 +82,24 @@
     @media (max-width: 600px) {
       .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
       .nav-links {
-        position: absolute; top: 100%; left: 0; right: 0;
+        position: fixed; top: 49px; left: 0; right: 0; bottom: 0;
         background: #1f2937; border-bottom: 1px solid #374151;
         flex-direction: column; gap: 0; padding: 6px 0;
         margin-left: 0; align-items: stretch;
-        max-height: 0; overflow: hidden; transition: max-height .2s ease, padding .2s ease;
+        max-height: 0; overflow-y: auto; transition: max-height .25s ease, padding .25s ease;
+        z-index: 100;
       }
-      .nav-links.open { max-height: 360px; padding: 6px 0; }
+      .nav-links.open { max-height: calc(100vh - 49px); padding: 6px 0; }
       .nav-links a {
-        padding: 12px 24px; border-radius: 0; font-size: 14px;
+        padding: 14px 24px; border-radius: 0; font-size: 15px;
       }
-      header { position: relative; }
+      header { position: sticky; top: 0; z-index: 101; }
 
       /* Mobile compaction */
       h1 { font-size: 20px; }
       h2 { font-size: 17px; }
       h3 { font-size: 15px; }
-      main { padding: 16px 14px 60px; }
+      main { padding: 20px 14px 60px; }
       .content { font-size: 14px; line-height: 1.6; }
     }
 
