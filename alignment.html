@@ -440,6 +440,7 @@ async function load() {
     }
   } catch (e) { /* bodyweight unavailable — render without it */ }
 
+  document.documentElement.style.visibility = '';
   render();
 }
 
@@ -913,20 +914,8 @@ function renderHistory() {
 document.getElementById('tab-day').addEventListener('click', () => { TAB = 'day'; sessionStorage.setItem('alignTab','day'); render(); });
 document.getElementById('tab-history').addEventListener('click', () => { TAB = 'history'; sessionStorage.setItem('alignTab','history'); render(); });
 
-// Wait for auth gate to clear visibility, then load
-// Timeout after 4s so mobile Safari can't hang forever
-var authTimeout = setTimeout(function() {
-  document.documentElement.style.visibility = '';
-  load().catch(e => {
-    document.getElementById('view').innerHTML = '<div class="loading" style="color:#f87171">Load error: ' + e.message + '</div>';
-  });
-}, 4000);
-
-window._authReadyPromise.then(function() {
-  clearTimeout(authTimeout);
-  load().catch(e => {
-    document.getElementById('view').innerHTML = '<div class="loading" style="color:#f87171">Load error: ' + e.message + '</div>';
-  });
+load().catch(e => {
+  document.getElementById('view').innerHTML = '<div class="loading" style="color:#f87171">Error: ' + e.message + '</div>';
 });
 </script>
 
