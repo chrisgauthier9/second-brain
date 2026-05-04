@@ -222,7 +222,7 @@ async function sha256(text) {
 function renderCalendar() {
   const entries = activeEntries();
   const entryDates = new Set(entries.map(e => e.entry_date));
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date());
   document.getElementById('cal-title').textContent = `${MONTHS[calMonth]} ${calYear}`;
   const firstDay = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
@@ -346,7 +346,7 @@ function startEdit() {
 function newEntry() {
   editingMode = 'new';
   selectedId = null;
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date());
   renderEditor({ entry_date: today, body: '', journal: activeTab === 'thoughts' ? 'Thoughts and Feelings' : null });
 }
 
@@ -551,4 +551,5 @@ async function load() {
 
 </body>
 </html>
+
 
