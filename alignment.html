@@ -444,10 +444,14 @@ async function load() {
 }
 
 function render() {
-  document.getElementById('tab-day').classList.toggle('active', TAB === 'day');
-  document.getElementById('tab-history').classList.toggle('active', TAB === 'history');
-  if (TAB === 'day') renderDay();
-  else renderHistory();
+  try {
+    document.getElementById('tab-day').classList.toggle('active', TAB === 'day');
+    document.getElementById('tab-history').classList.toggle('active', TAB === 'history');
+    if (TAB === 'day') renderDay();
+    else renderHistory();
+  } catch(e) {
+    document.getElementById('view').innerHTML = '<div class="loading" style="color:#f87171">Render error: ' + e.message + '<br><pre style="font-size:10px;margin-top:8px;white-space:pre-wrap">' + (e.stack||'') + '</pre></div>';
+  }
 }
 
 // ----- Day tab — full editor -----
@@ -909,7 +913,9 @@ function renderHistory() {
 document.getElementById('tab-day').addEventListener('click', () => { TAB = 'day'; sessionStorage.setItem('alignTab','day'); render(); });
 document.getElementById('tab-history').addEventListener('click', () => { TAB = 'history'; sessionStorage.setItem('alignTab','history'); render(); });
 
-load();
+load().catch(e => {
+  document.getElementById('view').innerHTML = '<div class="loading" style="color:#f87171">Load error: ' + e.message + '</div>';
+});
 </script>
 
 
