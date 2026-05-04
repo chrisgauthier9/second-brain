@@ -246,6 +246,10 @@
 
 <script>
 // ----- Config -----
+const TZ = 'America/Toronto';
+function todayISO() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+}
 const HARD_NOS = [
   { key: 'no_porn',                    label: 'Avoided porn' },
   { key: 'no_phone_silence',   label: 'Avoided phone to kill silence' },
@@ -309,10 +313,6 @@ let WEIGHT_LOG = {};                        // date -> weight (lbs)
 let RANGE = 7;                              // history heatmap range
 
 // ----- Date helpers (all in America/Toronto) -----
-const TZ = 'America/Toronto';
-function todayISO() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
-}
 function dateRange(daysBack) {
   const days = [];
   const today = new Date(todayISO() + 'T12:00:00');
