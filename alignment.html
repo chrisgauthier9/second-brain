@@ -336,10 +336,10 @@ let CURRENT_DATE = todayISO();              // which day the Day tab is currentl
 let WEIGHT_LOG = {};                        // date -> weight (lbs)
 let RANGE = 7;                              // history heatmap range
 
-// ----- Date helpers -----
+// ----- Date helpers (all in America/Toronto) -----
+const TZ = 'America/Toronto';
 function todayISO() {
-  const now = new Date();
-  return new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().split('T')[0];
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
 }
 function dateRange(daysBack) {
   const days = [];
@@ -347,7 +347,11 @@ function dateRange(daysBack) {
   for (let i = 0; i < daysBack; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    days.push(d.toISOString().split('T')[0]);
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
+    const y = parts.find(p=>p.type==='year').value;
+    const m = parts.find(p=>p.type==='month').value;
+    const day = parts.find(p=>p.type==='day').value;
+    days.push(`${y}-${m}-${day}`);
   }
   return days;
 }
@@ -358,7 +362,7 @@ function fmtDayLabel(iso) {
 function shiftDate(iso, delta) {
   const d = new Date(iso + 'T12:00:00');
   d.setDate(d.getDate() + delta);
-  return d.toISOString().split('T')[0];
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d);
 }
 
 // "habit hit?" — true/false/null. Null = unset / didn't track / N/A.
@@ -965,3 +969,4 @@ load();
 
 </body>
 </html>
+
