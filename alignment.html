@@ -199,11 +199,10 @@
       h1 { font-size: 19px; }
       .day-title { font-size: 16px; }
     }
-    /* ===== Mobile hamburger menu ===== */
+    /* ===== Mobile hamburger ===== */
     .nav-toggle {
       display: none; background: transparent; border: none; cursor: pointer;
       padding: 6px 8px; margin-left: auto; color: var(--text, #f3f4f6);
-      font-family: inherit;
     }
     .nav-toggle svg { display: block; width: 22px; height: 22px; }
     @media (max-width: 600px) {
@@ -213,41 +212,13 @@
         background: #1f2937; border-bottom: 1px solid #374151;
         flex-direction: column; gap: 0; padding: 6px 0;
         margin-left: 0; align-items: stretch;
-        max-height: 0; overflow-y: auto; transition: max-height .25s ease, padding .25s ease;
+        max-height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
         z-index: 100;
       }
-      .nav-links.open { max-height: calc(100vh - 49px); padding: 6px 0; }
-      .nav-links a {
-        padding: 14px 24px; border-radius: 0; font-size: 15px;
-      }
+      .nav-links.open { max-height: calc(100vh - 49px); overflow-y: auto; padding: 6px 0; }
+      .nav-links a { padding: 14px 24px; border-radius: 0; font-size: 15px; }
       header { position: sticky; top: 0; z-index: 101; }
-
-      /* Mobile compaction */
-      h1 { font-size: 18px; margin-bottom: 10px; }
-      main { padding: 20px 12px 60px; }
-      section { padding: 12px; margin-bottom: 10px; border-radius: 10px; }
-      section h2 { font-size: 10px; margin-bottom: 10px; }
-      .day-header { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 10px; flex-wrap: nowrap; }
-      .day-title { font-size: 16px; line-height: 1.25; }
-      .day-sub { font-size: 11px; }
-      .day-nav { width: 100%; gap: 4px; }
-      .day-nav button { flex: 1; padding: 8px 6px; font-size: 12px; }
-      .hours-cell input { padding: 10px; font-size: 16px; }
-      .hours-grid, .times-row { gap: 6px; }
-      .times-row.times-4 { grid-template-columns: repeat(2, 1fr); }
-      .time-cell input { padding: 8px; font-size: 13px; }
-      .toggle-row { padding: 10px 12px; gap: 8px; }
-      .toggle-row .label { font-size: 13px; }
-      .yn-btn { padding: 6px 10px; min-width: 40px; font-size: 11px; }
-      .tabs { margin-bottom: 12px; }
-      .tab { padding: 9px 0; font-size: 12px; }
-      textarea.notes { min-height: 80px; }
-      textarea.journal-body { min-height: 130px; }
-      .stats-row { gap: 6px; }
-      .heatmap-table th.row-label { min-width: 86px; font-size: 10px; padding-right: 6px; }
-      .heatmap-table td.day-cell { height: 13px; }
     }
-
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="auth.js"></script>
@@ -942,11 +913,9 @@ document.getElementById('tab-history').addEventListener('click', () => { TAB = '
 load();
 </script>
 
-<!-- MOBILE_NAV_HAMBURGER_INJECTED -->
 
 <script>
 (function () {
-  // Build a hamburger button and inject it before .nav-links if not already present
   var nav = document.querySelector('header .nav-links');
   var hdr = document.querySelector('header');
   if (!nav || !hdr || hdr.querySelector('.nav-toggle')) return;
@@ -956,29 +925,20 @@ load();
   btn.setAttribute('aria-expanded', 'false');
   btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
   hdr.insertBefore(btn, nav);
-
-  function close() {
-    nav.classList.remove('open');
-    btn.setAttribute('aria-expanded', 'false');
-  }
-  btn.addEventListener('click', function (e) {
+  function close() { nav.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  btn.addEventListener('click', function(e) {
     e.stopPropagation();
     var open = nav.classList.toggle('open');
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
-  // Close on outside tap
-  document.addEventListener('click', function (e) {
+  document.addEventListener('click', function(e) {
     if (!nav.classList.contains('open')) return;
     if (nav.contains(e.target) || btn.contains(e.target)) return;
     close();
   });
-  // Close after picking a link
-  nav.addEventListener('click', function (e) {
-    if (e.target.tagName === 'A') close();
-  });
+  nav.addEventListener('click', function(e) { if (e.target.tagName === 'A') close(); });
 })();
 </script>
-
 </body>
 </html>
 
