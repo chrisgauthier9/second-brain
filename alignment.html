@@ -209,21 +209,22 @@
     @media (max-width: 600px) {
       .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
       .nav-links {
-        position: absolute; top: 100%; left: 0; right: 0;
+        position: fixed; top: 49px; left: 0; right: 0; bottom: 0;
         background: #1f2937; border-bottom: 1px solid #374151;
         flex-direction: column; gap: 0; padding: 6px 0;
         margin-left: 0; align-items: stretch;
-        max-height: 0; overflow: hidden; transition: max-height .2s ease, padding .2s ease;
+        max-height: 0; overflow-y: auto; transition: max-height .25s ease, padding .25s ease;
+        z-index: 100;
       }
-      .nav-links.open { max-height: 360px; padding: 6px 0; }
+      .nav-links.open { max-height: calc(100vh - 49px); padding: 6px 0; }
       .nav-links a {
-        padding: 12px 24px; border-radius: 0; font-size: 14px;
+        padding: 14px 24px; border-radius: 0; font-size: 15px;
       }
-      header { position: relative; }
+      header { position: sticky; top: 0; z-index: 101; }
 
       /* Mobile compaction */
       h1 { font-size: 18px; margin-bottom: 10px; }
-      main { padding: 12px 12px 60px; }
+      main { padding: 20px 12px 60px; }
       section { padding: 12px; margin-bottom: 10px; border-radius: 10px; }
       section h2 { font-size: 10px; margin-bottom: 10px; }
       .day-header { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 10px; flex-wrap: nowrap; }
@@ -438,16 +439,19 @@ function habitHit(row, h) {
 async function load() {
   await window._authReadyPromise;
   const cutoff = dateRange(60)[59];
-  const [checkinsRes, sessRes, journalsRes, weightRes] = await Promise.all([
+
+  // Core queries — page cannot render without these
+  const [checkinsRes, sessRes, journalsRes] = await Promise.all([
     window.sb.from('daily_checkins').select('*').gte('date', cutoff).order('date', { ascending: false }),
     window.sb.from('sessions').select('date').gte('date', cutoff),
     window.sb.from('journal_entries').select('id, entry_date, title, body, source').gte('entry_date', cutoff).order('entry_date', { ascending: false }).order('id', { ascending: false }),
-    window.sb.from('bodyweight_log').select('date, weight').gte('date', cutoff).order('date', { ascending: false }),
   ]);
+
   if (checkinsRes.error) {
-    document.getElementById('view').innerHTML = `<div class="loading">Error: ${checkinsRes.error.message}</div>`;
+    document.getElementById('view').innerHTML = `<div class="loading">Error loading data: ${checkinsRes.error.message}</div>`;
     return;
   }
+
   DATA = {};
   for (const r of (checkinsRes.data || [])) DATA[r.date] = r;
   TRAINED_DATES = new Set((sessRes.data || []).map(s => s.date));
@@ -456,8 +460,16 @@ async function load() {
     if (!JOURNALS[j.entry_date]) JOURNALS[j.entry_date] = [];
     JOURNALS[j.entry_date].push(j);
   }
+
+  // Bodyweight is optional — don't let a failure here block the page
   WEIGHT_LOG = {};
-  for (const w of (weightRes.data || [])) WEIGHT_LOG[w.date] = w.weight;
+  try {
+    const weightRes = await window.sb.from('bodyweight_log').select('date, weight').gte('date', cutoff).order('date', { ascending: false });
+    if (!weightRes.error) {
+      for (const w of (weightRes.data || [])) WEIGHT_LOG[w.date] = w.weight;
+    }
+  } catch (e) { /* bodyweight unavailable — render without it */ }
+
   render();
 }
 
@@ -969,4 +981,5 @@ load();
 
 </body>
 </html>
+
 
