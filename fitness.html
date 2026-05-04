@@ -205,9 +205,13 @@ function render() {
 let calMonth = null, calYear = null;
 function renderSessions() {
   if (DATA.sessions.length === 0) return `<div class="loading">No sessions yet</div>`;
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date());
   const now = new Date();
-  if (calMonth === null) { calMonth = now.getMonth(); calYear = now.getFullYear(); }
+  if (calMonth === null) {
+    const tp = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Toronto', month: 'numeric', year: 'numeric' }).formatToParts(now);
+    calMonth = parseInt(tp.find(p=>p.type==='month').value) - 1;
+    calYear  = parseInt(tp.find(p=>p.type==='year').value);
+  }
   const sessMap = new Map();
   DATA.sessions.forEach(s => sessMap.set(s.date, s));
   const firstDay = new Date(calYear, calMonth, 1).getDay();
@@ -351,11 +355,13 @@ function renderWeight() {
   }
 
   const now = new Date();
+  const nowISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(now);
   const cutoffs = { '7d': 7, '30d': 30, '1y': 365 };
   let weights = all;
   if (WEIGHT_RANGE in cutoffs) {
-    const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - cutoffs[WEIGHT_RANGE]);
-    const cutoffISO = cutoff.toISOString().slice(0,10);
+    const cutoff = new Date(nowISO + 'T12:00:00');
+    cutoff.setDate(cutoff.getDate() - cutoffs[WEIGHT_RANGE]);
+    const cutoffISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(cutoff);
     weights = all.filter(w => w.date >= cutoffISO);
   }
 
@@ -376,11 +382,13 @@ function initWeightChart() {
   if (window._weightChart) window._weightChart.destroy();
 
   const now = new Date();
+  const nowISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(now);
   const cutoffs = { '7d': 7, '30d': 30, '1y': 365 };
   let weights = DATA.weights;
   if (WEIGHT_RANGE in cutoffs) {
-    const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - cutoffs[WEIGHT_RANGE]);
-    const cutoffISO = cutoff.toISOString().slice(0,10);
+    const cutoff = new Date(nowISO + 'T12:00:00');
+    cutoff.setDate(cutoff.getDate() - cutoffs[WEIGHT_RANGE]);
+    const cutoffISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(cutoff);
     weights = DATA.weights.filter(w => w.date >= cutoffISO);
   }
   if (!weights.length) return;
@@ -481,3 +489,4 @@ loadData();
 
 </body>
 </html>
+
