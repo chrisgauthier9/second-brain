@@ -525,7 +525,7 @@ async function load() {
   rfr.setAttribute('aria-label', 'Refresh');
   rfr.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
   rfr.addEventListener('click', function() { location.reload(); });
-  hdr.appendChild(rfr);
+  hdr.insertBefore(rfr, btn);
   function close() { nav.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
   btn.addEventListener('click', function(e) {
     e.stopPropagation();
