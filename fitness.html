@@ -101,9 +101,9 @@
         flex-direction: column; gap: 0; padding: 6px 0;
         margin-left: 0; align-items: stretch;
         max-height: 0; height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
-        z-index: 100;
+        z-index: 100; flex: 0 0 0; width: 0; min-width: 0;
       }
-      .nav-links.open { max-height: calc(100vh - 49px); height: auto; width: 100%; overflow-y: auto; padding: 6px 0; }
+      .nav-links.open { max-height: calc(100vh - 49px); overflow-y: auto; padding: 6px 0; }
       .nav-links a { padding: 14px 24px; border-radius: 0; font-size: 15px; }
       header { position: sticky; top: 0; z-index: 101; overflow: hidden; border-bottom: none; } nav.nav-links { border: none; outline: none; } .nav-links a.active { background: transparent; color: #a78bfa; }
     }
@@ -331,12 +331,103 @@ function renderExerciseDetail(exercise) {
   sessions.forEach(s => s.sets.sort((a,b) => a.set_number - b.set_number));
   sessions.sort((a,b) => b.date.localeCompare(a.date));
   const totalSets = sets.length;
+  const isAssisted = exercise.name.toLowerCase().includes('assisted');
   const maxWt = sets.filter(s=>s.weight!=null).reduce((m,s)=>Math.max(m,s.weight),0);
+  const minWt = sets.filter(s=>s.weight!=null).reduce((m,s)=>Math.min(m,s.weight),Infinity);
   const best1RM = sets.filter(s=>s.weight!=null&&s.reps).reduce((m,s)=>Math.max(m,s.weight*(1+s.reps/30)),0);
+
   let html = `<div style="margin-bottom:18px"><h2 style="font-size:20px;font-weight:700">${esc(exercise.name)}</h2><div style="display:flex;gap:8px;margin-top:6px"><span class="pill" style="background:${mc(exercise.muscle_group)}22;color:${mc(exercise.muscle_group)}">${exercise.muscle_group||''}</span><span class="pill" style="background:var(--deep);color:var(--dim)">${exercise.equipment||''}</span></div></div>`;
+
   if (totalSets > 0) {
-    html += `<div class="stat-grid"><div class="stat-tile"><div class="stat-val">${totalSets}</div><div class="stat-label">Sets</div></div><div class="stat-tile"><div class="stat-val">${maxWt>0?maxWt:'—'}</div><div class="stat-sub">lbs</div><div class="stat-label">Top weight</div></div><div class="stat-tile"><div class="stat-val">${best1RM>0?Math.round(best1RM):'—'}</div><div class="stat-sub">lbs</div><div class="stat-label">Est 1RM</div></div></div>`;
+    if (isAssisted) {
+      const startWt = sessions.length ? Math.max(...sessions[sessions.length-1].sets.filter(s=>s.weight!=null).map(s=>s.weight)) : 0;
+      const currentWt = sessions.length ? Math.min(...sessions[0].sets.filter(s=>s.weight!=null).map(s=>s.weight)) : 0;
+      const dropped = startWt - currentWt;
+      html += `<div class="stat-grid">
+        <div class="stat-tile"><div class="stat-val">${totalSets}</div><div class="stat-label">Sets</div></div>
+        <div class="stat-tile"><div class="stat-val">${currentWt > 0 ? currentWt : '—'}</div><div class="stat-sub">lbs assist</div><div class="stat-label">Current</div></div>
+        <div class="stat-tile"><div class="stat-val" style="color:var(--lower-a)">${dropped > 0 ? '-'+dropped : '—'}</div><div class="stat-sub">lbs</div><div class="stat-label">Dropped</div></div>
+      </div>`;
+    } else {
+      html += `<div class="stat-grid"><div class="stat-tile"><div class="stat-val">${totalSets}</div><div class="stat-label">Sets</div></div><div class="stat-tile"><div class="stat-val">${maxWt>0?maxWt:'—'}</div><div class="stat-sub">lbs</div><div class="stat-label">Top weight</div></div><div class="stat-tile"><div class="stat-val">${best1RM>0?Math.round(best1RM):'—'}</div><div class="stat-sub">lbs</div><div class="stat-label">Est 1RM</div></div></div>`;
+    }
   }
+
+  // Progress chart
+  const chartSessions = [...sessions].reverse(); // chronological
+  if (chartSessions.length >= 2) {
+    const chartId = 'ex-progress-chart-' + exercise.id;
+    const labels = chartSessions.map(s => {
+      const [y,m,d] = s.date.split('-');
+      return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]} ${+d}`;
+    });
+    const chartData = chartSessions.map(s => {
+      const wts = s.sets.filter(x=>x.weight!=null).map(x=>x.weight);
+      if (!wts.length) return null;
+      return isAssisted ? Math.min(...wts) : Math.max(...wts);
+    });
+    const allVals = chartData.filter(v=>v!=null);
+    const chartMin = Math.min(...allVals);
+    const chartMax = Math.max(...allVals);
+    const pad = Math.max((chartMax - chartMin) * 0.2, 5);
+    const yMin = isAssisted ? Math.max(0, chartMin - pad) : chartMin - pad;
+    const yMax = chartMax + pad;
+    const lineColor = isAssisted ? '#34d399' : '#a78bfa';
+    const chartLabel = isAssisted ? 'Assistance (lbs) — lower = stronger' : 'Top weight (lbs)';
+    const chartDataJson = JSON.stringify(chartData);
+    const labelsJson = JSON.stringify(labels);
+
+    html += `<div style="margin-bottom:20px">
+      <h3 class="section-label" style="margin-bottom:8px">Progress</h3>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 12px">
+        <canvas id="${chartId}" height="140"></canvas>
+      </div>
+    </div>
+    <script>
+    (function(){
+      const canvas = document.getElementById('${chartId}');
+      if (!canvas) return;
+      if (window['_chart_${exercise.id}']) window['_chart_${exercise.id}'].destroy();
+      window['_chart_${exercise.id}'] = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: ${labelsJson},
+          datasets: [{
+            label: '${chartLabel.replace(/'/g,"\'")}',
+            data: ${chartDataJson},
+            borderColor: '${lineColor}',
+            backgroundColor: '${lineColor}22',
+            borderWidth: 2,
+            pointBackgroundColor: '${lineColor}',
+            pointRadius: 4,
+            tension: 0.3,
+            fill: true,
+            spanGaps: true,
+          }${isAssisted ? `,{label:'Unassisted goal',data:${labelsJson}.map(()=>0),borderColor:'rgba(251,191,36,0.4)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false}` : ''}]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { labels: { color: '#9ca3af', font: { size: 10 }, boxWidth: 12 } },
+            tooltip: { backgroundColor: '#1f2937', titleColor: '#f3f4f6', bodyColor: '#d1d5db' }
+          },
+          scales: {
+            x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            y: {
+              reverse: isAssisted,
+              min: ${yMin},
+              max: ${yMax},
+              ticks: { color: '#6b7280', font: { size: 10 }, callback: v => v + ' lb' },
+              grid: { color: 'rgba(255,255,255,0.04)' }
+            }
+          }
+        }
+      });
+    })();
+    <\/script>`;
+  }
+
   if (sessions.length > 0) {
     html += `<h3 class="section-label">History (${sessions.length} sessions)</h3>`;
     for (const sess of sessions) {
