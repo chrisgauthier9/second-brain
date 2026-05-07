@@ -42,7 +42,7 @@
     .nav-toggle svg { display: block; width: 22px; height: 22px; }
     .refresh-btn {
       display: none; background: transparent; border: none; cursor: pointer;
-      padding: 6px 8px; color: var(--text, #f3f4f6); flex-shrink: 0; margin-left: auto;
+      padding: 6px 8px; color: var(--text, #f3f4f6); flex-shrink: 0;
     }
     .refresh-btn svg { display: block; width: 20px; height: 20px; }
     .refresh-btn:active svg { opacity: 0.5; }
@@ -127,8 +127,11 @@
   rfr.setAttribute('aria-label', 'Refresh');
   rfr.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
   rfr.addEventListener('click', function() { location.reload(); });
-  hdr.appendChild(rfr);
-  hdr.appendChild(btn);
+  var grp = document.createElement('div');
+  grp.style.cssText = 'display:flex;align-items:center;margin-left:auto;gap:0;flex-shrink:0;';
+  grp.appendChild(rfr);
+  grp.appendChild(btn);
+  hdr.appendChild(grp);
   function close() { nav.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
   btn.addEventListener('click', function(e) {
     e.stopPropagation();
