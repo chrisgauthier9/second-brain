@@ -226,7 +226,7 @@ function renderSessions() {
     const cls = `cal-day${s?' has-session':''}${isToday?' today':''}`;
     const bg = s ? wc(s.style) : 'transparent';
     const click = s ? `onclick="showDetail('session',DATA.sessions.find(x=>x.id===${s.id}))"` : '';
-    const label = s ? `<span class="cal-day-label">${esc(s.style||'')}</span>` : '';
+    const label = s ? `<span class="cal-day-label">${esc(s.name||s.style||'')}</span>` : '';
     html += `<button class="${cls}" style="background:${bg}" ${click}><span class="cal-day-num">${d}</span>${label}</button>`;
   }
   html += `</div>`;
@@ -239,9 +239,17 @@ function renderSessionDetail(session) {
   const sets = DATA.sets.filter(s => s.session_id === session.id);
   const exerciseOrder = []; const seen = new Set();
   for (const s of sets) { const n = s.exercises?.name; if(n && !seen.has(n)){exerciseOrder.push(n);seen.add(n);} }
-  const subtitle = session.name ? ` · ${esc(session.name)}` : '';
-  let html = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
-    <div><span style="font-size:16px;font-weight:700;color:${wc(session.style)}">${esc(session.style||'—')}</span><span style="font-size:12px;color:var(--muted);margin-left:8px">${fmt(session.date)}${subtitle}</span></div>
+  const isHeavy = (session.name||'').toLowerCase().includes('heavy');
+  const isVolume = (session.name||'').toLowerCase().includes('volume');
+  const dayTypeBadge = session.name
+    ? `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:${isHeavy?'rgba(96,165,250,0.15)':isVolume?'rgba(52,211,153,0.15)':'rgba(148,163,184,0.12)'};color:${isHeavy?'var(--upper-a)':isVolume?'var(--lower-a)':'var(--misc)'};">${esc(session.name)}</span>`
+    : '';
+  let html = `<div style="margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:16px;font-weight:700;color:${wc(session.style)}">${esc(session.style||'—')}</span>
+      <span style="font-size:12px;color:var(--muted)">${fmt(session.date)}</span>
+      ${dayTypeBadge}
+    </div>
   </div>`;
   if (sets.length === 0) {
     html += `<div style="padding:30px 0;text-align:center;color:var(--dim);font-size:13px">No sets logged${session.notes ? '' : ' for this session'}.</div>`;
@@ -332,7 +340,10 @@ function renderExerciseDetail(exercise) {
   if (sessions.length > 0) {
     html += `<h3 class="section-label">History (${sessions.length} sessions)</h3>`;
     for (const sess of sessions) {
-      html += `<div style="margin-bottom:14px"><div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><span style="font-size:12px;font-weight:600">${fmtFull(sess.date)}</span><span style="font-size:11px;color:${wc(sess.style)};font-weight:600">${esc(sess.style||'')}</span><span style="flex:1"></span><span style="font-size:11px;color:var(--dim)">${sess.sets.length} sets</span></div><div style="display:flex;flex-direction:column;gap:3px">${sess.sets.map(s=>setRow(s)).join('')}</div></div>`;
+      const sIsHeavy = (sess.name||'').toLowerCase().includes('heavy');
+      const sIsVolume = (sess.name||'').toLowerCase().includes('volume');
+      const sNameBadge = sess.name ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:${sIsHeavy?'rgba(96,165,250,0.15)':sIsVolume?'rgba(52,211,153,0.15)':'rgba(148,163,184,0.12)'};color:${sIsHeavy?'var(--upper-a)':sIsVolume?'var(--lower-a)':'var(--misc)'};">${esc(sess.name)}</span>` : '';
+      html += `<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap"><span style="font-size:12px;font-weight:600">${fmtFull(sess.date)}</span><span style="font-size:11px;color:${wc(sess.style)};font-weight:600">${esc(sess.style||'')}</span>${sNameBadge}<span style="flex:1"></span><span style="font-size:11px;color:var(--dim)">${sess.sets.length} sets</span></div><div style="display:flex;flex-direction:column;gap:3px">${sess.sets.map(s=>setRow(s)).join('')}</div></div>`;
     }
   }
   return html;
@@ -480,4 +491,5 @@ loadData();
 </script>
 </body>
 </html>
+
 
