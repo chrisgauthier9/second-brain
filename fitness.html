@@ -341,13 +341,15 @@ function renderExerciseDetail(exercise) {
 
   if (totalSets > 0) {
     if (isAssisted) {
-      const startWt = sessions.length ? Math.max(...sessions[sessions.length-1].sets.filter(s=>s.weight!=null).map(s=>s.weight)) : 0;
-      const currentWt = sessions.length ? Math.min(...sessions[0].sets.filter(s=>s.weight!=null).map(s=>s.weight)) : 0;
-      const dropped = startWt - currentWt;
+      const latestBW = (() => { const bwLog = (DATA.weights||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)); let bw=null; const today=sessions[0]?.sets[0]?.date||'9999'; for(const e of bwLog){if(e.date<=today)bw=e.weight;else break;} return bw; })();
+      const currentAssist = sessions.length ? Math.min(...sessions[0].sets.filter(s=>s.weight!=null).map(s=>s.weight)) : 0;
+      const currentPull = latestBW ? Math.round(latestBW - currentAssist) : null;
+      const firstAssist = sessions.length ? Math.max(...sessions[sessions.length-1].sets.filter(s=>s.weight!=null).map(s=>s.weight)) : 0;
+      const gained = firstAssist - currentAssist;
       html += `<div class="stat-grid">
         <div class="stat-tile"><div class="stat-val">${totalSets}</div><div class="stat-label">Sets</div></div>
-        <div class="stat-tile"><div class="stat-val">${currentWt > 0 ? currentWt : '—'}</div><div class="stat-sub">lbs assist</div><div class="stat-label">Current</div></div>
-        <div class="stat-tile"><div class="stat-val" style="color:var(--lower-a)">${dropped > 0 ? '-'+dropped : '—'}</div><div class="stat-sub">lbs</div><div class="stat-label">Dropped</div></div>
+        <div class="stat-tile"><div class="stat-val">${currentPull != null ? currentPull : '—'}</div><div class="stat-sub">lb eff. load</div><div class="stat-label">Current</div></div>
+        <div class="stat-tile"><div class="stat-val" style="color:var(--lower-a)">${gained > 0 ? '+'+gained : '—'}</div><div class="stat-sub">lb gained</div><div class="stat-label">Progress</div></div>
       </div>`;
     } else {
       html += `<div class="stat-grid"><div class="stat-tile"><div class="stat-val">${totalSets}</div><div class="stat-label">Sets</div></div><div class="stat-tile"><div class="stat-val">${maxWt>0?maxWt:'—'}</div><div class="stat-sub">lbs</div><div class="stat-label">Top weight</div></div><div class="stat-tile"><div class="stat-val">${best1RM>0?Math.round(best1RM):'—'}</div><div class="stat-sub">lbs</div><div class="stat-label">Est 1RM</div></div></div>`;
@@ -359,6 +361,14 @@ function renderExerciseDetail(exercise) {
   if (chartSessions.length >= 2) {
     const chartId = 'ex-progress-chart-' + exercise.id;
     const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    // bodyweight lookup: find closest entry on or before session date
+    const bwLog = (DATA.weights || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+    function bwAt(date) {
+      let bw = null;
+      for (const e of bwLog) { if (e.date <= date) bw = e.weight; else break; }
+      return bw;
+    }
+
     const sessionPoints = chartSessions.map((s, i) => {
       const validSets = s.sets.filter(x => x.weight != null && x.reps != null && x.reps > 0);
       if (!validSets.length) return null;
@@ -368,8 +378,19 @@ function renderExerciseDetail(exercise) {
       const [yy,mo,d] = s.date.split('-');
       const label = MONTHS[+mo-1] + ' ' + +d;
       const sName = (s.name||'').toLowerCase();
+      const isHeavy = sName.includes('heavy');
+      const isVolume = sName.includes('volume');
+      // Assisted pull strength: best set = (bodyweight - assistance) * (1 + reps/30)
+      const bw = bwAt(s.date);
+      let estPullRM = null;
+      if (bw) {
+        estPullRM = Math.round(validSets.reduce((m, x) => {
+          const effective = bw - x.weight;
+          return Math.max(m, effective * (1 + x.reps / 30));
+        }, 0));
+      }
       return { label, date: s.date, best1RM: Math.round(best1RM), topWeight, minWeight,
-               isHeavy: sName.includes('heavy'), isVolume: sName.includes('volume') };
+               isHeavy, isVolume, estPullRM, bw };
     }).filter(Boolean);
 
     window._pendingExerciseChart = {
@@ -439,20 +460,22 @@ function _buildExerciseChart(cfg, points) {
   const isAssisted = cfg.isAssisted;
   let datasets;
   if (isAssisted) {
+    const latestBW = points.reduce((bw, p) => p.bw || bw, null);
+    const goalVal = latestBW || null;
     datasets = [{
-      label: 'Unassisted goal',
-      data: points.map(() => 0),
-      borderColor: 'rgba(251,191,36,0.35)', borderWidth: 1.5,
+      label: goalVal ? 'Goal (' + goalVal + ' lb)' : 'Unassisted goal',
+      data: points.map(() => goalVal),
+      borderColor: 'rgba(251,191,36,0.4)', borderWidth: 1.5,
       borderDash: [4,4], pointRadius: 0, fill: false, spanGaps: true, order: 3,
     }, {
-      label: 'Heavy day',
-      data: points.map(p => p.isHeavy ? p.minWeight : null),
+      label: 'Heavy day est. pull',
+      data: points.map(p => p.isHeavy ? p.estPullRM : null),
       borderColor: '#60a5fa', backgroundColor: '#60a5fa15',
       pointBackgroundColor: '#60a5fa', pointRadius: 4, pointHoverRadius: 6,
       borderWidth: 2, tension: 0.3, fill: false, spanGaps: true, order: 2,
     }, {
-      label: 'Volume day',
-      data: points.map(p => p.isVolume ? p.minWeight : null),
+      label: 'Volume day est. pull',
+      data: points.map(p => p.isVolume ? p.estPullRM : null),
       borderColor: '#34d399', backgroundColor: '#34d39915',
       pointBackgroundColor: '#34d399', pointRadius: 4, pointHoverRadius: 6,
       borderWidth: 2, tension: 0.3, fill: false, spanGaps: true, order: 2,
@@ -478,11 +501,13 @@ function _buildExerciseChart(cfg, points) {
       pointRadius: 5, pointHoverRadius: 7, showLine: false, spanGaps: false, order: 2,
     }];
   }
-  const vals = points.map(p => isAssisted ? p.minWeight : Math.max(p.best1RM, p.topWeight)).filter(v => v != null);
+  const latestBWForRange = points.reduce((bw, p) => p.bw || bw, null);
+  const vals = points.map(p => isAssisted ? p.estPullRM : Math.max(p.best1RM, p.topWeight)).filter(v => v != null);
+  if (!vals.length) return;
   const chartMin = Math.min(...vals); const chartMax = Math.max(...vals);
   const pad = Math.max((chartMax - chartMin) * 0.2, 10);
-  const yMin = isAssisted ? Math.max(0, chartMin - pad) : chartMin - pad;
-  const yMax = chartMax + pad;
+  const yMin = chartMin - pad;
+  const yMax = isAssisted ? Math.max(chartMax + pad, (latestBWForRange || chartMax) + pad) : chartMax + pad;
 
   const key = '_chart_' + cfg.exerciseId;
   if (window[key]) window[key].destroy();
@@ -504,7 +529,7 @@ function _buildExerciseChart(cfg, points) {
       scales: {
         x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
         y: {
-          reverse: isAssisted, min: yMin, max: yMax,
+          min: yMin, max: yMax,
           ticks: { color: '#6b7280', font: { size: 10 }, callback: v => v + ' lb' },
           grid: { color: 'rgba(255,255,255,0.04)' }
         }
