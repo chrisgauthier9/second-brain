@@ -358,34 +358,45 @@ function renderExerciseDetail(exercise) {
   const chartSessions = [...sessions].reverse(); // chronological
   if (chartSessions.length >= 2) {
     const chartId = 'ex-progress-chart-' + exercise.id;
-    const labels = chartSessions.map(s => {
-      const [y,m,d] = s.date.split('-');
-      return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]} ${+d}`;
-    });
-    const chartData = chartSessions.map(s => {
-      const wts = s.sets.filter(x=>x.weight!=null).map(x=>x.weight);
-      if (!wts.length) return null;
-      return isAssisted ? Math.min(...wts) : Math.max(...wts);
-    });
-    const allVals = chartData.filter(v=>v!=null);
-    const chartMin = Math.min(...allVals);
-    const chartMax = Math.max(...allVals);
-    const pad = Math.max((chartMax - chartMin) * 0.2, 5);
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const sessionPoints = chartSessions.map(s => {
+      const validSets = s.sets.filter(x => x.weight != null && x.reps != null && x.reps > 0);
+      if (!validSets.length) return null;
+      const best1RM = validSets.reduce((m, x) => Math.max(m, x.weight * (1 + x.reps / 30)), 0);
+      const topWeight = Math.max(...validSets.map(x => x.weight));
+      const minWeight = Math.min(...validSets.map(x => x.weight));
+      const [,mo,d] = s.date.split('-');
+      const label = MONTHS[+mo-1] + ' ' + +d;
+      const sName = (s.name||'').toLowerCase();
+      return { label, best1RM: Math.round(best1RM), topWeight, minWeight,
+               isHeavy: sName.includes('heavy'), isVolume: sName.includes('volume') };
+    }).filter(Boolean);
+
+    const labels = sessionPoints.map(p => p.label);
+    const orm1Data = sessionPoints.map(p => isAssisted ? null : p.best1RM);
+    const heavyData = sessionPoints.map(p => (!isAssisted && p.isHeavy) ? p.topWeight : null);
+    const volumeData = sessionPoints.map(p => (!isAssisted && p.isVolume) ? p.topWeight : null);
+    const assistedData = sessionPoints.map(p => isAssisted ? p.minWeight : null);
+
+    const allVals = sessionPoints.map(p => isAssisted ? p.minWeight : p.best1RM).filter(v => v != null);
+    const rawVals = sessionPoints.map(p => isAssisted ? p.minWeight : p.topWeight).filter(v => v != null);
+    const combined = [...allVals, ...rawVals];
+    const chartMin = Math.min(...combined);
+    const chartMax = Math.max(...combined);
+    const pad = Math.max((chartMax - chartMin) * 0.2, 10);
     const yMin = isAssisted ? Math.max(0, chartMin - pad) : chartMin - pad;
     const yMax = chartMax + pad;
-    const lineColor = isAssisted ? '#34d399' : '#a78bfa';
-    const chartLabel = isAssisted ? 'Assistance (lbs) — lower = stronger' : 'Top weight (lbs)';
-    const chartDataJson = JSON.stringify(chartData);
-    const labelsJson = JSON.stringify(labels);
 
     window._pendingExerciseChart = {
-      chartId, lineColor, chartLabel, chartData, labels,
-      yMin, yMax, isAssisted, exerciseId: exercise.id
+      chartId, isAssisted, exerciseId: exercise.id,
+      labels, orm1Data, heavyData, volumeData, assistedData,
+      yMin, yMax
     };
+
     html += `<div style="margin-bottom:20px">
       <h3 class="section-label" style="margin-bottom:8px">Progress</h3>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 12px">
-        <canvas id="${chartId}" height="140"></canvas>
+        <canvas id="${chartId}" height="160"></canvas>
       </div>
     </div>`;
   }
@@ -441,38 +452,86 @@ function initExerciseChart() {
   if (!canvas) return;
   const key = '_chart_' + cfg.exerciseId;
   if (window[key]) window[key].destroy();
-  const labelsData = cfg.labels;
+
+  let datasets;
+  if (cfg.isAssisted) {
+    datasets = [{
+      label: 'Assistance (lbs) — lower = stronger',
+      data: cfg.assistedData,
+      borderColor: '#34d399',
+      backgroundColor: '#34d39922',
+      borderWidth: 2,
+      pointBackgroundColor: '#34d399',
+      pointRadius: 4,
+      tension: 0.3,
+      fill: true,
+      spanGaps: true,
+    }, {
+      label: 'Unassisted goal',
+      data: cfg.labels.map(() => 0),
+      borderColor: 'rgba(251,191,36,0.4)',
+      borderWidth: 1.5,
+      borderDash: [4, 4],
+      pointRadius: 0,
+      fill: false,
+      spanGaps: true,
+    }];
+  } else {
+    datasets = [{
+      label: 'Est. 1RM',
+      data: cfg.orm1Data,
+      borderColor: '#a78bfa',
+      backgroundColor: '#a78bfa18',
+      borderWidth: 2,
+      pointRadius: 0,
+      tension: 0.35,
+      fill: true,
+      spanGaps: true,
+      order: 3,
+    }, {
+      label: 'Heavy day',
+      data: cfg.heavyData,
+      borderColor: 'transparent',
+      backgroundColor: '#60a5fa',
+      pointBackgroundColor: '#60a5fa',
+      pointBorderColor: '#60a5fa',
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      showLine: false,
+      spanGaps: false,
+      order: 1,
+    }, {
+      label: 'Volume day',
+      data: cfg.volumeData,
+      borderColor: 'transparent',
+      backgroundColor: '#34d399',
+      pointBackgroundColor: '#34d399',
+      pointBorderColor: '#34d399',
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      showLine: false,
+      spanGaps: false,
+      order: 2,
+    }];
+  }
+
   window[key] = new Chart(canvas, {
     type: 'line',
-    data: {
-      labels: labelsData,
-      datasets: [{
-        label: cfg.chartLabel,
-        data: cfg.chartData,
-        borderColor: cfg.lineColor,
-        backgroundColor: cfg.lineColor + '22',
-        borderWidth: 2,
-        pointBackgroundColor: cfg.lineColor,
-        pointRadius: 4,
-        tension: 0.3,
-        fill: true,
-        spanGaps: true,
-      }].concat(cfg.isAssisted ? [{
-        label: 'Unassisted goal',
-        data: labelsData.map(() => 0),
-        borderColor: 'rgba(251,191,36,0.4)',
-        borderWidth: 1.5,
-        borderDash: [4,4],
-        pointRadius: 0,
-        fill: false
-      }] : [])
-    },
+    data: { labels: cfg.labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { labels: { color: '#9ca3af', font: { size: 10 }, boxWidth: 12 } },
-        tooltip: { backgroundColor: '#1f2937', titleColor: '#f3f4f6', bodyColor: '#d1d5db' }
+        legend: { labels: { color: '#9ca3af', font: { size: 10 }, boxWidth: 10, padding: 12 } },
+        tooltip: {
+          backgroundColor: '#1f2937',
+          titleColor: '#f3f4f6',
+          bodyColor: '#d1d5db',
+          callbacks: {
+            label: ctx => ctx.parsed.y != null ? ctx.dataset.label + ': ' + ctx.parsed.y + ' lb' : null
+          }
+        }
       },
       scales: {
         x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
