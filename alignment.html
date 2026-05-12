@@ -257,57 +257,26 @@ const TZ = 'America/Toronto';
 function todayISO() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
 }
-const HARD_NOS = [
-  { key: 'no_porn',                    label: 'Avoided porn' },
-  { key: 'no_phone_silence',   label: 'Avoided phone to kill silence' },
-  { key: 'no_weed',                    label: 'No weed' },
-];
-const DEFAULTS = [
-  { key: 'no_alcohol',                 label: 'No alcohol' },
-  { key: 'no_social_before_9pm', label: 'No social media before 9pm' },
-  { key: 'scheduled_tomorrow',      label: 'Scheduled tomorrow' },
-];
-const MORNING = [
-  { key: 'no_snooze',               label: 'No snooze' },
-  { key: 'morning_walk',            label: 'Morning walk (10 min)' },
-  { key: 'startup_sequence',        label: 'Startup sequence' },
-];
-const BODY = [
-  { key: 'read_flourishing_self',   label: 'Read Flourishing Self' },
+const SHUTDOWN = [
+  { key: 'shutdown_sequence', label: 'Shutdown sequence' },
 ];
 // All booleans: true = good (rule held / habit done), false = bad.
-const HARD_NO_KEYS = new Set(['no_porn', 'no_phone_silence', 'no_weed']);
+const HARD_NO_KEYS = new Set([]);
 
 // History heatmap rows
 const HABIT_ROWS = [
   // Hours — minimum 1.0h each
-  { key: 'hoot_hours',              label: 'Hoot',             derived: true, dtype: 'min', col: 'hoot_hours',    threshold: 0 },
-  { key: 'finnian_hours',           label: 'Finnian',          derived: true, dtype: 'min', col: 'finnian_hours', threshold: 0 },
-  { key: 'tempo_hours',             label: 'Tempo',            derived: true, dtype: 'min', col: 'tempo_hours',   threshold: 0 },
-  // Sleep — bedtime ≤ 23:00, wake ≤ 07:30, sleep ≥ 8.5h, last_caffeine ≤ 15:00, wind_down ≤ 22:00
-  { key: 'bedtime',                 label: 'Bed ≤11pm',        derived: true, dtype: 'time_max', col: 'bedtime',         threshold: '23:00', allowAfterMidnight: true },
-  { key: 'wake_time',               label: 'Wake ≤7:30',       derived: true, dtype: 'time_max', col: 'wake_time',       threshold: '07:30' },
-  { key: 'sleep_duration',          label: 'Sleep ≥8.5h',      derived: true, dtype: 'sleep_duration', threshold: 8.5 },
-  { key: 'last_caffeine',           label: 'Caff ≤3pm',        derived: true, dtype: 'time_max', col: 'last_caffeine',   threshold: '15:00' },
-  { key: 'wind_down_time',          label: 'Wind down ≤10pm',  derived: true, dtype: 'time_max', col: 'wind_down_time',  threshold: '22:00' },
-  // Hard NOs
-  { key: 'no_porn',                    label: 'No porn',          hardNo: true },
-  { key: 'no_phone_silence',   label: 'No phone silence', hardNo: true },
-  { key: 'no_weed',                    label: 'No weed',          hardNo: true },
-  // Defaults (booleans)
-  { key: 'no_alcohol',                 label: 'No alcohol' },
-  { key: 'no_social_before_9pm', label: 'No SM <9pm' },
-  // Morning + body
-  { key: 'no_snooze',               label: 'No snooze' },
-  { key: 'morning_walk',            label: 'Morning walk' },
-  { key: 'startup_sequence',        label: 'Startup seq' },
-  { key: 'calories',                label: 'Calories',         derived: true, dtype: 'min', col: 'calories',       threshold: 0 },
-  { key: 'protein_grams',           label: 'Protein',          derived: true, dtype: 'min', col: 'protein_grams',  threshold: 0 },
-  { key: 'read_flourishing_self',   label: 'Read FS' },
-  // Trained — its own special rule (single skip OK, 2-in-a-row red)
-  { key: 'scheduled_tomorrow',      label: 'Scheduled tmrw' },
-  { key: 'trained',                 label: 'Trained',          inverted: false, derived: true, dtype: 'trained' },
-  { key: 'journaled',               label: 'Journaled',        derived: true, dtype: 'journal' },
+  { key: 'hoot_hours',     label: 'Hoot',         derived: true, dtype: 'min', col: 'hoot_hours',    threshold: 0 },
+  { key: 'finnian_hours',  label: 'Finnian',       derived: true, dtype: 'min', col: 'finnian_hours', threshold: 0 },
+  { key: 'tempo_hours',    label: 'Tempo',         derived: true, dtype: 'min', col: 'tempo_hours',   threshold: 0 },
+  // Sleep
+  { key: 'bedtime',        label: 'Bed ≤11pm',     derived: true, dtype: 'time_max', col: 'bedtime',   threshold: '23:00', allowAfterMidnight: true },
+  { key: 'wake_time',      label: 'Wake ≤7:30',    derived: true, dtype: 'time_max', col: 'wake_time', threshold: '07:30' },
+  { key: 'sleep_duration', label: 'Sleep ≥8.5h',   derived: true, dtype: 'sleep_duration', threshold: 8.5 },
+  // Shutdown + trained + journaled
+  { key: 'shutdown_sequence', label: 'Shutdown' },
+  { key: 'trained',        label: 'Trained',       inverted: false, derived: true, dtype: 'trained' },
+  { key: 'journaled',      label: 'Journaled',     derived: true, dtype: 'journal' },
 ];
 
 // ----- State -----
@@ -501,8 +470,8 @@ function renderDay() {
     </section>
 
     <section>
-      <h2>Sleep & body</h2>
-      <div class="times-row times-4">
+      <h2>Sleep</h2>
+      <div class="times-row times-2">
         <div class="time-cell">
           <label>Bedtime</label>
           <input type="time" data-col="bedtime" data-type="time" value="${fmtTime(row.bedtime)}">
@@ -511,29 +480,8 @@ function renderDay() {
           <label>Wake</label>
           <input type="time" data-col="wake_time" data-type="time" value="${fmtTime(row.wake_time)}">
         </div>
-        <div class="time-cell">
-          <label>Last caffeine</label>
-          <input type="time" data-col="last_caffeine" data-type="time" value="${fmtTime(row.last_caffeine)}">
-        </div>
-        <div class="time-cell">
-          <label>Wind down</label>
-          <input type="time" data-col="wind_down_time" data-type="time" value="${fmtTime(row.wind_down_time)}">
-        </div>
       </div>
-      <div id="sleep-duration" style="font-size:12px;color:var(--dim);margin:8px 0 12px;text-align:center">${sleepDurationLabel(row.bedtime, row.wake_time)}</div>
-      <div class="times-row times-2" style="margin-bottom:12px">
-        <div class="time-cell">
-          <label>Calories</label>
-          <input type="number" step="1" min="0" max="9999" data-col="calories" data-type="num-int" value="${row.calories != null ? row.calories : ''}" placeholder="—">
-        </div>
-        <div class="time-cell">
-          <label>Protein (g)</label>
-          <input type="number" step="1" min="0" max="999" data-col="protein_grams" data-type="num-int" value="${row.protein_grams != null ? row.protein_grams : ''}" placeholder="—">
-        </div>
-      </div>
-      <div class="toggle-list">
-        ${MORNING.concat(BODY).map(t => toggleHTML(t, row)).join('')}
-      </div>
+      <div id="sleep-duration" style="font-size:12px;color:var(--dim);margin:8px 0 0;text-align:center">${sleepDurationLabel(row.bedtime, row.wake_time)}</div>
     </section>
 
     <section>
@@ -552,17 +500,10 @@ function renderDay() {
       </div>
     </section>
 
-    <section class="hard-nos">
-      <h2>Hard NOs</h2>
-      <div class="toggle-list">
-        ${HARD_NOS.map(t => toggleHTML(t, row)).join('')}
-      </div>
-    </section>
-
     <section>
-      <h2>Defaults</h2>
+      <h2>Shutdown</h2>
       <div class="toggle-list">
-        ${DEFAULTS.map(t => toggleHTML(t, row)).join('')}
+        ${SHUTDOWN.map(t => toggleHTML(t, row)).join('')}
       </div>
     </section>
 
@@ -899,7 +840,6 @@ function renderHistory() {
       <span><span class="legend-dot" style="background:var(--warn)"></span>First miss</span>
       <span><span class="legend-dot" style="background:var(--hard-no)"></span>2nd miss in a row</span>
       <span><span class="legend-dot" style="background:var(--hard-no);position:relative;color:#fff;text-align:center;line-height:10px;font-size:8px;font-weight:800">✕</span>Hard NO broken</span>
-      <span><span class="legend-dot" style="background:#3b5b7a"></span>Neutral (no alarm)</span>
       <span><span class="legend-dot" style="background:#2c3441"></span>No data</span>
     </div>
   `;
@@ -963,5 +903,6 @@ load().catch(e => {
 </script>
 </body>
 </html>
+
 
 
