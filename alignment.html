@@ -282,7 +282,7 @@ const HARD_NO_KEYS = new Set([]);
 const HABIT_ROWS = [
   // Hours — minimum 1.0h each
   { key: 'hoot_hours',     label: 'Hoot',         derived: true, dtype: 'min', col: 'hoot_hours',    threshold: 0 },
-  { key: 'finnian_hours',  label: 'Finnian',       derived: true, dtype: 'min', col: 'finnian_hours', threshold: 0 },
+  { key: 'finnian_hours',  label: 'Finnian',       derived: true, dtype: 'min', col: 'finnian_hours', threshold: 1.5 },
   { key: 'tempo_hours',    label: 'Tempo',         derived: true, dtype: 'min', col: 'tempo_hours',   threshold: 0 },
   // Sleep
   { key: 'sleep_duration', label: 'Sleep ≥8.5h',   derived: true, dtype: 'sleep_duration', threshold: 8.5 },
