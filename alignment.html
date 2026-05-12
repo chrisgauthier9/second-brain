@@ -192,6 +192,16 @@
 
     .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
     .sunday-reset { border-top: 2px solid var(--border); margin-top: 16px; padding-top: 8px; }
+    .weekly-reviews-list { margin-top: 24px; }
+    .wr-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+    .wr-item summary { padding: 12px 16px; cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--text); }
+    .wr-item summary::-webkit-details-marker { display: none; }
+    .wr-item summary::after { content: '\25B8'; font-size: 10px; color: var(--dim); transition: transform .2s; }
+    .wr-item[open] summary::after { transform: rotate(90deg); }
+    .wr-item-body { padding: 0 16px 14px; }
+    .wr-item-body h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin: 10px 0 5px; }
+    .wr-item-body p { font-size: 13px; color: var(--muted); line-height: 1.6; margin: 0; white-space: pre-wrap; }
+    .wr-empty { font-size: 13px; color: var(--dim); text-align: center; padding: 20px; }
     .sunday-reset h2 { color: var(--accent); }
     .week-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
     .week-stat { background: var(--surface); border-radius: 8px; padding: 10px 12px; text-align: center; }
@@ -314,6 +324,7 @@ let JOURNALS = {};                          // date -> array of journal_entries 
 let TAB = sessionStorage.getItem('alignTab') || 'day';
 let WEEKLY_REVIEW = null;
 let WEEK_STATS = {};
+let WEEKLY_REVIEWS_LIST = [];
 let CURRENT_DATE = todayISO();              // which day the Day tab is currently editing
 let WEIGHT_LOG = {};                        // date -> weight (lbs)
 let RANGE = 7;                              // history heatmap range
@@ -445,6 +456,12 @@ async function load() {
       for (const w of (weightRes.data || [])) WEIGHT_LOG[w.date] = w.weight;
     }
   } catch (e) { /* bodyweight unavailable — render without it */ }
+
+  // Fetch all weekly reviews for history tab
+  try {
+    const wrListRes = await sb.from('weekly_reviews').select('*').order('week_start', { ascending: false }).limit(20);
+    WEEKLY_REVIEWS_LIST = wrListRes.data || [];
+  } catch(e) { /* unavailable */ }
 
   // Weekly reset — fetch on Sundays only
   if (new Date(todayISO() + 'T12:00:00').getDay() === 0) {
@@ -998,6 +1015,23 @@ function renderHistory() {
       <span><span class="legend-dot" style="background:var(--warn)"></span>First miss</span>
       <span><span class="legend-dot" style="background:var(--hard-no)"></span>2nd miss in a row</span>
       <span><span class="legend-dot" style="background:#2c3441"></span>No data</span>
+    </div>
+    <div class="weekly-reviews-list">
+      <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:12px">Weekly Resets</h2>
+      ${WEEKLY_REVIEWS_LIST.length === 0
+        ? '<p class="wr-empty">No weekly resets logged yet.</p>'
+        : WEEKLY_REVIEWS_LIST.map(wr => {
+            const d = new Date(wr.week_start + 'T12:00:00');
+            const label = 'Week of ' + d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
+            return `<details class="wr-item">
+              <summary>${label}</summary>
+              <div class="wr-item-body">
+                ${wr.reflection ? `<h3>Reflection</h3><p>${wr.reflection.replace(/</g,'&lt;')}</p>` : ''}
+                ${wr.targets ? `<h3>Next Week's Targets</h3><p>${wr.targets.replace(/</g,'&lt;')}</p>` : ''}
+              </div>
+            </details>`;
+          }).join('')
+      }
     </div>
   `;
 
