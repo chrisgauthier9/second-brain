@@ -4,110 +4,741 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#111827">
+  <meta name="theme-color" content="#000000">
   <title>Flourishing Self · Second Brain</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="auth.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', system-ui, sans-serif; background: #111827; color: #f3f4f6; min-height: 100vh; font-size: 14px; overscroll-behavior: none; }
+    :root {
+      --black: #000000;
+      --off-black: #0a0a0a;
+      --dark: #111111;
+      --card: #161616;
+      --border: #222222;
+      --red: #c0392b;
+      --red-bright: #e74c3c;
+      --text: #f0f0f0;
+      --muted: #888888;
+      --dim: #444444;
+      --base: 'https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing';
+    }
 
-    header { background: var(--card, #1f2937); border-bottom: 1px solid var(--border, #374151); padding: 12px 24px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 50; padding-top: max(12px, env(safe-area-inset-top)); }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--black);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.7;
+      overscroll-behavior: none;
+    }
+
+    /* ── NAV ── */
+    header {
+      background: rgba(0,0,0,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding-top: max(12px, env(safe-area-inset-top));
+    }
     .logo { font-size: 16px; font-weight: 700; color: #a78bfa; text-decoration: none; white-space: nowrap; }
     .nav-links { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .nav-links a { font-size: 13px; color: #9ca3af; text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: background .15s; white-space: nowrap; }
-    .nav-links a:hover { background: #374151; color: #f3f4f6; }
+    .nav-links a:hover { background: #1f2937; color: #f3f4f6; }
     .nav-links a.active { background: #7c3aed; color: #fff; }
-
-    main { max-width: 800px; margin: 0 auto; padding: 48px 24px 80px; }
-
-    .page-header { margin-bottom: 40px; border-bottom: 1px solid #374151; padding-bottom: 24px; }
-    .page-header h1 { font-size: 28px; font-weight: 700; color: #a78bfa; margin-bottom: 6px; }
-    .page-header .subtitle { font-size: 13px; color: #6b7280; font-style: italic; }
-    .last-updated { font-size: 12px; color: #4b5563; margin-top: 8px; }
-
-    /* Table of contents */
-    .toc { background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 20px 24px; margin-bottom: 40px; }
-    .toc h3 { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
-    .toc-links { display: flex; flex-wrap: wrap; gap: 8px; }
-    .toc-links a { font-size: 13px; color: #a78bfa; text-decoration: none; padding: 4px 12px; border-radius: 20px; border: 1px solid #374151; transition: all .15s; }
-    .toc-links a:hover { background: #7c3aed; border-color: #7c3aed; color: #fff; }
-
-    /* Markdown rendered content */
-    .content h1 { font-size: 22px; font-weight: 700; color: #f3f4f6; margin: 48px 0 20px; padding-bottom: 10px; border-bottom: 1px solid #374151; }
-    .content h1:first-child { margin-top: 0; }
-    .content h2 { font-size: 16px; font-weight: 600; color: #a78bfa; margin: 32px 0 12px; }
-    .content h3 { font-size: 14px; font-weight: 600; color: #60a5fa; margin: 20px 0 8px; }
-    .content p { color: #d1d5db; line-height: 1.7; margin-bottom: 12px; }
-    .content ul { padding-left: 20px; margin-bottom: 12px; }
-    .content ul li { color: #d1d5db; line-height: 1.8; }
-    .content ul li ul { margin-top: 4px; margin-bottom: 4px; }
-    .content ul li ul li { color: #9ca3af; font-size: 13px; }
-    .content strong { color: #f3f4f6; font-weight: 600; }
-    .content em { color: #9ca3af; font-style: italic; }
-    .content hr { border: none; border-top: 1px solid #1f2937; margin: 32px 0; }
-    .content blockquote { border-left: 3px solid #7c3aed; padding-left: 16px; margin: 16px 0; color: #9ca3af; font-style: italic; font-family: 'Lora', Georgia, serif; }
-
-    /* Tables */
-    .content table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
-    .content th { background: #1f2937; color: #9ca3af; font-weight: 600; text-align: left; padding: 10px 14px; border: 1px solid #374151; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-    .content td { padding: 10px 14px; border: 1px solid #1f2937; color: #d1d5db; vertical-align: top; }
-    .content tr:nth-child(even) td { background: #1a2232; }
-
-    /* Instructions block */
-    .instructions-block { background: #1a2535; border: 1px solid #4b5563; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; }
-    .instructions-block p { color: #d1d5db; font-size: 13px; line-height: 1.7; margin: 0; }
-    .instructions-block strong { color: #f3f4f6; }
-
-    /* Section containers */
-    .section-block { background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
-
-    /* Loading state */
-    .loading { text-align: center; padding: 80px 24px; color: #6b7280; }
-    .loading-spinner { width: 32px; height: 32px; border: 2px solid #374151; border-top-color: #7c3aed; border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .error-state { background: #1f2937; border: 1px solid #ef4444; border-radius: 12px; padding: 24px; color: #fca5a5; text-align: center; }
-
-    footer { text-align: center; padding: 24px; color: #374151; font-size: 12px; }
-    /* ===== Mobile hamburger ===== */
-    .nav-toggle {
-      display: none; background: transparent; border: none; cursor: pointer;
-      padding: 6px 8px; margin-left: auto; color: var(--text, #f3f4f6);
-    }
+    .nav-toggle { display: none; background: transparent; border: none; cursor: pointer; padding: 6px 8px; margin-left: auto; color: var(--text); }
     .nav-toggle svg { display: block; width: 22px; height: 22px; }
-    .refresh-btn {
-      display: none; background: transparent; border: none; cursor: pointer;
-      padding: 6px 8px; color: var(--text, #f3f4f6); flex-shrink: 0;
+
+    /* ── COVER ── */
+    .cover {
+      position: relative;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: var(--black);
     }
-    .refresh-btn svg { display: block; width: 20px; height: 20px; }
-    .refresh-btn:active svg { opacity: 0.5; }
+    .cover-grid {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 2px;
+      opacity: 0.35;
+    }
+    .cover-grid img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: grayscale(40%);
+    }
+    .cover-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.95) 100%);
+    }
+    .cover-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 40px 24px;
+    }
+    .cover-yin-yang {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 24px;
+      opacity: 0.9;
+    }
+    .cover-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(52px, 10vw, 96px);
+      letter-spacing: 0.06em;
+      line-height: 0.95;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .cover-title span { color: var(--red); }
+    .cover-subtitle {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 300;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      margin-top: 16px;
+    }
+    .cover-instructions {
+      margin-top: 40px;
+      max-width: 420px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 20px;
+      line-height: 1.8;
+    }
+    .cover-scroll {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.25);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .cover-scroll::after {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
+    }
+
+    /* ── TOC ── */
+    .toc-bar {
+      position: sticky;
+      top: 49px;
+      z-index: 90;
+      background: rgba(0,0,0,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .toc-bar::-webkit-scrollbar { display: none; }
+    .toc-inner {
+      display: flex;
+      gap: 0;
+      min-width: max-content;
+    }
+    .toc-inner a {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 14px 16px;
+      border-bottom: 2px solid transparent;
+      transition: color .2s, border-color .2s;
+      white-space: nowrap;
+    }
+    .toc-inner a:hover { color: var(--text); border-bottom-color: var(--dim); }
+    .toc-inner a.active { color: var(--red-bright); border-bottom-color: var(--red-bright); }
+
+    /* ── CHAPTER SPLASH ── */
+    .chapter-splash {
+      position: relative;
+      height: 70svh;
+      min-height: 400px;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+    }
+    .chapter-splash img.bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+    }
+    .chapter-splash .splash-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%);
+    }
+    .chapter-splash .splash-label {
+      position: relative;
+      z-index: 2;
+      padding: 40px 48px;
+      width: 100%;
+    }
+    .chapter-splash .splash-eyebrow {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 8px;
+    }
+    .chapter-splash .splash-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(48px, 8vw, 80px);
+      letter-spacing: 0.04em;
+      line-height: 1;
+      color: #fff;
+    }
+    .chapter-splash .splash-sub {
+      font-size: 13px;
+      font-weight: 300;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-top: 10px;
+    }
+
+    /* ── CONTENT SECTION ── */
+    .section {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 64px 24px;
+    }
+    .section + .section { padding-top: 0; }
+
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      letter-spacing: 0.1em;
+      color: var(--red);
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h2.block-title {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--text);
+      margin: 40px 0 16px;
+    }
+    h2.block-title:first-child { margin-top: 0; }
+
+    h3.sub-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin: 28px 0 10px;
+    }
+
+    p { color: #c8c8c8; line-height: 1.8; margin-bottom: 14px; }
+    p:last-child { margin-bottom: 0; }
+
+    ul.plain {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 16px;
+    }
+    ul.plain li {
+      color: #b0b0b0;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    ul.plain li:last-child { border-bottom: none; }
+
+    ul.bullet {
+      padding-left: 20px;
+      margin-bottom: 16px;
+    }
+    ul.bullet li {
+      color: #b0b0b0;
+      padding: 3px 0;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    ul.bullet li::marker { color: var(--red); }
+
+    .belief-grid {
+      display: grid;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+    .belief-item {
+      background: var(--card);
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 16px;
+      align-items: start;
+    }
+    .belief-item .belief-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--red-bright);
+      line-height: 1.4;
+    }
+    .belief-item .belief-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
     @media (max-width: 600px) {
-      .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
-      .refresh-btn { display: inline-flex; align-items: center; justify-content: center; }
+      .belief-item { grid-template-columns: 1fr; gap: 4px; }
+    }
+
+    /* ── PRINCIPLES TABLE ── */
+    .principles-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 32px;
+      font-size: 13px;
+    }
+    .principles-table tr {
+      border-bottom: 1px solid var(--border);
+    }
+    .principles-table tr:last-child { border-bottom: none; }
+    .principles-table td {
+      padding: 14px 0;
+      vertical-align: top;
+    }
+    .principles-table td:first-child {
+      font-weight: 600;
+      color: var(--red-bright);
+      width: 38%;
+      padding-right: 24px;
+    }
+    .principles-table td:last-child {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── STATS TABLE ── */
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 32px;
+      font-size: 13px;
+    }
+    .stats-table th {
+      background: var(--card);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .stats-table td {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      color: #ccc;
+    }
+    .stats-table td.goal { color: var(--red-bright); font-weight: 600; }
+    .stats-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    /* ── QUOTE BLOCK ── */
+    .quote-block {
+      border-left: 3px solid var(--red);
+      padding: 20px 28px;
+      margin: 32px 0;
+      background: var(--card);
+      border-radius: 0 8px 8px 0;
+    }
+    .quote-block p {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 18px;
+      font-style: italic;
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+    }
+    .quote-block cite {
+      display: block;
+      margin-top: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-style: normal;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── AFFIRMATIONS ── */
+    .affirmations {
+      display: grid;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+    .affirmation-item {
+      background: var(--card);
+      padding: 16px 24px;
+      font-size: 14px;
+      color: #d0d0d0;
+      line-height: 1.5;
+      counter-increment: aff;
+      display: flex;
+      gap: 16px;
+      align-items: baseline;
+    }
+    .affirmation-item::before {
+      content: counter(aff, decimal-leading-zero);
+      font-size: 11px;
+      color: var(--dim);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+    .affirmations { counter-reset: aff; }
+
+    /* ── PHOTO GRIDS ── */
+    .photo-grid-section {
+      padding: 0;
+      background: var(--off-black);
+    }
+    .photo-grid-header {
+      padding: 48px 48px 32px;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    .photo-grid-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .inspiration-section { padding: 48px 0 64px; }
+    .inspiration-row {
+      margin-bottom: 40px;
+    }
+    .inspiration-row-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 48px;
+      margin-bottom: 16px;
+    }
+    .inspiration-row-label span { color: var(--red); }
+    .photo-scroll {
+      display: flex;
+      gap: 6px;
+      padding: 0 48px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .photo-scroll::-webkit-scrollbar { display: none; }
+    .photo-scroll img {
+      width: 140px;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+      filter: grayscale(15%);
+      transition: filter .2s, transform .2s;
+    }
+    .photo-scroll img:hover { filter: grayscale(0); transform: scale(1.03); }
+
+    /* ── VISION BOARD ── */
+    .vision-board {
+      padding: 64px 24px;
+      background: var(--off-black);
+    }
+    .vision-board-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(32px, 6vw, 56px);
+      letter-spacing: 0.08em;
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .vision-board-title span { color: var(--red); }
+    .vision-mosaic {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: auto;
+      gap: 4px;
+    }
+    .vision-mosaic img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border-radius: 2px;
+    }
+    .vision-mosaic img.tall { height: 448px; grid-row: span 2; }
+    .vision-mosaic img.wide { grid-column: span 2; }
+
+    /* ── COLLAB GRID ── */
+    .collab-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      max-width: 780px;
+      margin: 0 auto 32px;
+    }
+    .collab-grid img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 4px;
+      filter: grayscale(20%);
+      transition: filter .2s;
+    }
+    .collab-grid img:hover { filter: grayscale(0); }
+
+    /* ── MILESTONE GRID ── */
+    .milestone-mosaic {
+      max-width: 780px;
+      margin: 0 auto 32px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+    .milestone-mosaic img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 2px;
+    }
+    .milestone-mosaic img.tall { height: 408px; grid-row: span 2; }
+
+    /* ── ANTI-VISION ── */
+    .anti-vision {
+      background: #0d0000;
+      border: 1px solid #3a0a0a;
+      border-radius: 8px;
+      padding: 28px 32px;
+      margin-bottom: 32px;
+    }
+    .anti-vision .anti-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 16px;
+    }
+    .anti-vision ul {
+      list-style: none;
+      padding: 0;
+    }
+    .anti-vision li {
+      font-size: 14px;
+      color: #884444;
+      padding: 5px 0;
+      border-bottom: 1px solid #1f0a0a;
+      line-height: 1.6;
+    }
+    .anti-vision li:last-child { border-bottom: none; }
+    .anti-vision li::before { content: '✗  '; color: var(--red); }
+
+    /* ── MANIFESTO ── */
+    .manifesto-text p {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 17px;
+      font-style: italic;
+      color: #ccc;
+      line-height: 1.85;
+      margin-bottom: 24px;
+    }
+
+    /* ── AMATEUR VS PRO ── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+    .two-col-panel {
+      background: var(--card);
+      padding: 24px;
+    }
+    .two-col-panel.bad { background: #0d0000; }
+    .two-col-panel h4 {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .two-col-panel.bad h4 { color: #884444; }
+    .two-col-panel ul { list-style: none; padding: 0; }
+    .two-col-panel ul li {
+      font-size: 13px;
+      color: #b0b0b0;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+      line-height: 1.5;
+    }
+    .two-col-panel.bad ul li { color: #884444; border-bottom-color: #1f0a0a; }
+    .two-col-panel ul li:last-child { border-bottom: none; }
+    @media (max-width: 600px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    /* ── GUIDING GOALS ── */
+    .goals-list {
+      display: grid;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+    .goal-item {
+      background: var(--card);
+      padding: 18px 24px;
+      display: flex;
+      gap: 20px;
+      align-items: baseline;
+    }
+    .goal-code {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 15px;
+      letter-spacing: 0.1em;
+      color: var(--red-bright);
+      flex-shrink: 0;
+      width: 130px;
+    }
+    .goal-desc { font-size: 14px; color: #b0b0b0; line-height: 1.5; }
+
+    /* ── VALUES ROW ── */
+    .values-row {
+      display: flex;
+      gap: 2px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .value-pill {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 18px;
+      font-size: 13px;
+      color: #b8b8b8;
+    }
+    .value-pill.red { color: var(--red-bright); border-color: #3a1111; background: #0d0000; }
+
+    /* ── DIVIDER ── */
+    .chapter-divider {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      margin: 0;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--dim);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── MOBILE NAV ── */
+    @media (max-width: 700px) {
+      .nav-toggle { display: inline-flex; align-items: center; justify-content: center; margin-left: auto; }
       .nav-links {
         position: fixed; top: 49px; left: 0; right: 0; bottom: 0;
-        background: #1f2937; border-bottom: 1px solid #374151;
+        background: #000; border-bottom: 1px solid var(--border);
         flex-direction: column; gap: 0; padding: 6px 0;
         margin-left: 0; align-items: stretch;
-        max-height: 0; height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
-        z-index: 100;
+        max-height: 0; height: 0; overflow: hidden;
+        transition: max-height .25s ease; z-index: 100;
       }
-      .nav-links.open { max-height: calc(100vh - 49px); height: auto; width: 100%; overflow-y: auto; padding: 6px 0; }
+      .nav-links.open { max-height: calc(100vh - 49px); height: auto; overflow-y: auto; padding: 6px 0; }
       .nav-links a { padding: 14px 24px; border-radius: 0; font-size: 15px; }
-      header { position: sticky; top: 0; z-index: 101; overflow: hidden; border-bottom: none; } nav.nav-links { border: none; outline: none; } .nav-links a.active { background: transparent; color: #a78bfa; }
-    }
-  </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="auth.js"></script>
 
+      .chapter-splash .splash-label { padding: 24px; }
+      .inspiration-row-label, .photo-scroll { padding: 0 16px; }
+      .toc-inner a { padding: 12px 12px; }
+      .section { padding: 48px 16px; }
+      .collab-grid { grid-template-columns: repeat(3, 1fr); }
+      .vision-mosaic { grid-template-columns: repeat(2, 1fr); }
+      .vision-mosaic img.tall { height: 300px; }
+      .milestone-mosaic { grid-template-columns: repeat(2, 1fr); }
+      .milestone-mosaic img.tall { height: 300px; }
+      .belief-item { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
 
 <header>
   <a href="index.html" class="logo">Second Brain</a>
-  <nav class="nav-links">
+  <nav class="nav-links" id="mainNav">
     <a href="index.html">Home</a>
     <a href="alignment.html">Alignment</a>
     <a href="fitness.html">Fitness</a>
@@ -115,148 +746,669 @@
     <a href="journal.html">Journal</a>
     <a href="flourishing-self.html" class="active">Flourishing Self</a>
   </nav>
+  <button class="nav-toggle" id="navToggle" aria-label="Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+      <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>
+    </svg>
+  </button>
 </header>
 
-<main>
-  <div class="page-header">
-    <h1>Flourishing Self</h1>
-    <div class="subtitle">MMXXVI · The Year I Turned Pro</div>
-    <div class="last-updated" id="lastUpdated"></div>
+<!-- STICKY TOC -->
+<div class="toc-bar">
+  <div class="toc-inner">
+    <a href="#identity">Identity</a>
+    <a href="#inspirations">Inspirations</a>
+    <a href="#vision-board">Vision Board</a>
+    <a href="#mindfulness">Mindfulness</a>
+    <a href="#finnian">Finnian</a>
+    <a href="#milestones">Milestones</a>
+    <a href="#collaboration">Collaboration</a>
+    <a href="#wellbeing">Wellbeing</a>
+    <a href="#projects">Projects</a>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     COVER
+════════════════════════════════════════ -->
+<section class="cover">
+  <div class="cover-grid">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/24x36%202%201.png" alt="">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/Rectangle%201.png" alt="">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/24x36%202%201-1.png" alt="">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/Rectangle%201-1.png" alt="">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/QuickTime%20Player%202025-09-19%2010.43.58%201.png" alt="">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/Rectangle%201-2.png" alt="">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/24x36%202%201-2.png" alt="">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/IMG_0697%201.png" alt="">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/pxbee_2025-11-21_18-11-12%201-1.png" alt="">
+  </div>
+  <div class="cover-overlay"></div>
+  <div class="cover-content">
+    <svg class="cover-yin-yang" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="48" fill="white"/>
+      <path d="M50 2 A48 48 0 0 1 50 98 A24 24 0 0 1 50 50 A24 24 0 0 0 50 2Z" fill="black"/>
+      <circle cx="50" cy="26" r="8" fill="white"/>
+      <circle cx="50" cy="74" r="8" fill="black"/>
+    </svg>
+    <div class="cover-title">FLOURISHING<br><span>SELF</span></div>
+    <div class="cover-subtitle">MMXXVI &nbsp;·&nbsp; The Year I Turned Pro</div>
+    <div class="cover-instructions">
+      Keep this on hand at all times.<br>
+      Read it daily. This is the 1st of 3 tools<br>
+      to keep your defence system active.
+    </div>
+  </div>
+  <div class="cover-scroll">Scroll</div>
+</section>
+
+<!-- ════════════════════════════════════════
+     IDENTITY
+════════════════════════════════════════ -->
+<div id="identity" class="chapter-splash">
+  <img class="bg" src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/Rectangle%201.png" alt="">
+  <div class="splash-overlay"></div>
+  <div class="splash-label">
+    <div class="splash-eyebrow">Chapter One</div>
+    <div class="splash-title">IDENTITY</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="anti-vision">
+    <div class="anti-label">The Anti-Vision</div>
+    <ul>
+      <li>35, quiet, average, numb</li>
+      <li>Music never happened</li>
+      <li>People see the gap between who I say I am and who I am</li>
+      <li>Laleh got a version of me that never became who he said he would</li>
+      <li>I had one shot and didn't give it everything</li>
+    </ul>
   </div>
 
-  <div id="instructions-block" class="instructions-block" style="display:none;">
-    <div id="instructions-text"></div>
+  <h2 class="block-title">The Identity I Am Leaving Behind</h2>
+  <ul class="plain">
+    <li>I perform the right thing instead of doing it</li>
+    <li>I optimize for how it looks, not how it is</li>
+    <li>I learned young that appearance of effort = reward</li>
+    <li>I make decisions in the moment instead of before it</li>
+  </ul>
+
+  <h2 class="block-title">Who I'm Deciding To Be</h2>
+  <ul class="plain">
+    <li>Someone who does what he says, especially when no one is watching</li>
+    <li>Decisions made by the higher self, before the moment arrives</li>
+    <li><em>Virtues are lived, not felt</em> — If I feel patient but act impatiently, I am not patient. If I act patiently, I am patient.</li>
+    <li>Self belief is overrated — generate evidence</li>
+  </ul>
+
+  <h2 class="block-title">Daily Affirmations</h2>
+  <div class="affirmations">
+    <div class="affirmation-item">What a privilege it is to be me.</div>
+    <div class="affirmation-item">What a privilege it is to experience.</div>
+    <div class="affirmation-item">I am smart and can learn anything I want to master.</div>
+    <div class="affirmation-item">I love learning.</div>
+    <div class="affirmation-item">I love creating music.</div>
+    <div class="affirmation-item">I am blessed with an incredible family who love me.</div>
+    <div class="affirmation-item">I am blessed with incredible friends who love me.</div>
   </div>
 
-  <div class="toc">
-    <h3>Sections</h3>
-    <div class="toc-links" id="toc-links"></div>
+  <h2 class="block-title">Core Beliefs</h2>
+  <div class="belief-grid">
+    <div class="belief-item">
+      <div class="belief-name">There is no free will</div>
+      <div class="belief-desc">Everyone is who they are due to their situation. Show cosmic empathy. It's everyone's first time living too.</div>
+    </div>
+    <div class="belief-item">
+      <div class="belief-name">You Are Your Environment</div>
+      <div class="belief-desc">Nurture plays a huge role in who you are. Empathize with others, safeguard your environment.</div>
+    </div>
+    <div class="belief-item">
+      <div class="belief-name">There are no adults</div>
+      <div class="belief-desc">Don't put any adult on a pedestal; kill your gurus. The "Adults" aren't going to save you.</div>
+    </div>
+    <div class="belief-item">
+      <div class="belief-name">It's a matter of reps and time</div>
+      <div class="belief-desc">The only thing standing between me and my goals is time and repetitions.</div>
+    </div>
+    <div class="belief-item">
+      <div class="belief-name">Emotional regulation is the ultimate tool</div>
+      <div class="belief-desc">Happiness is a choice, emotions can be regulated.</div>
+    </div>
   </div>
 
-  <div id="loadingState" class="loading">
-    <div class="loading-spinner"></div>
-    <p>Loading your Flourishing Self...</p>
+  <h2 class="block-title">Core Values</h2>
+  <div class="values-row">
+    <div class="value-pill red">Love</div>
+    <div class="value-pill">Empathy</div>
+    <div class="value-pill">Compassion</div>
+    <div class="value-pill">Kindness</div>
+    <div class="value-pill">Relationships</div>
+    <div class="value-pill">Community</div>
+    <div class="value-pill">Patience</div>
+  </div>
+  <div class="values-row">
+    <div class="value-pill red">Freedom</div>
+    <div class="value-pill">Travel</div>
+    <div class="value-pill">Exploration</div>
+    <div class="value-pill">Creative Expression</div>
+  </div>
+  <div class="values-row">
+    <div class="value-pill red">Self-Mastery</div>
+    <div class="value-pill">Growth</div>
+    <div class="value-pill">Knowledge</div>
+    <div class="value-pill">Curiosity</div>
+    <div class="value-pill">Truth</div>
+    <div class="value-pill">Integrity</div>
+    <div class="value-pill">Discipline</div>
+  </div>
+  <div class="values-row">
+    <div class="value-pill red">Health</div>
+    <div class="value-pill">Body & Mind</div>
   </div>
 
-  <div id="content" class="content" style="display:none;"></div>
-</main>
+  <h2 class="block-title">Actualize Values</h2>
+  <ul class="bullet">
+    <li>Self-actualization is the ultimate game</li>
+    <li>Energy-first lifestyle</li>
+    <li>Have goals, always</li>
+    <li>Brotherhood > Lone wolf</li>
+    <li>Extreme ownership</li>
+    <li>Integrity sets you free</li>
+    <li>Have fun</li>
+  </ul>
+</div>
 
-<footer>chrisgauthier9 · second-brain</footer>
+<!-- ════════════════════════════════════════
+     INSPIRATIONS
+════════════════════════════════════════ -->
+<div class="chapter-divider"></div>
+<div id="inspirations" class="photo-grid-section inspiration-section">
+  <div class="photo-grid-header">
+    <div class="photo-grid-label">Identity Calibration</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,6vw,56px);letter-spacing:0.06em;color:#fff;">INSPIRATIONS</div>
+  </div>
+
+  <div class="inspiration-row">
+    <div class="inspiration-row-label"><span>Think like…</span></div>
+    <div class="photo-scroll">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/SH_headshot.0.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/07995a2273fc225a0b3a3e4bcf1f0665.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/1445790-3297190-APPROVED.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/MIT-Hank-Green-01.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/GbvXtCSWUAUKwcx.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/unnamed-1.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%202.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%203.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%204.png" alt="">
+    </div>
+  </div>
+
+  <div class="inspiration-row">
+    <div class="inspiration-row-label"><span>Carry yourself like…</span></div>
+    <div class="photo-scroll">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%205.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%206.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%207.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%208.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%209.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/MIT-Hank-Green-01-1.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/nardwuar.png" alt="">
+    </div>
+  </div>
+
+  <div class="inspiration-row">
+    <div class="inspiration-row-label"><span>Feel like…</span></div>
+    <div class="photo-scroll">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2019.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2020.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2021.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/Alex-OConnor-1-2.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/chris-distefano-1-1.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/unnamed.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/464741733_18467793838004913_9054651982968065346_n.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/Xnip2025-10-15_18-53-07.png" alt="">
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     CHRIS VISION BOARD
+════════════════════════════════════════ -->
+<div class="chapter-divider"></div>
+<div id="vision-board" class="vision-board">
+  <div class="vision-board-title">CHRIS<br><span>VISION BOARD</span></div>
+  <div class="vision-mosaic">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2022.png" alt="" class="wide">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2011.png" alt="" class="tall">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2023.png" alt="">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2024.png" alt="">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/artworks-GCa3QzziAzbkXdu5-scFi8w-t1080x1080%201.png" alt="">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2025.png" alt="" class="wide">
+    <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2026.png" alt="">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MINDFULNESS
+════════════════════════════════════════ -->
+<div id="mindfulness" class="chapter-splash">
+  <img class="bg" src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/Rectangle%201-2.png" alt="">
+  <div class="splash-overlay"></div>
+  <div class="splash-label">
+    <div class="splash-eyebrow">Chapter Two</div>
+    <div class="splash-title">MINDFULNESS</div>
+    <div class="splash-sub">Master the Mind</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="quote-block">
+    <p>I have built my mind to be examined and wise so I can show up as my highest self every moment of every day, offering the best version of myself to the world and loved ones.</p>
+    <cite>North Star</cite>
+  </div>
+
+  <h2 class="block-title">Decisions From the Higher Self</h2>
+  <ul class="plain">
+    <li>Live life as if you are in the Truman Show, and the spectator is future you</li>
+    <li>Cognitive reappraisal</li>
+    <li>Let Chris from 6 months from now make decisions for you now</li>
+    <li>Make decisions from the Higher Self</li>
+    <li>Daimon, not demon</li>
+    <li>What would Kaniz, Fred Again, Sal Vulcano do?</li>
+  </ul>
+
+  <h2 class="block-title">Principles I Live By</h2>
+  <table class="principles-table">
+    <tbody>
+      <tr><td>Energy First</td><td>Prioritize energy before all else, as all else is dependent on your energy.</td></tr>
+      <tr><td>Control Your Environment</td><td>If you can't control, then manage; if you can't manage, be aware.</td></tr>
+      <tr><td>Radically Open-Minded</td><td>Be honest and transparent, even if it hurts, it helps.</td></tr>
+      <tr><td>Be Scientific</td><td>Reason from first principles, use data, test, and iterate.</td></tr>
+      <tr><td>Life-long Student</td><td>Learn on a consistent basis, education never ends.</td></tr>
+      <tr><td>Work The Protocol</td><td>Have a protocol and work it daily.</td></tr>
+      <tr><td>Operate In Alignment</td><td>Always make decisions from your higher self.</td></tr>
+      <tr><td>Challenge The Paradigm</td><td>Question everything and hold nothing sacred in the pursuit of the truth.</td></tr>
+      <tr><td>Extreme Ownership</td><td>Integrity will set you free.</td></tr>
+      <tr><td>Speed Triumphs</td><td>Taking action now always beats waiting for perfection. Bias action.</td></tr>
+      <tr><td>Discipline Over Luck</td><td>Discipline is more powerful than luck.</td></tr>
+      <tr><td>Be impeccable with your word</td><td>Speak with integrity; say only what you mean.</td></tr>
+      <tr><td>Take nothing personally</td><td>What others do is about them, not you.</td></tr>
+      <tr><td>Don't make assumptions</td><td>Don't assume what others think or feel — ask them directly.</td></tr>
+      <tr><td>Always do your best</td><td>Your best changes moment to moment — and that's enough.</td></tr>
+      <tr><td>Treat everyone with respect</td><td>There is no free will. Show cosmic empathy.</td></tr>
+      <tr><td>Always ask</td><td>Everybody has the right to say no or yes, but you always have the right to ask.</td></tr>
+      <tr><td>Be excessive</td><td>In work, focus, presence. Work hard, rest hard, party hard. Extreme = results.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="block-title">Behavioural Tools</h2>
+  <h3 class="sub-title">Core Rules</h3>
+  <ul class="plain">
+    <li>Don't speak poorly of others</li>
+    <li>Tell the ones you love you love them</li>
+    <li>Your emotions are valid, your behaviour is not — Feel → acknowledge → decide → react</li>
+    <li>Don't tell people what to do or how to do it</li>
+    <li>Don't ever get upset — control your emotions at all times</li>
+    <li>Be curious about other's beliefs; ask and let them teach you</li>
+    <li>Have all conversations through the lens of love</li>
+    <li>Tap into the crazy artist mentality — Fred Again always</li>
+  </ul>
+
+  <h3 class="sub-title">Comparison</h3>
+  <ul class="bullet">
+    <li>Comparison is a signal I've tied my worth to that domain</li>
+    <li>In the moment: <strong>"Different game."</strong></li>
+    <li>Notice the domain, reject it if it's not mine</li>
+    <li>Return to my scale: success = trying. I am trying. I am succeeding.</li>
+  </ul>
+
+  <h3 class="sub-title">Catching Negative Thoughts</h3>
+  <ul class="bullet">
+    <li>Name the thought</li>
+    <li>Separate yourself from the thought</li>
+    <li>Use cosmic empathy to reframe</li>
+    <li>Metta practice — "May you be well"</li>
+  </ul>
+
+  <h3 class="sub-title">Protocol</h3>
+  <ul class="plain">
+    <li><strong>Monthly:</strong> 1 Rave · 1 Hang out with Gang Gang · 1 Sunday Club · 1 Dinner for Men</li>
+    <li><strong>Quarterly:</strong> Shrooms</li>
+    <li><strong>Annual:</strong> Fusion festival · Glitch festival · Family trip · Christmas break · 10 day Vipassana</li>
+  </ul>
+
+  <h3 class="sub-title">Limits</h3>
+  <ul class="plain">
+    <li>No content during meals — Use the time to sit with your mind</li>
+    <li>No social media scrolling — I hate how I feel after looking at Instagram</li>
+    <li>No short form content — Short form kills your ability to think</li>
+    <li>No phone in the bathroom — Use the time to sit with your mind</li>
+    <li>No alcohol — Kills your sleep, decreases performance</li>
+    <li>No weed — You don't like weed</li>
+  </ul>
+
+  <h3 class="sub-title">Leading Measures</h3>
+  <ul class="bullet">
+    <li>Read Flourishing Self daily</li>
+    <li>Daily evening check-ins</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════
+     FINNIAN
+════════════════════════════════════════ -->
+<div id="finnian" class="chapter-splash">
+  <img class="bg" src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/24x36%202%201.png" alt="">
+  <div class="splash-overlay"></div>
+  <div class="splash-label">
+    <div class="splash-eyebrow">Chapter Three</div>
+    <div class="splash-title">FINNIAN</div>
+    <div class="splash-sub">Master the Music</div>
+  </div>
+</div>
+
+<div class="section">
+  <h2 class="block-title">Manifesto</h2>
+  <div class="manifesto-text">
+    <p>Chris is a full time touring artist, business owner and standout human being whose life mission is to build an artist universe that resonates with people across the globe. Through moving music, epic live shows, and incredible digital marketing and brand design, the Finnian project is requested and admired around the world as a leading touring act and movement people want to be a part of.</p>
+    <p>Finnian isn't just a musical artist. Finnian is an auditory representation of freedom and exploration. The brand is built on the concept of chasing freedom through music — that music is the ultimate escape. People are proud to call themselves fans and are constantly itching for the next release, live show and digital experience.</p>
+    <p>Chris' dedication to mastery has lead him to be the truest, most actualized and best version of himself. He is exactly the person he says he is and wants to be. This is critical.</p>
+  </div>
+
+  <div class="quote-block">
+    <p>I'm building something that will outlast me: a brand that radiates freedom, community, and collaboration. I want people to leave my shows glowing for a week, to remember that moment as proof that they're alive.</p>
+    <cite>Vision Statement</cite>
+  </div>
+
+  <h2 class="block-title">Guiding Goals</h2>
+  <div class="goals-list">
+    <div class="goal-item"><div class="goal-code">30FOR30</div><div class="goal-desc">Play 30 shows in 30 different countries in a single year</div></div>
+    <div class="goal-item"><div class="goal-code">10TOTOUR</div><div class="goal-desc">Have a single song hit 10 million streams</div></div>
+    <div class="goal-item"><div class="goal-code">100K</div><div class="goal-desc">Have 100K monthly listeners across all platforms</div></div>
+    <div class="goal-item"><div class="goal-code">BACKEDBY50</div><div class="goal-desc">50K followers on Instagram, giving me leverage</div></div>
+    <div class="goal-item"><div class="goal-code">TEAM</div><div class="goal-desc">Build a team to work on my project with me</div></div>
+  </div>
+
+  <h2 class="block-title">1 Year Goals — January 2027</h2>
+  <h3 class="sub-title">Social Following</h3>
+  <table class="stats-table">
+    <thead><tr><th>Platform</th><th>Current</th><th>Goal</th></tr></thead>
+    <tbody>
+      <tr><td>YouTube</td><td>538</td><td class="goal">3,000</td></tr>
+      <tr><td>SoundCloud</td><td>905</td><td class="goal">5,000</td></tr>
+      <tr><td>TikTok</td><td>80</td><td class="goal">4,000</td></tr>
+      <tr><td>Instagram</td><td>3,845</td><td class="goal">10,000</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">Output</h3>
+  <ul class="bullet">
+    <li>100 short form posts</li>
+    <li>10 viral (10k+ views) TikTok videos</li>
+    <li>10 SoundCloud Releases</li>
+    <li>Full releases by end of year (EP + Launch party)</li>
+    <li>1 organic booking from socials</li>
+  </ul>
+
+  <h3 class="sub-title">Leading Measures</h3>
+  <ul class="plain">
+    <li>90 minute deep focus sessions</li>
+    <li>90 mins of music time every day</li>
+    <li>30 hours of music time every week</li>
+    <li>Prioritize coaching, put as many hours in as possible</li>
+  </ul>
+
+  <h2 class="block-title">The Amateur vs The Professional</h2>
+  <div class="two-col">
+    <div class="two-col-panel bad">
+      <h4>The Amateur</h4>
+      <ul>
+        <li>Is terrified</li>
+        <li>Is an egoist</li>
+        <li>Lives by the opinions of others</li>
+        <li>Permits fear to stop him from acting</li>
+        <li>Is easily distracted</li>
+        <li>Seeks instant gratification</li>
+        <li>Is jealous</li>
+        <li>Seeks permission</li>
+        <li>Lives for the future or in the past</li>
+        <li>Will be ready tomorrow</li>
+        <li>Gives his power away to others</li>
+        <li>Is asleep</li>
+      </ul>
+    </div>
+    <div class="two-col-panel">
+      <h4>The Professional</h4>
+      <ul>
+        <li>Shows up every day</li>
+        <li>Stays on the job all day</li>
+        <li>Is committed over the long haul</li>
+        <li>The stakes are high and real</li>
+        <li>Is patient</li>
+        <li>Acts in the face of fear</li>
+        <li>Accepts no excuses</li>
+        <li>Does not take failure personally</li>
+        <li>Self-validates</li>
+        <li>Lives in the present</li>
+        <li>Defers gratification</li>
+        <li>Does not wait for inspiration</li>
+        <li>Is courageous</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="block-title">Quotes to Stay Aligned</h2>
+  <ul class="plain">
+    <li>Do my current actions represent a burning desire for my goal's achievement?</li>
+    <li>Because I have been blessed, it is my responsibility to achieve greatness.</li>
+    <li>The only thing standing between me and my goals is time and repetitions.</li>
+    <li>In life, we must choose our regrets.</li>
+    <li>The people who are experts at any skill become experts because they learned how to become rewarded by the work itself.</li>
+    <li>If they don't have what you want, don't listen to what they say.</li>
+    <li>There is no greater waste of time than justifying your actions to people who have a life you don't want.</li>
+    <li>Self belief is overrated; generate evidence.</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════
+     MILESTONE GOALS
+════════════════════════════════════════ -->
+<div class="chapter-divider"></div>
+<div id="milestones" style="background:var(--off-black);padding:64px 24px;">
+  <div style="max-width:780px;margin:0 auto;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Finnian</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,6vw,56px);letter-spacing:0.06em;color:#fff;margin-bottom:32px;">MILESTONE GOALS</div>
+    <div class="milestone-mosaic">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2029.png" alt="" class="tall">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/5aa395b30d72591c974d53a96a943671%201.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2030.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/MIT-Hank-Green-01-2.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/image%2031.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/GbvXtCSWUAUKwcx-1.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/Alex-OConnor-1-2-1.png" alt="">
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     COLLABORATION HITLIST
+════════════════════════════════════════ -->
+<div class="chapter-divider"></div>
+<div id="collaboration" style="padding:64px 24px;background:var(--black);">
+  <div style="max-width:780px;margin:0 auto;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Finnian</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,6vw,56px);letter-spacing:0.06em;color:#fff;margin-bottom:32px;">COLLABORATION HITLIST</div>
+    <div class="collab-grid">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/469780463_18467435251012129_6888119005485925101_n.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/482884502_18484282540057094_8986787860326752455_n.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/483138993_18490114048046197_6920718184430053704_n.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/489490099_18495425194034960_4330574031037628832_n.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/502556273_18069279614014333_7265100463084334941_n.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/503004569_18510317479051904_3421602936658943529_n.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/524956296_18104332342560664_4932168470454396460_n.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/537500429_18522425662042199_6622954741115230396_n-1.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/537500429_18522425662042199_6622954741115230396_n-1-1.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/537500429_18522425662042199_6622954741115230396_n-1-2.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/537500429_18522425662042199_6622954741115230396_n-1-3.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/537500429_18522425662042199_6622954741115230396_n-1-4.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/537500429_18522425662042199_6622954741115230396_n-1-5.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/537500429_18522425662042199_6622954741115230396_n-1-6.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/695095e1-11a1-4f57-bb68-c4536b6d0379_TABLET_LANDSCAPE_LARGE_16_9.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/8284ba074d43bc7c8032c4b9da23264d_1080x1080_landscape_80.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/Press-pic-1-jigitz-c-Deanie-Chen.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/Sammy-Virji-Photo-Credit_-Alistair-McVeigh-scaled.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/artworks-GCa3QzziAzbkXdu5-scFi8w-t1080x1080.png" alt="">
+      <img src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/f46f6a9a-fcd8-4dfb-afd5-b5b152f7b268_SOURCE.png" alt="">
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     WELLBEING
+════════════════════════════════════════ -->
+<div id="wellbeing" class="chapter-splash">
+  <img class="bg" src="https://raw.githubusercontent.com/chrisgauthier9/second-brain/main/assets/flourishing/24x36%202%201-2.png" alt="">
+  <div class="splash-overlay"></div>
+  <div class="splash-label">
+    <div class="splash-eyebrow">Chapter Four</div>
+    <div class="splash-title">WELLBEING</div>
+    <div class="splash-sub">Master the Body</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="quote-block">
+    <p>No citizen has a right to be an amateur in the matter of physical training. What a disgrace it is for a man to grow old without ever seeing the beauty and strength of which his body is capable.</p>
+    <cite>— Socrates</cite>
+  </div>
+
+  <h2 class="block-title">1 Year Goals — January 2027</h2>
+  <table class="stats-table">
+    <thead><tr><th>Metric</th><th>Oct 2025</th><th>Dec 2025</th><th>Goal Jan 2027</th></tr></thead>
+    <tbody>
+      <tr><td>Weight</td><td>172.2 lbs</td><td>177.5 lbs</td><td class="goal">180 lbs</td></tr>
+      <tr><td>Body Fat</td><td>15.2%</td><td>15.2%</td><td class="goal">13%</td></tr>
+      <tr><td>Bench 1RM</td><td>185 lbs</td><td>185 lbs</td><td class="goal">225 lbs</td></tr>
+      <tr><td>Squat 1RM</td><td>185 lbs</td><td>200 lbs</td><td class="goal">275 lbs</td></tr>
+      <tr><td>Deadlift 1RM</td><td>275 lbs</td><td>300 lbs</td><td class="goal">360 lbs</td></tr>
+      <tr><td>Chinups</td><td>5</td><td>6</td><td class="goal">12</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">Weekly Training</h3>
+  <ul class="bullet">
+    <li>4 lifts · 1 CrossFit · 1 run · 1 walk</li>
+    <li>DEXA scans every 4 months — 2026 due April, August, December</li>
+  </ul>
+
+  <h2 class="block-title">Food Protocol</h2>
+  <ul class="plain">
+    <li>90% home cooked · 10% minimally processed · 0% highly processed</li>
+    <li>180g of protein daily</li>
+    <li>First meal after 13hrs fasted, ideally 16hrs</li>
+    <li>Last meal 4 hours before bed</li>
+    <li>Carbs not eaten alone, unless exercising or fruit</li>
+    <li>Don't overeat carbs in a meal</li>
+    <li>Absolutely no fast food</li>
+  </ul>
+
+  <h2 class="block-title">Hard NOs — No Exceptions</h2>
+  <div class="anti-vision">
+    <div class="anti-label">Zero tolerance</div>
+    <ul>
+      <li>No porn. To prove to myself that I can control my impulses.</li>
+      <li>No phone to kill silence. Use the time to sit with your mind.</li>
+      <li>No weed. You don't like weed.</li>
+    </ul>
+  </div>
+
+  <h2 class="block-title">Defaults</h2>
+  <ul class="plain">
+    <li><strong>Schedule:</strong> 1.5 hour wind down before bed · minimum 8.5 hours sleep</li>
+    <li><strong>Alcohol:</strong> Off by default, pre-decided exceptions only — maximum 3 drinks</li>
+    <li><strong>Social media:</strong> No unintentional short-form content scrolling</li>
+  </ul>
+
+  <h2 class="block-title">Daily Schedule</h2>
+  <h3 class="sub-title">Morning</h3>
+  <ul class="bullet">
+    <li>8.5 hours sleep — straight to the shower on waking</li>
+    <li>No snooze</li>
+    <li>Begin Startup Sequence — no phone until complete</li>
+    <li>Delay first caffeine 90 minutes</li>
+    <li>AM Bookend before making music</li>
+  </ul>
+  <h3 class="sub-title">Evening</h3>
+  <ul class="bullet">
+    <li>Stop caffeine 8 hours before sleep</li>
+    <li>Last meal 4 hours before bed (high protein, low carb, low calorie)</li>
+    <li>Wind down at 10pm — Shutdown Sequence</li>
+    <li>No deep thinking, hard cardio, or heavy lifting</li>
+    <li>Dim lights · Warm shower · Dark, cold (16–18°C), white noise</li>
+    <li>Phone outside the room</li>
+  </ul>
+
+  <h2 class="block-title">Supplements</h2>
+  <ul class="plain">
+    <li>Caffeine — 100–200mg daily</li>
+    <li>Whey protein</li>
+    <li>Creatine</li>
+    <li>Metamucil</li>
+    <li>Magnesium Glycinate — 200mg</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════
+     PROJECTS
+════════════════════════════════════════ -->
+<div class="chapter-divider"></div>
+<div id="projects" class="section">
+  <div class="section-title">Projects</div>
+
+  <h2 class="block-title">Hoot</h2>
+  <p>Product owner at a fully remote ed-tech company. Generalist role — tasks are assigned, vary constantly, and have due dates. Income is salaried and not tied to output volume. Goal is consistency: show up daily, don't let tasks pile up. 1hr/day minimum is a drift detector, not a production target.</p>
+
+  <h2 class="block-title" style="margin-top:40px;">Instagram Growth Bot (Tempo Socials)</h2>
+  <ul class="plain">
+    <li>Bot running — March 1</li>
+    <li>Beta testing — March 1 to April 1</li>
+    <li>Public launch — May 1</li>
+    <li>Revenue goal — $50k by EOY</li>
+  </ul>
+</div>
+
+<footer>
+  Flourishing Self &nbsp;·&nbsp; MMXXVI &nbsp;·&nbsp; The Year I Turned Pro
+</footer>
 
 <script>
-  async function loadFlourishingSelf() {
-    try {
-      // Wait for the auth gate to confirm a session before reading.
-      await window._authReadyPromise;
-      const { data, error } = await window.sb
-        .from('documents')
-        .select('content, updated_at')
-        .eq('slug', 'flourishing-self')
-        .limit(1);
-
-      if (error) throw error;
-      if (!data || !data.length) throw new Error('Document not found');
-
-      const { content, updated_at } = data[0];
-
-      // Render markdown
-      const html = marked.parse(content);
-      document.getElementById('content').innerHTML = html;
-      document.getElementById('content').style.display = 'block';
-      document.getElementById('loadingState').style.display = 'none';
-
-      // Strip title h1 (FLOURISHING SELF) and subtitle h3 (MMXXVI) from rendered content
-      const contentEl = document.getElementById('content');
-      const firstH1 = contentEl.querySelector('h1');
-      if (firstH1 && firstH1.textContent.toUpperCase().includes('FLOURISHING SELF')) {
-        const nextEl = firstH1.nextElementSibling;
-        if (nextEl && nextEl.tagName === 'H3') nextEl.remove();
-        firstH1.remove();
-      }
-
-      // Extract instructions paragraph (the INSTRUCTIONS: bold block) into its own panel
-      const instrEl = contentEl.querySelector('p strong');
-      if (instrEl && instrEl.textContent.toUpperCase().includes('INSTRUCTIONS')) {
-        const instrP = instrEl.closest('p');
-        if (instrP) {
-          document.getElementById('instructions-text').innerHTML = instrP.outerHTML;
-          document.getElementById('instructions-block').style.display = 'block';
-          instrP.remove();
-        }
-      }
-
-      // Add anchor IDs to sections
-      addAnchors();
-
-      // Last updated
-      if (updated_at) {
-        const date = new Date(updated_at).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
-        document.getElementById('lastUpdated').textContent = `Last updated: ${date}`;
-      }
-
-    } catch (err) {
-      document.getElementById('loadingState').innerHTML = `
-        <div class="error-state">
-          <p>Could not load Flourishing Self: ${err.message}</p>
-        </div>`;
-    }
-  }
-
-  function addAnchors() {
-    const tocLinks = document.getElementById('toc-links');
-    tocLinks.innerHTML = '';
-    document.querySelectorAll('.content h1').forEach(h1 => {
-      const text = h1.textContent.trim();
-      // Skip the page title
-      if (text.toUpperCase().includes('FLOURISHING SELF')) return;
-      const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      h1.id = id;
-      const cleanText = text.replace(/\s*[—–-]+\s*(MASTER|THE)\s*.*/i, '').trim();
-      const label = cleanText.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-      const a = document.createElement('a');
-      a.href = '#' + id;
-      a.textContent = label;
-      tocLinks.appendChild(a);
-    });
-  }
-
-  loadFlourishingSelf();
-</script>
-
-
-<script>
-(function () {
-  var nav = document.querySelector('header .nav-links');
-  var hdr = document.querySelector('header');
-  if (!nav || !hdr || hdr.querySelector('.nav-toggle')) return;
-  var btn = document.createElement('button');
-  btn.className = 'nav-toggle';
-  btn.setAttribute('aria-label', 'Open menu');
-  btn.setAttribute('aria-expanded', 'false');
-  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
-  var rfr = document.createElement('button');
-  rfr.className = 'refresh-btn';
-  rfr.setAttribute('aria-label', 'Refresh');
-  rfr.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
-  rfr.addEventListener('click', function() { location.reload(); });
-  var grp = document.createElement('div');
-  grp.style.cssText = 'display:flex;align-items:center;margin-left:auto;gap:0;flex-shrink:0;';
-  grp.appendChild(rfr);
-  grp.appendChild(btn);
-  hdr.appendChild(grp);
-  function close() { nav.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
-  btn.addEventListener('click', function(e) {
+  // Nav toggle
+  const toggle = document.getElementById('navToggle');
+  const nav = document.getElementById('mainNav');
+  toggle.addEventListener('click', e => {
     e.stopPropagation();
-    var open = nav.classList.toggle('open');
-    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    const open = nav.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open);
   });
-  document.addEventListener('click', function(e) {
-    if (!nav.classList.contains('open')) return;
-    if (nav.contains(e.target) || btn.contains(e.target)) return;
-    close();
+  document.addEventListener('click', e => {
+    if (!nav.contains(e.target) && !toggle.contains(e.target)) nav.classList.remove('open');
   });
-  nav.addEventListener('click', function(e) { if (e.target.tagName === 'A') close(); });
-})();
+  nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav.classList.remove('open')));
+
+  // TOC active state on scroll
+  const tocLinks = document.querySelectorAll('.toc-inner a');
+  const sections = Array.from(tocLinks).map(a => document.querySelector(a.getAttribute('href')));
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        tocLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
+  sections.forEach(s => s && observer.observe(s));
 </script>
+
 </body>
 </html>
