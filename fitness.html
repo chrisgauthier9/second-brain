@@ -445,23 +445,17 @@ function _buildExerciseChart(cfg, points) {
       borderColor: 'rgba(251,191,36,0.35)', borderWidth: 1.5,
       borderDash: [4,4], pointRadius: 0, fill: false, spanGaps: true, order: 3,
     }, {
-      label: 'Best set (lowest assist)',
-      data: points.map(p => p.minWeight),
-      borderColor: '#34d399', backgroundColor: '#34d39915',
-      borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true, spanGaps: true, order: 2,
-    }, {
       label: 'Heavy day',
       data: points.map(p => p.isHeavy ? p.minWeight : null),
-      borderColor: 'transparent', backgroundColor: '#60a5fa',
-      pointBackgroundColor: '#60a5fa', pointBorderColor: '#60a5fa',
-      pointRadius: 5, pointHoverRadius: 7, showLine: false, spanGaps: false, order: 1,
+      borderColor: '#60a5fa', backgroundColor: '#60a5fa15',
+      pointBackgroundColor: '#60a5fa', pointRadius: 4, pointHoverRadius: 6,
+      borderWidth: 2, tension: 0.3, fill: false, spanGaps: true, order: 2,
     }, {
       label: 'Volume day',
       data: points.map(p => p.isVolume ? p.minWeight : null),
-      borderColor: 'transparent', backgroundColor: '#34d399',
-      pointBackgroundColor: '#34d399', pointBorderColor: '#1f2937',
-      pointBorderWidth: 1.5, pointRadius: 5, pointHoverRadius: 7,
-      showLine: false, spanGaps: false, order: 1,
+      borderColor: '#34d399', backgroundColor: '#34d39915',
+      pointBackgroundColor: '#34d399', pointRadius: 4, pointHoverRadius: 6,
+      borderWidth: 2, tension: 0.3, fill: false, spanGaps: true, order: 2,
     }];
   } else {
     datasets = [{
