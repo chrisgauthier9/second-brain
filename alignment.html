@@ -270,8 +270,6 @@ const HABIT_ROWS = [
   { key: 'finnian_hours',  label: 'Finnian',       derived: true, dtype: 'min', col: 'finnian_hours', threshold: 0 },
   { key: 'tempo_hours',    label: 'Tempo',         derived: true, dtype: 'min', col: 'tempo_hours',   threshold: 0 },
   // Sleep
-  { key: 'bedtime',        label: 'Bed ≤11pm',     derived: true, dtype: 'time_max', col: 'bedtime',   threshold: '23:00', allowAfterMidnight: true },
-  { key: 'wake_time',      label: 'Wake ≤7:30',    derived: true, dtype: 'time_max', col: 'wake_time', threshold: '07:30' },
   { key: 'sleep_duration', label: 'Sleep ≥8.5h',   derived: true, dtype: 'sleep_duration', threshold: 8.5 },
   // Shutdown + trained + journaled
   { key: 'shutdown_sequence', label: 'Shutdown' },
@@ -839,7 +837,6 @@ function renderHistory() {
       <span><span class="legend-dot" style="background:var(--ok)"></span>Hit</span>
       <span><span class="legend-dot" style="background:var(--warn)"></span>First miss</span>
       <span><span class="legend-dot" style="background:var(--hard-no)"></span>2nd miss in a row</span>
-      <span><span class="legend-dot" style="background:var(--hard-no);position:relative;color:#fff;text-align:center;line-height:10px;font-size:8px;font-weight:800">✕</span>Hard NO broken</span>
       <span><span class="legend-dot" style="background:#2c3441"></span>No data</span>
     </div>
   `;
