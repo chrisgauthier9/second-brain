@@ -191,6 +191,21 @@
     .streak-card .sub { font-size: 10px; color: var(--dim); margin-top: 2px; }
 
     .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .sunday-reset { border-top: 2px solid var(--border); margin-top: 16px; padding-top: 8px; }
+    .sunday-reset h2 { color: var(--accent); }
+    .week-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .week-stat { background: var(--surface); border-radius: 8px; padding: 10px 12px; text-align: center; }
+    .week-stat .stat-val { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+    .week-stat .stat-lbl { font-size: 11px; color: var(--dim); margin-top: 3px; text-transform: uppercase; letter-spacing: .06em; }
+    .week-stat.hit .stat-val { color: #4ade80; }
+    .week-stat.miss .stat-val { color: #f87171; }
+    .winning-checklist { list-style: none; padding: 0; margin: 0 0 16px; }
+    .winning-checklist li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+    .winning-checklist li:last-child { border-bottom: none; }
+    .winning-checklist .ck { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+    .winning-checklist li.yes .ck { background: #4ade80; border-color: #4ade80; color: #000; }
+    .winning-checklist li.no .ck { background: #f87171; border-color: #f87171; color: #fff; }
+    .winning-checklist li.yes { color: var(--text); }
 
     .shutdown-ref { background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; }
     .shutdown-ref summary {
@@ -297,6 +312,8 @@ let DATA = {};                              // date -> daily_checkins row (60d p
 let TRAINED_DATES = new Set();              // dates with at least one session
 let JOURNALS = {};                          // date -> array of journal_entries rows (most recent first)
 let TAB = sessionStorage.getItem('alignTab') || 'day';
+let WEEKLY_REVIEW = null;
+let WEEK_STATS = {};
 let CURRENT_DATE = todayISO();              // which day the Day tab is currently editing
 let WEIGHT_LOG = {};                        // date -> weight (lbs)
 let RANGE = 7;                              // history heatmap range
@@ -429,6 +446,35 @@ async function load() {
     }
   } catch (e) { /* bodyweight unavailable — render without it */ }
 
+  // Weekly reset — fetch on Sundays only
+  if (new Date(todayISO() + 'T12:00:00').getDay() === 0) {
+    try {
+      const monday = getMondayOf(todayISO());
+      const [wrRes, wcRes, wsRes] = await Promise.all([
+        sb.from('weekly_reviews').select('*').eq('week_start', monday).maybeSingle(),
+        sb.from('daily_checkins').select('*').gte('date', monday).lte('date', todayISO()),
+        sb.from('sessions').select('date').gte('date', monday).lte('date', todayISO())
+      ]);
+      WEEKLY_REVIEW = wrRes.data || null;
+      const wc = wcRes.data || [];
+      const sleeps = wc.filter(r => r.bedtime && r.wake_time).map(r => {
+        const [bh,bm] = r.bedtime.split(':').map(Number);
+        const [wh,wm] = r.wake_time.split(':').map(Number);
+        let h = (wh + wm/60) - (bh + bm/60);
+        if (h < 0) h += 24;
+        return h;
+      });
+      WEEK_STATS = {
+        hoot: wc.reduce((s,r) => s + (r.hoot_hours||0), 0),
+        finnian: wc.reduce((s,r) => s + (r.finnian_hours||0), 0),
+        tempo: wc.reduce((s,r) => s + (r.tempo_hours||0), 0),
+        trained: (wsRes.data||[]).length,
+        shutdowns: wc.filter(r => r.shutdown_sequence).length,
+        avg_sleep: sleeps.length ? sleeps.reduce((a,b)=>a+b,0)/sleeps.length : 0
+      };
+    } catch(e) { /* weekly data unavailable */ }
+  }
+
   document.documentElement.style.visibility = '';
   render();
 }
@@ -445,8 +491,89 @@ function render() {
 }
 
 // ----- Day tab — full editor -----
+function getMondayOf(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().split('T')[0];
+}
+
+async function saveWeeklyReview() {
+  const reflection = document.getElementById('wr-reflection')?.value || '';
+  const targets = document.getElementById('wr-targets')?.value || '';
+  const monday = getMondayOf(CURRENT_DATE);
+  const { error } = await sb.from('weekly_reviews').upsert(
+    { week_start: monday, reflection, targets },
+    { onConflict: 'week_start' }
+  );
+  if (!error) {
+    const btn = document.getElementById('wr-save');
+    if (btn) { btn.textContent = 'Saved ✓'; setTimeout(() => btn.textContent = 'Save', 2000); }
+  }
+}
+
+function renderSundayReset() {
+  const wr = WEEKLY_REVIEW || {};
+  const s = WEEK_STATS;
+  const checklist = [
+    { label: 'Finnian 1.5h+ daily & coaching session', hit: s.finnian >= 7.5 },
+    { label: 'Hoot 1h+ daily with real outputs', hit: s.hoot >= 5 },
+    { label: 'Tempo 1h+ daily with real outputs', hit: s.tempo >= 5 },
+    { label: 'Trained 4+ times', hit: s.trained >= 4 },
+    { label: 'Slept 8.5h+ average', hit: (s.avg_sleep || 0) >= 8.5 },
+    { label: 'Daily shutdowns completed (5+)', hit: s.shutdowns >= 5 },
+  ];
+  return `
+    <div class="sunday-reset">
+      <section>
+        <h2>Weekly Reset</h2>
+        <div class="week-stats">
+          <div class="week-stat ${s.hoot>=5?'hit':'miss'}">
+            <div class="stat-val">${(s.hoot||0).toFixed(1)}h</div>
+            <div class="stat-lbl">Hoot</div>
+          </div>
+          <div class="week-stat ${s.finnian>=7.5?'hit':'miss'}">
+            <div class="stat-val">${(s.finnian||0).toFixed(1)}h</div>
+            <div class="stat-lbl">Finnian</div>
+          </div>
+          <div class="week-stat ${s.tempo>=5?'hit':'miss'}">
+            <div class="stat-val">${(s.tempo||0).toFixed(1)}h</div>
+            <div class="stat-lbl">Tempo</div>
+          </div>
+          <div class="week-stat ${s.trained>=4?'hit':'miss'}">
+            <div class="stat-val">${s.trained||0}</div>
+            <div class="stat-lbl">Sessions</div>
+          </div>
+          <div class="week-stat ${s.shutdowns>=5?'hit':'miss'}">
+            <div class="stat-val">${s.shutdowns||0}</div>
+            <div class="stat-lbl">Shutdowns</div>
+          </div>
+          <div class="week-stat ${(s.avg_sleep||0)>=8.5?'hit':'miss'}">
+            <div class="stat-val">${(s.avg_sleep||0).toFixed(1)}h</div>
+            <div class="stat-lbl">Avg Sleep</div>
+          </div>
+        </div>
+        <ul class="winning-checklist">
+          ${checklist.map(item => `
+            <li class="${item.hit ? 'yes' : 'no'}">
+              <span class="ck">${item.hit ? '✓' : '✕'}</span>
+              ${item.label}
+            </li>
+          `).join('')}
+        </ul>
+        <h2 style="font-size:13px;margin-bottom:8px">Reflection</h2>
+        <textarea class="notes" id="wr-reflection" placeholder="What happened this week? Where were you aligned? Where did you drift?">${(wr.reflection||'').replace(/</g,'&lt;')}</textarea>
+        <h2 style="font-size:13px;margin:12px 0 8px">Next Week's Targets</h2>
+        <textarea class="notes" id="wr-targets" placeholder="What does a winning week look like from here?">${(wr.targets||'').replace(/</g,'&lt;')}</textarea>
+        <button id="wr-save" onclick="saveWeeklyReview()" style="margin-top:10px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Save</button>
+      </section>
+    </div>`;
+}
+
 function renderDay() {
   const row = DATA[CURRENT_DATE] || { date: CURRENT_DATE };
+  const isSunday = new Date(CURRENT_DATE + 'T12:00:00').getDay() === 0;
   const trained = TRAINED_DATES.has(CURRENT_DATE);
   const isToday = CURRENT_DATE === todayISO();
 
@@ -546,6 +673,7 @@ function renderDay() {
       <h2>Daily journal${(JOURNALS[CURRENT_DATE]||[]).length > 1 ? ` <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">· editing most recent of ${(JOURNALS[CURRENT_DATE]||[]).length}</span>` : ''}</h2>
       ${journalSectionHTML()}
     </section>
+    ${isSunday ? renderSundayReset() : ''}
   `;
 
   // Day nav
