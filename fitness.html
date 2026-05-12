@@ -359,42 +359,32 @@ function renderExerciseDetail(exercise) {
   if (chartSessions.length >= 2) {
     const chartId = 'ex-progress-chart-' + exercise.id;
     const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const sessionPoints = chartSessions.map(s => {
+    const sessionPoints = chartSessions.map((s, i) => {
       const validSets = s.sets.filter(x => x.weight != null && x.reps != null && x.reps > 0);
       if (!validSets.length) return null;
       const best1RM = validSets.reduce((m, x) => Math.max(m, x.weight * (1 + x.reps / 30)), 0);
       const topWeight = Math.max(...validSets.map(x => x.weight));
       const minWeight = Math.min(...validSets.map(x => x.weight));
-      const [,mo,d] = s.date.split('-');
+      const [yy,mo,d] = s.date.split('-');
       const label = MONTHS[+mo-1] + ' ' + +d;
       const sName = (s.name||'').toLowerCase();
-      return { label, best1RM: Math.round(best1RM), topWeight, minWeight,
+      return { label, date: s.date, best1RM: Math.round(best1RM), topWeight, minWeight,
                isHeavy: sName.includes('heavy'), isVolume: sName.includes('volume') };
     }).filter(Boolean);
 
-    const labels = sessionPoints.map(p => p.label);
-    const orm1Data = sessionPoints.map(p => isAssisted ? null : p.best1RM);
-    const heavyData = sessionPoints.map(p => (!isAssisted && p.isHeavy) ? p.topWeight : null);
-    const volumeData = sessionPoints.map(p => (!isAssisted && p.isVolume) ? p.topWeight : null);
-    const assistedData = sessionPoints.map(p => isAssisted ? p.minWeight : null);
-
-    const allVals = sessionPoints.map(p => isAssisted ? p.minWeight : p.best1RM).filter(v => v != null);
-    const rawVals = sessionPoints.map(p => isAssisted ? p.minWeight : p.topWeight).filter(v => v != null);
-    const combined = [...allVals, ...rawVals];
-    const chartMin = Math.min(...combined);
-    const chartMax = Math.max(...combined);
-    const pad = Math.max((chartMax - chartMin) * 0.2, 10);
-    const yMin = isAssisted ? Math.max(0, chartMin - pad) : chartMin - pad;
-    const yMax = chartMax + pad;
-
     window._pendingExerciseChart = {
       chartId, isAssisted, exerciseId: exercise.id,
-      labels, orm1Data, heavyData, volumeData, assistedData,
-      yMin, yMax
+      allPoints: sessionPoints,
+      activeRange: 'all'
     };
 
     html += `<div style="margin-bottom:20px">
-      <h3 class="section-label" style="margin-bottom:8px">Progress</h3>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <h3 class="section-label" style="margin:0">Progress</h3>
+        <div id="ex-range-btns" style="display:flex;gap:4px">
+          ${['7d','30d','90d','All'].map(r => `<button onclick="filterExerciseChart('${r.toLowerCase()}')" id="ex-rb-${r.toLowerCase()}" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:${r==='All'?'var(--primary)':'var(--deep)'};color:${r==='All'?'#fff':'var(--dim)'};cursor:pointer">${r}</button>`).join('')}
+        </div>
+      </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 12px">
         <canvas id="${chartId}" height="160"></canvas>
       </div>
@@ -444,107 +434,109 @@ function renderWeight() {
     </div>`;
 }
 
-function initExerciseChart() {
-  const cfg = window._pendingExerciseChart;
-  if (!cfg) return;
-  window._pendingExerciseChart = null;
-  const canvas = document.getElementById(cfg.chartId);
-  if (!canvas) return;
-  const key = '_chart_' + cfg.exerciseId;
-  if (window[key]) window[key].destroy();
-
+function _buildExerciseChart(cfg, points) {
+  const labels = points.map(p => p.label);
+  const isAssisted = cfg.isAssisted;
   let datasets;
-  if (cfg.isAssisted) {
+  if (isAssisted) {
     datasets = [{
       label: 'Assistance (lbs) — lower = stronger',
-      data: cfg.assistedData,
-      borderColor: '#34d399',
-      backgroundColor: '#34d39922',
-      borderWidth: 2,
-      pointBackgroundColor: '#34d399',
-      pointRadius: 4,
-      tension: 0.3,
-      fill: true,
-      spanGaps: true,
+      data: points.map(p => p.minWeight),
+      borderColor: '#34d399', backgroundColor: '#34d39922',
+      borderWidth: 2, pointBackgroundColor: '#34d399', pointRadius: 4,
+      tension: 0.3, fill: true, spanGaps: true,
     }, {
       label: 'Unassisted goal',
-      data: cfg.labels.map(() => 0),
-      borderColor: 'rgba(251,191,36,0.4)',
-      borderWidth: 1.5,
-      borderDash: [4, 4],
-      pointRadius: 0,
-      fill: false,
-      spanGaps: true,
+      data: points.map(() => 0),
+      borderColor: 'rgba(251,191,36,0.4)', borderWidth: 1.5,
+      borderDash: [4,4], pointRadius: 0, fill: false, spanGaps: true,
     }];
   } else {
     datasets = [{
       label: 'Est. 1RM',
-      data: cfg.orm1Data,
-      borderColor: '#a78bfa',
-      backgroundColor: '#a78bfa18',
-      borderWidth: 2,
-      pointRadius: 0,
-      tension: 0.35,
-      fill: true,
-      spanGaps: true,
-      order: 3,
+      data: points.map(p => p.best1RM),
+      borderColor: '#a78bfa', backgroundColor: '#a78bfa18',
+      borderWidth: 2, pointRadius: 0, tension: 0.35,
+      fill: true, spanGaps: true, order: 3,
     }, {
       label: 'Heavy day',
-      data: cfg.heavyData,
-      borderColor: 'transparent',
-      backgroundColor: '#60a5fa',
-      pointBackgroundColor: '#60a5fa',
-      pointBorderColor: '#60a5fa',
-      pointRadius: 5,
-      pointHoverRadius: 7,
-      showLine: false,
-      spanGaps: false,
-      order: 1,
+      data: points.map(p => p.isHeavy ? p.topWeight : null),
+      borderColor: 'transparent', backgroundColor: '#60a5fa',
+      pointBackgroundColor: '#60a5fa', pointBorderColor: '#60a5fa',
+      pointRadius: 5, pointHoverRadius: 7, showLine: false, spanGaps: false, order: 1,
     }, {
       label: 'Volume day',
-      data: cfg.volumeData,
-      borderColor: 'transparent',
-      backgroundColor: '#34d399',
-      pointBackgroundColor: '#34d399',
-      pointBorderColor: '#34d399',
-      pointRadius: 5,
-      pointHoverRadius: 7,
-      showLine: false,
-      spanGaps: false,
-      order: 2,
+      data: points.map(p => p.isVolume ? p.topWeight : null),
+      borderColor: 'transparent', backgroundColor: '#34d399',
+      pointBackgroundColor: '#34d399', pointBorderColor: '#34d399',
+      pointRadius: 5, pointHoverRadius: 7, showLine: false, spanGaps: false, order: 2,
     }];
   }
+  const vals = points.map(p => isAssisted ? p.minWeight : Math.max(p.best1RM, p.topWeight)).filter(v => v != null);
+  const chartMin = Math.min(...vals); const chartMax = Math.max(...vals);
+  const pad = Math.max((chartMax - chartMin) * 0.2, 10);
+  const yMin = isAssisted ? Math.max(0, chartMin - pad) : chartMin - pad;
+  const yMax = chartMax + pad;
 
+  const key = '_chart_' + cfg.exerciseId;
+  if (window[key]) window[key].destroy();
+  const canvas = document.getElementById(cfg.chartId);
+  if (!canvas) return;
   window[key] = new Chart(canvas, {
     type: 'line',
-    data: { labels: cfg.labels, datasets },
+    data: { labels, datasets },
     options: {
-      responsive: true,
-      maintainAspectRatio: true,
+      responsive: true, maintainAspectRatio: true,
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { labels: { color: '#9ca3af', font: { size: 10 }, boxWidth: 10, padding: 12 } },
         tooltip: {
-          backgroundColor: '#1f2937',
-          titleColor: '#f3f4f6',
-          bodyColor: '#d1d5db',
-          callbacks: {
-            label: ctx => ctx.parsed.y != null ? ctx.dataset.label + ': ' + ctx.parsed.y + ' lb' : null
-          }
+          backgroundColor: '#1f2937', titleColor: '#f3f4f6', bodyColor: '#d1d5db',
+          callbacks: { label: ctx => ctx.parsed.y != null ? ctx.dataset.label + ': ' + ctx.parsed.y + ' lb' : null }
         }
       },
       scales: {
         x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
         y: {
-          reverse: cfg.isAssisted,
-          min: cfg.yMin,
-          max: cfg.yMax,
+          reverse: isAssisted, min: yMin, max: yMax,
           ticks: { color: '#6b7280', font: { size: 10 }, callback: v => v + ' lb' },
           grid: { color: 'rgba(255,255,255,0.04)' }
         }
       }
     }
   });
+}
+
+function initExerciseChart() {
+  const cfg = window._pendingExerciseChart;
+  if (!cfg) return;
+  window._activeExerciseChart = cfg;
+  window._pendingExerciseChart = null;
+  _buildExerciseChart(cfg, cfg.allPoints);
+}
+
+function filterExerciseChart(range) {
+  const cfg = window._pendingExerciseChart || window._activeExerciseChart;
+  if (!cfg) return;
+  window._activeExerciseChart = cfg;
+
+  // Update button styles
+  ['7d','30d','90d','all'].forEach(r => {
+    const btn = document.getElementById('ex-rb-' + r);
+    if (!btn) return;
+    btn.style.background = r === range ? 'var(--primary)' : 'var(--deep)';
+    btn.style.color = r === range ? '#fff' : 'var(--dim)';
+  });
+
+  let points = cfg.allPoints;
+  if (range !== 'all') {
+    const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+    const cutoffStr = cutoff.toISOString().slice(0,10);
+    points = cfg.allPoints.filter(p => p.date >= cutoffStr);
+    if (points.length < 1) points = cfg.allPoints.slice(-2);
+  }
+  _buildExerciseChart(cfg, points);
 }
 
 function initWeightChart() {
