@@ -184,6 +184,7 @@ function render() {
     if (STATE.detail.type === 'session') html += renderSessionDetail(STATE.detail.data);
     else if (STATE.detail.type === 'exercise') html += renderExerciseDetail(STATE.detail.data);
     app.innerHTML = html;
+    if (STATE.detail.type === 'exercise') requestAnimationFrame(initExerciseChart);
     return;
   }
   const tabs = `<div class="tabs">${['sessions','exercises','weight'].map(t=>`<button class="tab${STATE.tab===t?' active':''}" onclick="STATE.tab='${t}';render()">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('')}</div>`;
@@ -377,55 +378,16 @@ function renderExerciseDetail(exercise) {
     const chartDataJson = JSON.stringify(chartData);
     const labelsJson = JSON.stringify(labels);
 
+    window._pendingExerciseChart = {
+      chartId, lineColor, chartLabel, chartData, labels,
+      yMin, yMax, isAssisted, exerciseId: exercise.id
+    };
     html += `<div style="margin-bottom:20px">
       <h3 class="section-label" style="margin-bottom:8px">Progress</h3>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 12px">
         <canvas id="${chartId}" height="140"></canvas>
       </div>
-    </div>
-    <script>
-    (function(){
-      const canvas = document.getElementById('${chartId}');
-      if (!canvas) return;
-      if (window['_chart_${exercise.id}']) window['_chart_${exercise.id}'].destroy();
-      window['_chart_${exercise.id}'] = new Chart(canvas, {
-        type: 'line',
-        data: {
-          labels: ${labelsJson},
-          datasets: [{
-            label: '${chartLabel.replace(/'/g,"\'")}',
-            data: ${chartDataJson},
-            borderColor: '${lineColor}',
-            backgroundColor: '${lineColor}22',
-            borderWidth: 2,
-            pointBackgroundColor: '${lineColor}',
-            pointRadius: 4,
-            tension: 0.3,
-            fill: true,
-            spanGaps: true,
-          }${isAssisted ? `,{label:'Unassisted goal',data:${labelsJson}.map(()=>0),borderColor:'rgba(251,191,36,0.4)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false}` : ''}]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { labels: { color: '#9ca3af', font: { size: 10 }, boxWidth: 12 } },
-            tooltip: { backgroundColor: '#1f2937', titleColor: '#f3f4f6', bodyColor: '#d1d5db' }
-          },
-          scales: {
-            x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
-            y: {
-              reverse: isAssisted,
-              min: ${yMin},
-              max: ${yMax},
-              ticks: { color: '#6b7280', font: { size: 10 }, callback: v => v + ' lb' },
-              grid: { color: 'rgba(255,255,255,0.04)' }
-            }
-          }
-        }
-      });
-    })();
-    <\/script>`;
+    </div>`;
   }
 
   if (sessions.length > 0) {
@@ -469,6 +431,61 @@ function renderWeight() {
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px">
       <canvas id="weight-chart" height="160"></canvas>
     </div>`;
+}
+
+function initExerciseChart() {
+  const cfg = window._pendingExerciseChart;
+  if (!cfg) return;
+  window._pendingExerciseChart = null;
+  const canvas = document.getElementById(cfg.chartId);
+  if (!canvas) return;
+  const key = '_chart_' + cfg.exerciseId;
+  if (window[key]) window[key].destroy();
+  const labelsData = cfg.labels;
+  window[key] = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: labelsData,
+      datasets: [{
+        label: cfg.chartLabel,
+        data: cfg.chartData,
+        borderColor: cfg.lineColor,
+        backgroundColor: cfg.lineColor + '22',
+        borderWidth: 2,
+        pointBackgroundColor: cfg.lineColor,
+        pointRadius: 4,
+        tension: 0.3,
+        fill: true,
+        spanGaps: true,
+      }].concat(cfg.isAssisted ? [{
+        label: 'Unassisted goal',
+        data: labelsData.map(() => 0),
+        borderColor: 'rgba(251,191,36,0.4)',
+        borderWidth: 1.5,
+        borderDash: [4,4],
+        pointRadius: 0,
+        fill: false
+      }] : [])
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: '#9ca3af', font: { size: 10 }, boxWidth: 12 } },
+        tooltip: { backgroundColor: '#1f2937', titleColor: '#f3f4f6', bodyColor: '#d1d5db' }
+      },
+      scales: {
+        x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: {
+          reverse: cfg.isAssisted,
+          min: cfg.yMin,
+          max: cfg.yMax,
+          ticks: { color: '#6b7280', font: { size: 10 }, callback: v => v + ' lb' },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        }
+      }
+    }
+  });
 }
 
 function initWeightChart() {
@@ -582,5 +599,6 @@ loadData();
 </script>
 </body>
 </html>
+
 
 
