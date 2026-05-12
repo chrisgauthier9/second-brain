@@ -462,43 +462,6 @@ function renderDay() {
       </div>
     </div>
 
-    <details class="shutdown-ref">
-      <summary>Shutdown Sequence</summary>
-      <ol>
-        <li>Pull today's calendar and log work buckets</li>
-        <li>Daily journal</li>
-        <li>Honest feedback on the day</li>
-        <li>Plan tomorrow together
-          <ul>
-            <li>Schedule shutdown block</li>
-            <li>Schedule 8.5h sleep, or more if sleep debt</li>
-            <li>1h+ each for Hoot, Finnian, Tempo</li>
-            <li>Fill any gaps together</li>
-          </ul>
-        </li>
-        <li>Mark shutdown complete</li>
-      </ol>
-    </details>
-
-    <div class="save-status" id="save-status"></div>
-
-    <section>
-      <h2>Hours</h2>
-      <div class="hours-grid">
-        <div class="hours-cell">
-          <label>Hoot</label>
-          <input type="number" step="0.25" min="0" max="24" data-col="hoot_hours" data-type="num" value="${fmtNum(row.hoot_hours)}" placeholder="0">
-        </div>
-        <div class="hours-cell">
-          <label>Finnian</label>
-          <input type="number" step="0.25" min="0" max="24" data-col="finnian_hours" data-type="num" value="${fmtNum(row.finnian_hours)}" placeholder="0">
-        </div>
-        <div class="hours-cell">
-          <label>Tempo</label>
-          <input type="number" step="0.25" min="0" max="24" data-col="tempo_hours" data-type="num" value="${fmtNum(row.tempo_hours)}" placeholder="0">
-        </div>
-      </div>
-    </section>
 
     <section>
       <h2>Sleep</h2>
@@ -532,7 +495,43 @@ function renderDay() {
     </section>
 
     <section>
+      <h2>Hours</h2>
+      <div class="hours-grid">
+        <div class="hours-cell">
+          <label>Hoot</label>
+          <input type="number" step="0.25" min="0" max="24" data-col="hoot_hours" data-type="num" value="${fmtNum(row.hoot_hours)}" placeholder="0">
+        </div>
+        <div class="hours-cell">
+          <label>Finnian</label>
+          <input type="number" step="0.25" min="0" max="24" data-col="finnian_hours" data-type="num" value="${fmtNum(row.finnian_hours)}" placeholder="0">
+        </div>
+        <div class="hours-cell">
+          <label>Tempo</label>
+          <input type="number" step="0.25" min="0" max="24" data-col="tempo_hours" data-type="num" value="${fmtNum(row.tempo_hours)}" placeholder="0">
+        </div>
+      </div>
+    </section>
+
+    <section>
       <h2>Shutdown</h2>
+      <details class="shutdown-ref" style="margin-bottom:12px">
+        <summary>How it works</summary>
+              <summary>Shutdown Sequence</summary>
+              <ol>
+                <li>Pull today's calendar and log work buckets</li>
+                <li>Daily journal</li>
+                <li>Honest feedback on the day</li>
+                <li>Plan tomorrow together
+                  <ul>
+                    <li>Schedule shutdown block</li>
+                    <li>Schedule 8.5h sleep, or more if sleep debt</li>
+                    <li>1h+ each for Hoot, Finnian, Tempo</li>
+                    <li>Fill any gaps together</li>
+                  </ul>
+                </li>
+                <li>Mark shutdown complete</li>
+              </ol>
+      </details>
       <div class="toggle-list">
         ${SHUTDOWN.map(t => toggleHTML(t, row)).join('')}
       </div>
