@@ -483,23 +483,23 @@
     }
     .inspiration-row-label span { color: var(--red); }
     .photo-scroll {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
       gap: 6px;
       padding: 0 48px;
-      overflow-x: auto;
-      scrollbar-width: none;
     }
-    .photo-scroll::-webkit-scrollbar { display: none; }
     .photo-scroll img {
-      width: 140px;
-      height: 140px;
+      width: 100%;
+      aspect-ratio: 1;
       object-fit: cover;
       border-radius: 4px;
-      flex-shrink: 0;
       filter: grayscale(15%);
       transition: filter .2s, transform .2s;
     }
     .photo-scroll img:hover { filter: grayscale(0); transform: scale(1.03); }
+    @media (max-width: 700px) {
+      .photo-scroll { grid-template-columns: repeat(3, 1fr); padding: 0 16px; }
+    }
 
     /* ── VISION BOARD ── */
     .vision-board {
