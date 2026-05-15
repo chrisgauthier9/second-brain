@@ -156,22 +156,22 @@
 
     .tag.project { background: rgba(124,58,237,.18); color: #a78bfa; }
 
-    /* Quick category change chip on task cards */
-    .task-cat-chip { position: relative; }
-    .task-cat-chip select {
-      appearance: none;
-      background: transparent;
-      border: none;
-      color: inherit;
-      font: inherit;
-      cursor: pointer;
-      padding: 0;
-      margin: 0;
-      width: 100%;
+    /* Status quick-change chip */
+    .status-chip-wrap { position: relative; display: inline-block; cursor: pointer; }
+    .status-chip-wrap select {
       position: absolute;
       inset: 0;
       opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      appearance: none;
+      border: none;
+      background: transparent;
+      font: inherit;
     }
+    .status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .status-chip-wrap:hover .status-chip { filter: brightness(1.15); }
 
     /* Time log buttons */
     .time-log-row { display: flex; gap: 4px; margin-top: 8px; align-items: center; }
@@ -408,84 +408,6 @@
   let PROJECTS = [];
   const EXPANDED_PROJECTS = new Set();
 
-  // Category menu (inline category change on task cards)
-  const CATEGORY_GROUPS = [
-    { label: '1. Work', items: ['1. Finnian', '1. Tempo', '1. Hoot'] },
-    { label: '2. Personal Growth', items: ['2. Personal Dev', '2. Thoughts & Ideas'] },
-    { label: '3. Fitness', items: ['3. Fitness'] },
-    { label: '4. Admin & Routine', items: ['4. Chores', '4. Grocery List', '4. Shopping List', '4. Splitwise Inbox', '4. Get From Perth'] },
-    { label: '5. Leisure', items: ['5. Laleh', '5. Leisure'] },
-  ];
-
-  function openCategoryMenu(event, taskId) {
-    closeCategoryMenu();
-    const task = TASKS.find(t => t.id === taskId);
-    if (!task) return;
-
-    const menu = document.createElement('div');
-    menu.className = 'cat-menu';
-    menu.id = 'cat-menu';
-
-    let html = '';
-    CATEGORY_GROUPS.forEach((group, idx) => {
-      if (idx > 0) html += '<div class="cat-menu-divider"></div>';
-      html += `<div class="cat-menu-group">${escHtml(group.label)}</div>`;
-      group.items.forEach(cat => {
-        const isCurrent = task.category === cat;
-        html += `<div class="cat-menu-item ${isCurrent ? 'current' : ''}" onclick="changeCategory('${taskId}', '${cat.replace(/'/g, "\\'")}')">${escHtml(cat)}</div>`;
-      });
-    });
-    html += '<div class="cat-menu-divider"></div>';
-    html += `<div class="cat-menu-item cat-menu-clear" onclick="changeCategory('${taskId}', null)">Clear category</div>`;
-    menu.innerHTML = html;
-
-    document.body.appendChild(menu);
-
-    // Position near click
-    const rect = event.target.getBoundingClientRect();
-    const menuHeight = Math.min(menu.scrollHeight, window.innerHeight * 0.5);
-    let top = rect.bottom + 4;
-    if (top + menuHeight > window.innerHeight) {
-      top = rect.top - menuHeight - 4;
-    }
-    let left = rect.left;
-    const menuWidth = 220;
-    if (left + menuWidth > window.innerWidth - 8) {
-      left = window.innerWidth - menuWidth - 8;
-    }
-    menu.style.top = `${top}px`;
-    menu.style.left = `${left}px`;
-
-    // Close on outside click
-    setTimeout(() => {
-      document.addEventListener('click', closeCategoryMenu, { once: true });
-    }, 50);
-  }
-
-  function closeCategoryMenu() {
-    const m = document.getElementById('cat-menu');
-    if (m) m.remove();
-  }
-
-  async function changeCategory(taskId, newCategory) {
-    closeCategoryMenu();
-    const task = TASKS.find(t => t.id === taskId);
-    if (!task) return;
-    const updates = { category: newCategory };
-    // If the task is linked to a project, and the new category doesn't match the project's category, unlink the project
-    if (task.project_id) {
-      const proj = PROJECTS.find(p => p.id === task.project_id);
-      if (proj && proj.category !== newCategory) {
-        updates.project_id = null;
-      }
-    }
-    const { error } = await window.sb.from('tasks').update(updates).eq('id', taskId);
-    if (!error) {
-      Object.assign(task, updates);
-      render();
-    }
-  }
-  let PROJECT_EDITING_ID = null;
   let CURRENT_CATEGORY = 'inbox';
   let SHOW_COMPLETED = false;
   let EDITING_ID = null;
@@ -583,7 +505,7 @@
         <div class="task-body">
           <div class="task-title">${escHtml(t.title)}</div>
           <div class="task-meta">
-            ${t.category ? `<span class="tag cat ${catClass(t.category)}" onclick="event.stopPropagation(); openCategoryMenu(event, '${t.id}')">${escHtml(t.category)} ▾</span>` : `<span class="tag cat cat-default" onclick="event.stopPropagation(); openCategoryMenu(event, '${t.id}')">— set category — ▾</span>`}
+            ${t.category ? `<span class="tag cat ${catClass(t.category)}">${escHtml(t.category)}</span>` : ''}
             ${project ? `<span class="tag project">${escHtml(project.name)}</span>` : ''}
             ${due ? `<span class="tag due ${due.overdue ? 'overdue' : ''}">${due.label}</span>` : ''}
             ${t.time_estimate ? `<span class="tag estimate">~${t.time_estimate}h${t.time_spent ? ` · ${t.time_spent}h spent` : ''}</span>` : ''}
@@ -598,27 +520,26 @@
             </div>
           ` : ''}
         </div>
-        <div class="task-row-right">
-          <div class="status-dot status-${statusKey}" title="${t.status || ''}"></div>
+        <div class="task-row-right" onclick="event.stopPropagation()">
+          <span class="status-chip-wrap">
+            <span class="status-chip" style="background:${STATUS_COLORS[t.status] || '#374151'}33;color:${STATUS_COLORS[t.status] || '#9ca3af'}">
+              <span class="status-dot status-${statusKey}"></span>${escHtml(t.status || '')}
+            </span>
+            <select onchange="changeStatus('${t.id}', this.value)">
+              ${STATUS_ORDER.map(s => `<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </span>
         </div>
       </div>`;
   }
 
-  async function changeCategory(id, newCategory) {
+  async function changeStatus(id, newStatus) {
+    if (!newStatus) return;
     const task = TASKS.find(t => t.id === id);
-    if (!task) return;
-    const payload = { category: newCategory || null };
-    // If task is in a project but new category doesn't match, clear project link
-    if (task.project_id) {
-      const proj = PROJECTS.find(p => p.id === task.project_id);
-      if (proj && proj.category !== newCategory) {
-        payload.project_id = null;
-      }
-    }
-    const { error } = await window.sb.from('tasks').update(payload).eq('id', id);
+    if (!task || task.status === newStatus) return;
+    const { error } = await window.sb.from('tasks').update({ status: newStatus }).eq('id', id);
     if (!error) {
-      task.category = newCategory || null;
-      if (payload.project_id === null) task.project_id = null;
+      task.status = newStatus;
       render();
     }
   }
