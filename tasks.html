@@ -281,7 +281,7 @@
     <div class="form-grid">
       <div class="form-row">
         <label>Category</label>
-        <select id="f-bucket">
+        <select id="f-bucket" onchange="refreshProjectPicker()">
           <option value="">— none —</option>
           <optgroup label="1. Work">
             <option>1. Finnian</option>
@@ -713,19 +713,44 @@
     render();
   }
 
+  function refreshProjectPicker() {
+    const projSelect = document.getElementById('f-project');
+    const catSelect = document.getElementById('f-bucket');
+    const currentCategory = catSelect.value;
+    const currentProjectId = projSelect.value;
+
+    if (!currentCategory) {
+      // No category — disable picker with helpful hint
+      projSelect.disabled = true;
+      projSelect.innerHTML = '<option value="">— pick a category first —</option>';
+      projSelect.value = '';
+      return;
+    }
+
+    projSelect.disabled = false;
+    const matchingProjects = PROJECTS
+      .filter(p => p.status === 'active' && p.category === currentCategory)
+      .sort((a,b) => a.name.localeCompare(b.name));
+
+    projSelect.innerHTML = '<option value="">— none —</option>' +
+      matchingProjects.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
+
+    // Preserve current selection if still valid
+    if (currentProjectId && matchingProjects.some(p => p.id === currentProjectId)) {
+      projSelect.value = currentProjectId;
+    } else {
+      projSelect.value = '';
+    }
+  }
+
   function openModal(id) {
     EDITING_ID = id || null;
     const modal = document.getElementById('modal');
     const overlay = document.getElementById('modal-overlay');
     overlay.classList.remove('hidden');
 
-    // Populate project picker
-    const projSelect = document.getElementById('f-project');
-    projSelect.innerHTML = '<option value="">— none —</option>' +
-      [...PROJECTS]
-        .filter(p => p.status === 'active')
-        .sort((a,b) => (a.category || '').localeCompare(b.category || '') || a.name.localeCompare(b.name))
-        .map(p => `<option value="${p.id}">${escHtml(p.category || '')}${p.category ? ' — ' : ''}${escHtml(p.name)}</option>`).join('');
+    // Populate project picker based on current category
+    refreshProjectPicker();
 
 
     if (id) {
@@ -735,6 +760,7 @@
       document.getElementById('f-title').value = t.title || '';
       document.getElementById('f-bucket').value = t.category || '';
       document.getElementById('f-status').value = t.status || 'To Do';
+      refreshProjectPicker();
       document.getElementById('f-project').value = t.project_id || '';
       document.getElementById('f-due').value = t.due_date || '';
       document.getElementById('f-due-time').value = t.due_time ? t.due_time.substring(0,5) : '';
@@ -751,6 +777,7 @@
       document.getElementById('f-title').value = '';
       document.getElementById('f-bucket').value = '';
       document.getElementById('f-status').value = 'To Do';
+      refreshProjectPicker();
       document.getElementById('f-project').value = '';
       document.getElementById('f-due').value = '';
       document.getElementById('f-due-time').value = '';
