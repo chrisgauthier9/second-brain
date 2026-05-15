@@ -147,7 +147,7 @@
     }
   </style>
 </head>
-<body style="visibility:hidden">
+<body>
 
 <header>
   <a href="index.html" class="logo">⬡ Second Brain</a>
@@ -581,11 +581,12 @@
 
   window._authReadyPromise.then(() => {
     document.documentElement.style.visibility = '';
+    document.body.style.visibility = '';
     load();
   });
 
   // Safety net — show page after 3s regardless
-  setTimeout(() => { document.documentElement.style.visibility = ''; }, 3000);
+  setTimeout(() => { document.documentElement.style.visibility = ''; document.body.style.visibility = ''; }, 3000);
 </script>
 </body>
 </html>
