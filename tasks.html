@@ -628,13 +628,14 @@
       `;
     }
 
-    // Filter mainTasks to exclude tasks already shown in expanded projects
-    // Actually simpler: just show all tasks in status groups regardless. Project tag will be visible.
+    // Filter out tasks that are linked to projects shown in this view (avoid duplication)
+    const visibleProjectIds = new Set(projects.map(p => p.id));
+    const dedupedMainTasks = mainTasks.filter(t => !t.project_id || !visibleProjectIds.has(t.project_id));
 
     // Group by status
     const groups = {};
     STATUS_ORDER.forEach(s => { groups[s] = []; });
-    mainTasks.forEach(t => { if (groups[t.status]) groups[t.status].push(t); });
+    dedupedMainTasks.forEach(t => { if (groups[t.status]) groups[t.status].push(t); });
 
     const statusHtml = STATUS_ORDER.filter(s => groups[s].length > 0).map(status => `
       <div class="group-header">
