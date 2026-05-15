@@ -54,8 +54,7 @@
     .task-row:hover { border-color: var(--accent); }
     .task-row.complete { opacity: .5; }
     .task-row.complete .task-title { text-decoration: line-through; }
-    .task-check { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--border); flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; transition: all .15s; }
-    .task-check.checked { background: var(--ok); border-color: var(--ok); color: #0f1d18; font-weight: 700; }
+
     .task-body { flex: 1; min-width: 0; }
     .task-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; line-height: 1.3; }
     .task-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
@@ -127,10 +126,21 @@
     .time-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .3s; }
     .time-bar-fill.over { background: var(--err); }
 
-    /* View toggle */
-    .view-tabs { display: flex; gap: 4px; background: var(--deep); border-radius: 10px; padding: 3px; margin-bottom: 16px; }
-    .view-tab { flex: 1; padding: 8px 0; border: none; border-radius: 7px; background: transparent; color: var(--dim); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; letter-spacing: .03em; }
-    .view-tab.active { background: var(--card); color: var(--text); }
+    /* Bucket selector row */
+    .bucket-selector-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .bucket-selector-row select {
+      flex: 1; padding: 10px 12px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-family: inherit; font-size: 14px; font-weight: 500; outline: none;
+      cursor: pointer; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px;
+    }
+    .bucket-selector-row select:focus { border-color: var(--accent); }
+    .bucket-selector-row select option, .bucket-selector-row select optgroup { background: var(--card); }
+    .show-completed-row { margin-bottom: 16px; padding: 0 4px; }
+    .show-completed-label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; color: var(--dim); user-select: none; }
+    .show-completed-label input { cursor: pointer; accent-color: var(--accent); }
+    .show-completed-label:hover { color: var(--muted); }
 
     @media (max-width: 600px) {
       .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
@@ -171,23 +181,42 @@
 <main>
   <h1>Tasks</h1>
 
-  <div class="view-tabs">
-    <button class="view-tab active" data-view="active" onclick="setView('active')">Active</button>
-    <button class="view-tab" data-view="bucket" onclick="setView('bucket')">By Bucket</button>
-    <button class="view-tab" data-view="all" onclick="setView('all')">All</button>
+  <div class="bucket-selector-row">
+    <select id="bucket-selector" onchange="setBucket(this.value)">
+      <option value="all">All Active</option>
+      <option value="inbox">Inbox (no bucket)</option>
+      <optgroup label="1. Work">
+        <option value="1. Finnian">1. Finnian</option>
+        <option value="1. Tempo">1. Tempo</option>
+        <option value="1. Hoot">1. Hoot</option>
+      </optgroup>
+      <optgroup label="2. Personal Growth">
+        <option value="2. Personal Dev">2. Personal Dev</option>
+        <option value="2. Thoughts &amp; Ideas">2. Thoughts &amp; Ideas</option>
+      </optgroup>
+      <optgroup label="3. Fitness">
+        <option value="3. Fitness">3. Fitness</option>
+      </optgroup>
+      <optgroup label="4. Admin &amp; Routine">
+        <option value="4. Chores">4. Chores</option>
+        <option value="4. Grocery List">4. Grocery List</option>
+        <option value="4. Shopping List">4. Shopping List</option>
+        <option value="4. Splitwise Inbox">4. Splitwise Inbox</option>
+        <option value="4. Get From Perth">4. Get From Perth</option>
+      </optgroup>
+      <optgroup label="5. Leisure">
+        <option value="5. Laleh">5. Laleh</option>
+        <option value="5. Leisure">5. Leisure</option>
+      </optgroup>
+    </select>
+    <button class="add-btn" onclick="openModal()">+ Add Task</button>
   </div>
 
-  <div class="toolbar">
-    <div class="toolbar-filters" id="filters">
-      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
-      <button class="filter-btn" data-filter="Today" onclick="setFilter('Today')">Today</button>
-      <button class="filter-btn" data-filter="In Progress" onclick="setFilter('In Progress')">In Progress</button>
-      <button class="filter-btn" data-filter="Up Next" onclick="setFilter('Up Next')">Up Next</button>
-      <button class="filter-btn" data-filter="1. Hoot" onclick="setFilter('1. Hoot')">Hoot</button>
-      <button class="filter-btn" data-filter="1. Finnian" onclick="setFilter('1. Finnian')">Finnian</button>
-      <button class="filter-btn" data-filter="1. Tempo" onclick="setFilter('1. Tempo')">Tempo</button>
-    </div>
-    <button class="add-btn" onclick="openModal()">+ Add Task</button>
+  <div class="show-completed-row">
+    <label class="show-completed-label">
+      <input type="checkbox" id="show-completed" onchange="toggleCompleted(this.checked)">
+      <span>Show completed &amp; canceled</span>
+    </label>
   </div>
 
   <div id="view"></div>
@@ -303,8 +332,8 @@
 <script src="auth.js"></script>
 <script>
   let TASKS = [];
-  let CURRENT_VIEW = 'active';
-  let CURRENT_FILTER = 'all';
+  let CURRENT_BUCKET = 'all';
+  let SHOW_COMPLETED = false;
   let EDITING_ID = null;
 
   const STATUS_ORDER = ['Today', 'In Progress', 'Projects', 'Up Next', 'To Do', 'Later', 'Complete', 'Canceled'];
@@ -326,28 +355,27 @@
     render();
   }
 
-  function setView(v) {
-    CURRENT_VIEW = v;
-    document.querySelectorAll('.view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  function setBucket(b) {
+    CURRENT_BUCKET = b;
     render();
   }
 
-  function setFilter(f) {
-    CURRENT_FILTER = f;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  function toggleCompleted(show) {
+    SHOW_COMPLETED = show;
     render();
   }
 
   function getFilteredTasks() {
     let tasks = TASKS;
-    if (CURRENT_VIEW === 'active') tasks = tasks.filter(t => ACTIVE_STATUSES.has(t.status));
-    if (CURRENT_VIEW !== 'all' && CURRENT_VIEW !== 'active' ) tasks = TASKS;
-
-    if (CURRENT_FILTER === 'all') return tasks;
-    if (['Today', 'In Progress', 'Up Next'].includes(CURRENT_FILTER)) {
-      return tasks.filter(t => t.status === CURRENT_FILTER);
+    if (CURRENT_BUCKET === 'inbox') {
+      tasks = tasks.filter(t => !t.bucket);
+    } else if (CURRENT_BUCKET !== 'all') {
+      tasks = tasks.filter(t => t.bucket === CURRENT_BUCKET);
     }
-    return tasks.filter(t => t.bucket === CURRENT_FILTER);
+    if (!SHOW_COMPLETED) {
+      tasks = tasks.filter(t => t.status !== 'Complete' && t.status !== 'Canceled');
+    }
+    return tasks;
   }
 
   function fmtDate(d, time) {
@@ -376,9 +404,6 @@
 
     return `
       <div class="task-row ${isComplete ? 'complete' : ''}" onclick="openModal('${t.id}')">
-        <div class="task-check ${isComplete ? 'checked' : ''}" onclick="toggleComplete(event, '${t.id}')">
-          ${isComplete ? '✓' : ''}
-        </div>
         <div class="task-body">
           <div class="task-title">${escHtml(t.title)}</div>
           <div class="task-meta">
@@ -445,11 +470,9 @@
     const tasks = getFilteredTasks();
     const el = document.getElementById('view');
 
-    // Always show inbox on active and all views
-    const showInbox = CURRENT_VIEW !== 'bucket';
+    // Show inbox quick-add only on 'all' or 'inbox' views, and never when showing completed
+    const showInbox = (CURRENT_BUCKET === 'all' || CURRENT_BUCKET === 'inbox') && !SHOW_COMPLETED;
     const inboxHtml = showInbox ? inboxHTML() : '';
-
-    // Filter out inbox items from main list to avoid duplication
     const inboxIds = new Set(getInboxTasks().map(t => t.id));
     const mainTasks = showInbox ? tasks.filter(t => !inboxIds.has(t.id)) : tasks;
 
@@ -458,21 +481,7 @@
       return;
     }
 
-    if (CURRENT_VIEW === 'bucket') {
-      const buckets = {};
-      mainTasks.forEach(t => {
-        const b = t.bucket || 'Uncategorized';
-        if (!buckets[b]) buckets[b] = [];
-        buckets[b].push(t);
-      });
-      el.innerHTML = inboxHtml + Object.entries(buckets).map(([bucket, items]) => `
-        <div class="group-header">${escHtml(bucket)} <span class="count">${items.length}</span></div>
-        ${items.map(taskHTML).join('')}
-      `).join('');
-      return;
-    }
-
-    // Active / All — group by status
+    // Group by status
     const groups = {};
     STATUS_ORDER.forEach(s => { groups[s] = []; });
     mainTasks.forEach(t => { if (groups[t.status]) groups[t.status].push(t); });
@@ -487,16 +496,6 @@
       </div>
       ${groups[status].map(taskHTML).join('')}
     `).join('');
-  }
-
-  async function toggleComplete(e, id) {
-    e.stopPropagation();
-    const task = TASKS.find(t => t.id === id);
-    if (!task) return;
-    const newStatus = (task.status === 'Complete') ? 'To Do' : 'Complete';
-    await window.sb.from('tasks').update({ status: newStatus }).eq('id', id);
-    task.status = newStatus;
-    render();
   }
 
   function openModal(id) {
