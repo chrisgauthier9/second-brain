@@ -285,22 +285,22 @@ function render() {
 function renderFlags(rows, days) {
   const flags = [];
 
-  // Hard NOs — any breach is red
-  const hardNOs = { no_porn: 'Porn', no_phone_silence: 'Phone to kill silence', no_weed: 'Weed' };
-  for (const [col, label] of Object.entries(hardNOs)) {
-    const breaches = rows.filter(r => r[col] === false);
-    if (breaches.length) {
-      flags.push({ level: 'red', msg: `Hard NO broken: ${label} (${breaches.map(r=>fmtDate(r.date)).join(', ')})` });
-    }
+  // Project days below threshold (Finnian 1.5h, Hoot/Tempo 1h)
+  const projects = [
+    { col: 'hoot_hours', label: 'Hoot', threshold: 1 },
+    { col: 'finnian_hours', label: 'Finnian', threshold: 1.5 },
+    { col: 'tempo_hours', label: 'Tempo', threshold: 1 },
+  ];
+  for (const p of projects) {
+    const missed = rows.filter(r => (Number(r[p.col]) || 0) < p.threshold);
+    if (missed.length >= 5) flags.push({ level: 'red', msg: `${p.label} below target ${missed.length}/7 days` });
+    else if (missed.length >= 3) flags.push({ level: 'yellow', msg: `${p.label} below target ${missed.length} days` });
   }
 
-  // Project days with zero
-  const projects = { hoot_hours: 'Hoot', finnian_hours: 'Finnian', tempo_hours: 'Tempo' };
-  for (const [col, label] of Object.entries(projects)) {
-    const missed = rows.filter(r => !r[col] || Number(r[col]) === 0);
-    if (missed.length >= 5) flags.push({ level: 'red', msg: `${label} only active ${7 - missed.length}/7 days` });
-    else if (missed.length >= 3) flags.push({ level: 'yellow', msg: `${label} missed ${missed.length} days` });
-  }
+  // Shutdown sequence — flag if missed 3+
+  const shutdownMissed = rows.filter(r => r.shutdown_sequence !== true).length;
+  if (shutdownMissed >= 4) flags.push({ level: 'red', msg: `Shutdown skipped ${shutdownMissed}/7 days` });
+  else if (shutdownMissed >= 3) flags.push({ level: 'yellow', msg: `Shutdown skipped ${shutdownMissed} days` });
 
   // Consecutive training rest days
   let maxRest = 0, cur = 0;
@@ -309,6 +309,20 @@ function renderFlags(rows, days) {
     else cur = 0;
   }
   if (maxRest >= 3) flags.push({ level: 'yellow', msg: `${maxRest} consecutive rest days` });
+
+  // Sleep — flag if average below 8h
+  const sleeps = rows.filter(r => r.bedtime && r.wake_time).map(r => {
+    const [bh, bm] = r.bedtime.split(':').map(Number);
+    const [wh, wm] = r.wake_time.split(':').map(Number);
+    let h = (wh + wm/60) - (bh + bm/60);
+    if (h < 0) h += 24;
+    return h;
+  });
+  if (sleeps.length >= 3) {
+    const avg = sleeps.reduce((a,b)=>a+b, 0) / sleeps.length;
+    if (avg < 7.5) flags.push({ level: 'red', msg: `Avg sleep only ${avg.toFixed(1)}h` });
+    else if (avg < 8.5) flags.push({ level: 'yellow', msg: `Avg sleep ${avg.toFixed(1)}h (target 8.5h)` });
+  }
 
   if (!flags.length) flags.push({ level: 'green', msg: 'No flags this week — clean run.' });
 
@@ -346,16 +360,7 @@ function renderHours(rows, days) {
 
 function renderHabits(rows, days) {
   const HABIT_COLS = [
-    { key: 'no_porn',                  label: 'No porn',             hardNo: true,  invert: false },
-    { key: 'no_phone_silence', label: 'No phone silence',    hardNo: true,  invert: false },
-    { key: 'no_weed',                  label: 'No weed',             hardNo: true,  invert: false },
-    { key: 'no_alcohol',               label: 'No alcohol',          hardNo: false, invert: false },
-    { key: 'no_social_before_9pm', label: 'No SM <9pm',        hardNo: false, invert: false },
-    { key: 'no_snooze',             label: 'No snooze',           hardNo: false, invert: false, tri: true },
-    { key: 'morning_walk',          label: 'Morning walk',        hardNo: false, invert: false },
-    { key: 'startup_sequence',      label: 'Startup sequence',    hardNo: false, invert: false },
-    { key: 'read_flourishing_self', label: 'Read FS',             hardNo: false, invert: false },
-    { key: 'scheduled_tomorrow',    label: 'Scheduled tomorrow',  hardNo: false, invert: false },
+    { key: 'shutdown_sequence', label: 'Shutdown sequence', hardNo: false, invert: false },
   ];
 
   const hitCount = (h) => rows.filter(r => {
@@ -387,7 +392,7 @@ function renderHabits(rows, days) {
   }).join('');
 
   return `<section>
-    <h2>Habit Compliance</h2>
+    <h2>Shutdown Sequence</h2>
     <table class="habit-table">${tableRows}</table>
   </section>`;
 }
