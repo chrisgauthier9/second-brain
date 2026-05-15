@@ -92,9 +92,15 @@
     .status-Canceled { background: var(--dim); opacity: .5; }
 
     /* Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; display: flex; align-items: flex-end; justify-content: center; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    @media (max-width: 600px) {
+      .modal-overlay { align-items: flex-end; padding: 0; }
+    }
     .modal-overlay.hidden { display: none; }
-    .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px 16px 0 0; padding: 20px 20px 40px; width: 100%; max-width: 720px; max-height: 92vh; overflow-y: auto; }
+    .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; }
+    @media (max-width: 600px) {
+      .modal { border-radius: 16px 16px 0 0; padding: 20px 20px 40px; max-width: 720px; }
+    }
     .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .modal-title { font-size: 16px; font-weight: 700; }
     .modal-close { background: var(--deep); border: 1px solid var(--border); color: var(--muted); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
@@ -220,7 +226,7 @@
   <div class="bucket-selector-row">
     <select id="bucket-selector" onchange="setCategory(this.value)">
       <option value="all">All Active</option>
-      <option value="inbox">Inbox (no category)</option>
+      <option value="inbox" selected>Inbox (no category)</option>
       <optgroup label="1. Work">
         <option value="1. Finnian">1. Finnian</option>
         <option value="1. Tempo">1. Tempo</option>
@@ -316,7 +322,14 @@
       </div>
     </div>
 
-<div class="form-grid">
+    <div class="form-row">
+      <label>Project (optional)</label>
+      <select id="f-project">
+        <option value="">— none —</option>
+      </select>
+    </div>
+
+    <div class="form-grid">
       <div class="form-row">
         <label>Due Date</label>
         <input type="date" id="f-due">
@@ -379,7 +392,7 @@
   let PROJECTS = [];
   const EXPANDED_PROJECTS = new Set();
   let PROJECT_EDITING_ID = null;
-  let CURRENT_CATEGORY = 'all';
+  let CURRENT_CATEGORY = 'inbox';
   let SHOW_COMPLETED = false;
   let EDITING_ID = null;
 
