@@ -283,9 +283,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth.js"></script>
 <script>
-  // Use the authenticated client from auth.js
-  const sb = window.sb;
-
+  let sb;
   let TASKS = [];
   let CURRENT_VIEW = 'active';
   let CURRENT_FILTER = 'all';
@@ -582,7 +580,10 @@
     }
   });
 
-  window._authReadyPromise.then(() => load());
+  window._authReadyPromise.then(() => {
+    sb = window.sb;
+    load();
+  });
 </script>
 </body>
 </html>
