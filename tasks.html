@@ -156,6 +156,23 @@
 
     .tag.project { background: rgba(124,58,237,.18); color: #a78bfa; }
 
+    /* Quick category change chip on task cards */
+    .task-cat-chip { position: relative; }
+    .task-cat-chip select {
+      appearance: none;
+      background: transparent;
+      border: none;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+    }
+
     /* Time log buttons */
     .time-log-row { display: flex; gap: 4px; margin-top: 8px; align-items: center; }
     .time-log-row .label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--dim); margin-right: 4px; }
@@ -585,6 +602,25 @@
           <div class="status-dot status-${statusKey}" title="${t.status || ''}"></div>
         </div>
       </div>`;
+  }
+
+  async function changeCategory(id, newCategory) {
+    const task = TASKS.find(t => t.id === id);
+    if (!task) return;
+    const payload = { category: newCategory || null };
+    // If task is in a project but new category doesn't match, clear project link
+    if (task.project_id) {
+      const proj = PROJECTS.find(p => p.id === task.project_id);
+      if (proj && proj.category !== newCategory) {
+        payload.project_id = null;
+      }
+    }
+    const { error } = await window.sb.from('tasks').update(payload).eq('id', id);
+    if (!error) {
+      task.category = newCategory || null;
+      if (payload.project_id === null) task.project_id = null;
+      render();
+    }
   }
 
   async function logTime(id, hours) {
