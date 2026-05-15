@@ -148,9 +148,6 @@
     .project-row .project-title { font-size: 14px; font-weight: 600; color: var(--text); }
     .project-row .project-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
     .project-row .project-tasks-count { font-size: 11px; color: var(--muted); }
-    .project-row.expanded .project-tasks { display: block; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(124,58,237,.2); }
-    .project-row .project-tasks { display: none; }
-    .project-row .project-tasks .task-row { background: var(--card); }
     .project-toggle { background: rgba(124,58,237,.2); color: #a78bfa; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 600; }
     .project-toggle:hover { background: rgba(124,58,237,.35); }
 
@@ -406,7 +403,6 @@
 
   let TASKS = [];
   let PROJECTS = [];
-  const EXPANDED_PROJECTS = new Set();
 
   let CURRENT_CATEGORY = 'inbox';
   let SHOW_COMPLETED = false;
@@ -636,10 +632,9 @@
           </div>
           ${projects.map(p => {
             const projectTasks = TASKS.filter(t => t.project_id === p.id && (SHOW_COMPLETED || (t.status !== 'Done' && t.status !== 'Canceled')));
-            const isExpanded = EXPANDED_PROJECTS.has(p.id);
             return `
-              <div class="project-row ${isExpanded ? 'expanded' : ''}">
-                <div class="project-header" onclick="toggleProject('${p.id}')">
+              <div class="project-row" onclick="openProjectModal('${p.id}')">
+                <div class="project-header">
                   <div>
                     <div class="project-title">${escHtml(p.name)}</div>
                     <div class="project-meta">
@@ -649,12 +644,6 @@
                   </div>
                   <button class="project-toggle" onclick="event.stopPropagation(); openProjectModal('${p.id}')">Edit</button>
                 </div>
-                <div class="project-tasks">
-                  ${projectTasks.length === 0
-                    ? '<div class="empty-state" style="padding:16px 0;font-size:12px">No tasks in this project yet.</div>'
-                    : projectTasks.map(taskHTML).join('')
-                  }
-                </div>
               </div>
             `;
           }).join('')}
@@ -662,14 +651,10 @@
       `;
     }
 
-    // Filter out tasks that are linked to projects shown in this view (avoid duplication)
-    const visibleProjectIds = new Set(projects.map(p => p.id));
-    const dedupedMainTasks = mainTasks.filter(t => !t.project_id || !visibleProjectIds.has(t.project_id));
-
-    // Group by status
+    // Group by status (tasks linked to projects still appear here, with project tag visible)
     const groups = {};
     STATUS_ORDER.forEach(s => { groups[s] = []; });
-    dedupedMainTasks.forEach(t => { if (groups[t.status]) groups[t.status].push(t); });
+    mainTasks.forEach(t => { if (groups[t.status]) groups[t.status].push(t); });
 
     const statusHtml = STATUS_ORDER.filter(s => groups[s].length > 0).map(status => `
       <div class="group-header">
@@ -683,12 +668,6 @@
     `).join('');
 
     el.innerHTML = inboxHtml + projectsHtml + statusHtml;
-  }
-
-  function toggleProject(id) {
-    if (EXPANDED_PROJECTS.has(id)) EXPANDED_PROJECTS.delete(id);
-    else EXPANDED_PROJECTS.add(id);
-    render();
   }
 
   function openProjectModal(id) {
