@@ -237,19 +237,24 @@
       </div>
     </div>
 
+    <div class="form-row">
+      <label>Priority</label>
+      <select id="f-priority">
+        <option value="none">None</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+    </div>
+
     <div class="form-grid">
-      <div class="form-row">
-        <label>Priority</label>
-        <select id="f-priority">
-          <option value="none">None</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-      </div>
       <div class="form-row">
         <label>Due Date</label>
         <input type="date" id="f-due">
+      </div>
+      <div class="form-row">
+        <label>Due Time</label>
+        <input type="time" id="f-due-time">
       </div>
     </div>
 
@@ -331,19 +336,26 @@
     return tasks.filter(t => t.bucket === CURRENT_FILTER);
   }
 
-  function fmtDate(d) {
+  function fmtDate(d, time) {
     if (!d) return null;
     const today = new Date().toISOString().split('T')[0];
     const diff = Math.round((new Date(d) - new Date(today)) / 86400000);
-    if (diff < 0) return { label: `${Math.abs(diff)}d overdue`, overdue: true };
-    if (diff === 0) return { label: 'Due today', overdue: false };
-    if (diff === 1) return { label: 'Due tomorrow', overdue: false };
-    return { label: `Due ${new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })}`, overdue: false };
+    let timeStr = '';
+    if (time) {
+      const [h, m] = time.split(':').map(Number);
+      const period = h >= 12 ? 'pm' : 'am';
+      const h12 = h % 12 || 12;
+      timeStr = m === 0 ? ` at ${h12}${period}` : ` at ${h12}:${String(m).padStart(2,'0')}${period}`;
+    }
+    if (diff < 0) return { label: `${Math.abs(diff)}d overdue${timeStr}`, overdue: true };
+    if (diff === 0) return { label: `Due today${timeStr}`, overdue: false };
+    if (diff === 1) return { label: `Due tomorrow${timeStr}`, overdue: false };
+    return { label: `Due ${new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })}${timeStr}`, overdue: false };
   }
 
   function taskHTML(t) {
     const isComplete = t.status === 'Complete' || t.status === 'Canceled';
-    const due = t.due_date ? fmtDate(t.due_date) : null;
+    const due = t.due_date ? fmtDate(t.due_date, t.due_time) : null;
     const statusKey = t.status ? t.status.replace(/\s+/g, '-') : '';
     const pct = t.time_estimate > 0 ? Math.min((t.time_spent || 0) / t.time_estimate * 100, 120) : 0;
     const over = pct > 100;
@@ -488,6 +500,7 @@
       document.getElementById('f-status').value = t.status || 'To Do';
       document.getElementById('f-priority').value = t.priority || 'none';
       document.getElementById('f-due').value = t.due_date || '';
+      document.getElementById('f-due-time').value = t.due_time ? t.due_time.substring(0,5) : '';
       document.getElementById('f-estimate').value = t.time_estimate || '';
       document.getElementById('f-spent').value = t.time_spent || '';
       document.getElementById('f-notes').value = t.notes || '';
@@ -503,6 +516,7 @@
       document.getElementById('f-status').value = 'To Do';
       document.getElementById('f-priority').value = 'none';
       document.getElementById('f-due').value = '';
+      document.getElementById('f-due-time').value = '';
       document.getElementById('f-estimate').value = '';
       document.getElementById('f-spent').value = '';
       document.getElementById('f-notes').value = '';
@@ -533,6 +547,7 @@
       status: document.getElementById('f-status').value || 'To Do',
       priority: document.getElementById('f-priority').value || 'none',
       due_date: document.getElementById('f-due').value || null,
+      due_time: document.getElementById('f-due-time').value || null,
       time_estimate: parseFloat(document.getElementById('f-estimate').value) || null,
       time_spent: parseFloat(document.getElementById('f-spent').value) || 0,
       notes: document.getElementById('f-notes').value.trim() || null,
