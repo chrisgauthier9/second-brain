@@ -138,6 +138,12 @@
     .modal-add-subtask input:focus { border-color: var(--accent); }
     .modal-add-subtask button { background: var(--accent); color: #fff; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; }
 
+    /* Time log buttons */
+    .time-log-row { display: flex; gap: 4px; margin-top: 8px; align-items: center; }
+    .time-log-row .label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--dim); margin-right: 4px; }
+    .time-log-btn { background: var(--deep); border: 1px solid var(--border); color: var(--muted); padding: 3px 8px; border-radius: 5px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 600; transition: all .15s; }
+    .time-log-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
     /* Progress bar for time spent */
     .time-bar { height: 3px; background: var(--border); border-radius: 999px; margin-top: 6px; overflow: hidden; }
     .time-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .3s; }
@@ -447,6 +453,14 @@
           </div>
           ${t.time_estimate > 0 ? `<div class="time-bar"><div class="time-bar-fill ${over ? 'over' : ''}" style="width:${Math.min(pct,100)}%"></div></div>` : ''}
           ${progress ? `<div class="subtask-progress">${progress.done}/${progress.total} subtasks<span class="subtask-progress-bar"><span class="fill" style="width:${(progress.done/progress.total*100).toFixed(0)}%"></span></span></div>` : ''}
+          ${!isComplete ? `
+            <div class="time-log-row" onclick="event.stopPropagation()">
+              <span class="label">Log:</span>
+              <button class="time-log-btn" onclick="logTime('${t.id}', 0.25)">+15m</button>
+              <button class="time-log-btn" onclick="logTime('${t.id}', 0.5)">+30m</button>
+              <button class="time-log-btn" onclick="logTime('${t.id}', 1)">+1h</button>
+            </div>
+          ` : ''}
         </div>
         <div class="task-row-right">
           <div class="status-dot status-${statusKey}" title="${t.status || ''}"></div>
@@ -461,6 +475,17 @@
       }
     }
     return html;
+  }
+
+  async function logTime(id, hours) {
+    const task = TASKS.find(t => t.id === id);
+    if (!task) return;
+    const newSpent = (Number(task.time_spent) || 0) + hours;
+    const { error } = await window.sb.from('tasks').update({ time_spent: newSpent }).eq('id', id);
+    if (!error) {
+      task.time_spent = newSpent;
+      render();
+    }
   }
 
   async function quickAdd() {
