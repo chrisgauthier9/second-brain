@@ -85,7 +85,18 @@
     }
     .session-row .date { color: var(--dim); font-size: 12px; }
     .session-row .name { font-weight: 500; }
-    .no-data { color: var(--dim); font-size: 13px; font-style: italic; padding: 8px 0; }
+    .in-progress-badge {
+  background: rgba(124,58,237,.12);
+  border: 1px solid rgba(124,58,237,.35);
+  color: #a78bfa;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.no-data { color: var(--dim); font-size: 13px; font-style: italic; padding: 8px 0; }
 
     /* Sleep row */
     .sleep-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
@@ -180,20 +191,16 @@
 
 <script>
 // ---- Date helpers ----
-function lastSundayOf(iso) {
-  // Returns the Sunday that started the most recently completed Sun-Sat week.
-  // The completed week always ended yesterday (Sat) or earlier.
-  // So we go back to the Saturday that most recently passed, then back one more to Sunday.
-  // Simpler: find the most recent Saturday, then subtract 6 to get the Sunday.
+function currentWeekSunday(iso) {
+  // Returns the Sunday of the week containing this date (Sun–Sat week).
   const d = new Date(iso + 'T12:00:00');
   const day = d.getDay(); // 0=Sun, 6=Sat
-  // Days since last Saturday (including today if Sat)
-  const daysSinceSat = day === 6 ? 0 : (day + 1); // Sat=0, Sun=1, Mon=2...
-  // Most recent Saturday
-  d.setDate(d.getDate() - daysSinceSat);
-  // Go back 6 more to get that week's Sunday
-  d.setDate(d.getDate() - 6);
+  d.setDate(d.getDate() - day);
   return d.toISOString().slice(0,10);
+}
+function lastSundayOf(iso) {
+  // Returns the Sunday that started the most recently completed Sun-Sat week.
+  return addWeeks(currentWeekSunday(iso), -1);
 }
 function saturdayOf(sundayISO) {
   const d = new Date(sundayISO + 'T12:00:00');
@@ -225,8 +232,8 @@ function daysBetween(a, b) {
 }
 
 // ---- State ----
-let WEEK_START = lastSundayOf(todayISO());
-const MAX_WEEK = lastSundayOf(todayISO());
+let WEEK_START = currentWeekSunday(todayISO());
+const MAX_WEEK = currentWeekSunday(todayISO());
 
 // ---- Data ----
 let CHECKINS = {};
@@ -237,8 +244,9 @@ let REVIEW = null;
 // ---- Load ----
 async function load() {
   const weekEnd = saturdayOf(WEEK_START);
+  const isCur = WEEK_START === currentWeekSunday(todayISO());
   document.getElementById('week-label').textContent =
-    `${fmtDate(WEEK_START)} – ${fmtDate(weekEnd)}`;
+    `${fmtDate(WEEK_START)} – ${fmtDate(weekEnd)}${isCur ? ' (this week)' : ''}`;
   document.getElementById('next-week').disabled = WEEK_START >= MAX_WEEK;
 
   const [checkinRes, sessRes, weightRes, reviewRes] = await Promise.all([
@@ -263,13 +271,24 @@ function render() {
   const weekEnd = saturdayOf(WEEK_START);
   const days = daysBetween(WEEK_START, weekEnd);
   const rows = days.map(d => CHECKINS[d] || { date: d });
+  const isCurrentWeek = WEEK_START === currentWeekSunday(todayISO());
+
+  // For the in-progress week, only count days that have already happened
+  const today = todayISO();
+  const elapsedDays = isCurrentWeek ? days.filter(d => d <= today) : days;
+  const elapsedRows = elapsedDays.map(d => CHECKINS[d] || { date: d });
+
+  const inProgressBadge = isCurrentWeek
+    ? `<div class="in-progress-badge">⏳ Week in progress — ${elapsedDays.length}/7 days elapsed</div>`
+    : '';
 
   document.getElementById('app').innerHTML = `
-    ${renderFlags(rows, days)}
-    ${renderHours(rows, days)}
-    ${renderHabits(rows, days)}
+    ${inProgressBadge}
+    ${isCurrentWeek ? '' : renderFlags(rows, days)}
+    ${renderHours(elapsedRows, elapsedDays)}
+    ${renderHabits(elapsedRows, elapsedDays)}
     ${renderTraining()}
-    ${renderSleep(rows)}
+    ${renderSleep(elapsedRows)}
     ${renderWeight()}
     ${renderReflection()}
     ${renderTargets()}
