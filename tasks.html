@@ -294,7 +294,7 @@
     <div class="form-grid">
       <div class="form-row">
         <label>Category</label>
-        <select id="f-bucket" onchange="refreshProjectPicker()">
+        <select id="f-bucket" onchange="refreshProjectPicker(); refreshTimeFieldsVisibility()">
           <option value="">— none —</option>
           <optgroup label="1. Work">
             <option>1. Finnian</option>
@@ -401,6 +401,17 @@
   };
   function catClass(name) { return CAT_CLASS[name] || 'cat-default'; }
 
+  // Categories that don't track time (shopping/admin lists, leisure)
+  const NO_TIME_CATEGORIES = new Set([
+    '4. Grocery List',
+    '4. Shopping List',
+    '4. Splitwise Inbox',
+    '4. Get From Perth',
+    '5. Laleh',
+    '5. Leisure'
+  ]);
+  function tracksTime(category) { return !NO_TIME_CATEGORIES.has(category); }
+
   let TASKS = [];
   let PROJECTS = [];
 
@@ -504,10 +515,10 @@
             ${t.category ? `<span class="tag cat ${catClass(t.category)}">${escHtml(t.category)}</span>` : ''}
             ${project ? `<span class="tag project">${escHtml(project.name)}</span>` : ''}
             ${due ? `<span class="tag due ${due.overdue ? 'overdue' : ''}">${due.label}</span>` : ''}
-            ${t.time_estimate ? `<span class="tag estimate">~${t.time_estimate}h${t.time_spent ? ` · ${t.time_spent}h spent` : ''}</span>` : ''}
+            ${t.time_estimate && tracksTime(t.category) ? `<span class="tag estimate">~${t.time_estimate}h${t.time_spent ? ` · ${t.time_spent}h spent` : ''}</span>` : ''}
           </div>
-          ${t.time_estimate > 0 ? `<div class="time-bar"><div class="time-bar-fill ${over ? 'over' : ''}" style="width:${Math.min(pct,100)}%"></div></div>` : ''}
-          ${!isComplete ? `
+          ${t.time_estimate > 0 && tracksTime(t.category) ? `<div class="time-bar"><div class="time-bar-fill ${over ? 'over' : ''}" style="width:${Math.min(pct,100)}%"></div></div>` : ''}
+          ${!isComplete && tracksTime(t.category) ? `
             <div class="time-log-row" onclick="event.stopPropagation()">
               <span class="label">Log:</span>
               <button class="time-log-btn" onclick="logTime('${t.id}', 0.25)">+15m</button>
@@ -727,6 +738,14 @@
     render();
   }
 
+  function refreshTimeFieldsVisibility() {
+    const catSelect = document.getElementById('f-bucket');
+    const cat = catSelect.value;
+    const show = tracksTime(cat);
+    const estRow = document.getElementById('f-estimate').closest('.form-grid');
+    if (estRow) estRow.style.display = show ? '' : 'none';
+  }
+
   function refreshProjectPicker() {
     const projSelect = document.getElementById('f-project');
     const catSelect = document.getElementById('f-bucket');
@@ -775,6 +794,7 @@
       document.getElementById('f-bucket').value = t.category || '';
       document.getElementById('f-status').value = t.status || 'Soon';
       refreshProjectPicker();
+      refreshTimeFieldsVisibility();
       document.getElementById('f-project').value = t.project_id || '';
       document.getElementById('f-due').value = t.due_date || '';
       document.getElementById('f-due-time').value = t.due_time ? t.due_time.substring(0,5) : '';
@@ -792,6 +812,7 @@
       document.getElementById('f-bucket').value = '';
       document.getElementById('f-status').value = 'Soon';
       refreshProjectPicker();
+      refreshTimeFieldsVisibility();
       document.getElementById('f-project').value = '';
       document.getElementById('f-due').value = '';
       document.getElementById('f-due-time').value = '';
