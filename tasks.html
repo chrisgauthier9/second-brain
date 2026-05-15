@@ -60,9 +60,6 @@
     .task-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
     .tag.bucket { background: rgba(124,58,237,.15); color: #a78bfa; }
-    .tag.priority-high { background: rgba(248,113,113,.15); color: #f87171; }
-    .tag.priority-medium { background: rgba(251,191,36,.15); color: #fbbf24; }
-    .tag.priority-low { background: rgba(107,114,128,.15); color: var(--muted); }
     .tag.due { background: rgba(52,211,153,.1); color: var(--ok); }
     .tag.due.overdue { background: rgba(248,113,113,.15); color: #f87171; }
     .tag.estimate { background: rgba(59,91,122,.3); color: var(--muted); }
@@ -280,17 +277,7 @@
       </div>
     </div>
 
-    <div class="form-row">
-      <label>Priority</label>
-      <select id="f-priority">
-        <option value="none">None</option>
-        <option value="high">High</option>
-        <option value="medium">Medium</option>
-        <option value="low">Low</option>
-      </select>
-    </div>
-
-    <div class="form-grid">
+<div class="form-grid">
       <div class="form-row">
         <label>Due Date</label>
         <input type="date" id="f-due">
@@ -419,7 +406,6 @@
           <div class="task-title">${escHtml(t.title)}</div>
           <div class="task-meta">
             ${t.bucket ? `<span class="tag bucket">${escHtml(t.bucket)}</span>` : ''}
-            ${t.priority && t.priority !== 'none' ? `<span class="tag priority-${t.priority}">${t.priority}</span>` : ''}
             ${due ? `<span class="tag due ${due.overdue ? 'overdue' : ''}">${due.label}</span>` : ''}
             ${t.time_estimate ? `<span class="tag estimate">~${t.time_estimate}h${t.time_spent ? ` · ${t.time_spent}h spent` : ''}</span>` : ''}
           </div>
@@ -437,8 +423,7 @@
     if (!title) return;
     const { data, error } = await window.sb.from('tasks').insert({
       title,
-      status: 'To Do',
-      priority: 'none'
+      status: 'To Do'
     }).select().single();
     if (!error && data) {
       TASKS.unshift(data);
@@ -522,7 +507,6 @@
       document.getElementById('f-title').value = t.title || '';
       document.getElementById('f-bucket').value = t.bucket || '';
       document.getElementById('f-status').value = t.status || 'To Do';
-      document.getElementById('f-priority').value = t.priority || 'none';
       document.getElementById('f-due').value = t.due_date || '';
       document.getElementById('f-due-time').value = t.due_time ? t.due_time.substring(0,5) : '';
       document.getElementById('f-estimate').value = t.time_estimate || '';
@@ -538,7 +522,6 @@
       document.getElementById('f-title').value = '';
       document.getElementById('f-bucket').value = '';
       document.getElementById('f-status').value = 'To Do';
-      document.getElementById('f-priority').value = 'none';
       document.getElementById('f-due').value = '';
       document.getElementById('f-due-time').value = '';
       document.getElementById('f-estimate').value = '';
@@ -569,7 +552,6 @@
       title,
       bucket: document.getElementById('f-bucket').value || null,
       status: document.getElementById('f-status').value || 'To Do',
-      priority: document.getElementById('f-priority').value || 'none',
       due_date: document.getElementById('f-due').value || null,
       due_time: document.getElementById('f-due-time').value || null,
       time_estimate: parseFloat(document.getElementById('f-estimate').value) || null,
