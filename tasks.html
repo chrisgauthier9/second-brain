@@ -118,25 +118,23 @@
 
     .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
 
-    /* Subtask styling */
-    .task-row.subtask { margin-left: 24px; background: var(--surface); border-left: 2px solid var(--accent); }
-    .task-row.subtask .task-title { font-size: 13px; }
-    .subtask-progress { font-size: 11px; color: var(--dim); margin-top: 4px; }
-    .subtask-progress-bar { display: inline-block; width: 60px; height: 4px; background: var(--border); border-radius: 999px; vertical-align: middle; margin-left: 6px; overflow: hidden; }
-    .subtask-progress-bar .fill { height: 100%; background: var(--accent); border-radius: 999px; }
-    .modal-subtasks { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
-    .modal-subtasks-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .modal-subtasks-header h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin: 0; }
-    .modal-subtask-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--deep); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
-    .modal-subtask-row.complete .subtask-title-text { text-decoration: line-through; color: var(--dim); }
-    .modal-subtask-row input[type="checkbox"] { width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
-    .modal-subtask-row .subtask-title-text { flex: 1; font-size: 13px; color: var(--text); cursor: pointer; }
-    .modal-subtask-row .delete-sub { background: transparent; border: none; color: var(--dim); cursor: pointer; padding: 2px 6px; font-size: 14px; }
-    .modal-subtask-row .delete-sub:hover { color: var(--err); }
-    .modal-add-subtask { display: flex; gap: 6px; margin-top: 6px; }
-    .modal-add-subtask input { flex: 1; padding: 8px 10px; background: var(--deep); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 13px; outline: none; }
-    .modal-add-subtask input:focus { border-color: var(--accent); }
-    .modal-add-subtask button { background: var(--accent); color: #fff; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; }
+    /* Projects section */
+    .projects-section { margin-bottom: 20px; }
+    .projects-section-header { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); padding: 8px 0; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .projects-section-header .count { background: var(--border); color: var(--muted); padding: 2px 7px; border-radius: 999px; font-size: 10px; }
+    .project-row { background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(124,58,237,.04)); border: 1px solid rgba(124,58,237,.3); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s; }
+    .project-row:hover { border-color: var(--accent); }
+    .project-row .project-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .project-row .project-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .project-row .project-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+    .project-row .project-tasks-count { font-size: 11px; color: var(--muted); }
+    .project-row.expanded .project-tasks { display: block; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(124,58,237,.2); }
+    .project-row .project-tasks { display: none; }
+    .project-row .project-tasks .task-row { background: var(--card); }
+    .project-toggle { background: rgba(124,58,237,.2); color: #a78bfa; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 600; }
+    .project-toggle:hover { background: rgba(124,58,237,.35); }
+
+    .tag.project { background: rgba(124,58,237,.18); color: #a78bfa; }
 
     /* Time log buttons */
     .time-log-row { display: flex; gap: 4px; margin-top: 8px; align-items: center; }
@@ -233,6 +231,7 @@
       </optgroup>
     </select>
     <button class="add-btn" onclick="openModal()">+ Add Task</button>
+    <button class="add-btn" style="background:rgba(124,58,237,.18);color:#a78bfa;border:1px solid rgba(124,58,237,.4)" onclick="newProject()">+ New Project</button>
   </div>
 
   <div class="show-completed-row">
@@ -294,9 +293,8 @@
           <option>To Do</option>
           <option>Today</option>
           <option>Up Next</option>
-          <option>Later</option>
-          <option>Projects</option>
           <option>In Progress</option>
+          <option>Later</option>
           <option>Complete</option>
           <option>Canceled</option>
         </select>
@@ -335,9 +333,7 @@
       <input type="url" id="f-url" placeholder="https://...">
     </div>
 
-    <div id="modal-subtasks-container"></div>
-
-    <div class="form-actions" id="form-actions">
+<div class="form-actions" id="form-actions">
       <button class="btn-primary" onclick="saveTask()">Save Task</button>
     </div>
   </div>
@@ -347,38 +343,51 @@
 <script src="auth.js"></script>
 <script>
   let TASKS = [];
+  let PROJECTS = [];
+  const EXPANDED_PROJECTS = new Set();
+  let PROJECT_EDITING_ID = null;
   let CURRENT_BUCKET = 'all';
   let SHOW_COMPLETED = false;
   let EDITING_ID = null;
 
-  const STATUS_ORDER = ['Today', 'In Progress', 'Projects', 'Up Next', 'To Do', 'Later', 'Complete', 'Canceled'];
+  const STATUS_ORDER = ['Today', 'In Progress', 'Up Next', 'To Do', 'Later', 'Complete', 'Canceled'];
   const STATUS_COLORS = {
     'Today': '#ec4899', 'To Do': '#fbbf24', 'Up Next': '#f59e0b',
-    'Later': '#6b7280', 'Projects': '#f97316', 'In Progress': '#3b82f6',
+    'Later': '#6b7280', 'In Progress': '#3b82f6',
     'Complete': '#34d399', 'Canceled': '#4b5563'
   };
 
-  const ACTIVE_STATUSES = new Set(['Today', 'To Do', 'Up Next', 'Later', 'Projects', 'In Progress']);
+  const ACTIVE_STATUSES = new Set(['Today', 'To Do', 'Up Next', 'Later', 'In Progress']);
 
   async function load() {
-    // Supabase caps at 1000 rows per request. Paginate.
+    // Load projects + tasks in parallel
+    const [projRes, tasksAll] = await Promise.all([
+      window.sb.from('projects').select('*').order('created_at', { ascending: false }),
+      loadAllTasks()
+    ]);
+    if (projRes.error) {
+      document.getElementById('view').innerHTML = `<div class="loading">Error: ${projRes.error.message}</div>`;
+      return;
+    }
+    PROJECTS = projRes.data || [];
+    TASKS = tasksAll;
+    render();
+  }
+
+  async function loadAllTasks() {
     let all = [];
     let from = 0;
     const PAGE = 1000;
     while (true) {
       const { data, error } = await window.sb.from('tasks').select('*').order('created_at', { ascending: false }).range(from, from + PAGE - 1);
-      if (error) {
-        document.getElementById('view').innerHTML = `<div class="loading">Error: ${error.message}</div>`;
-        return;
-      }
+      if (error) throw error;
       if (!data || data.length === 0) break;
       all = all.concat(data);
       if (data.length < PAGE) break;
       from += PAGE;
-      if (from > 10000) break; // safety
+      if (from > 10000) break;
     }
-    TASKS = all;
-    render();
+    return all;
   }
 
   function setBucket(b) {
@@ -401,20 +410,7 @@
     if (!SHOW_COMPLETED) {
       tasks = tasks.filter(t => t.status !== 'Complete' && t.status !== 'Canceled');
     }
-    // Exclude subtasks from the main list — they render inline under their parent
-    tasks = tasks.filter(t => !t.parent_id);
     return tasks;
-  }
-
-  function getSubtasks(parentId) {
-    return TASKS.filter(t => t.parent_id === parentId);
-  }
-
-  function getSubtaskProgress(parentId) {
-    const subs = getSubtasks(parentId);
-    if (subs.length === 0) return null;
-    const done = subs.filter(s => s.status === 'Complete' || s.status === 'Canceled').length;
-    return { done, total: subs.length };
   }
 
   function fmtDate(d, time) {
@@ -434,25 +430,25 @@
     return { label: `Due ${new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })}${timeStr}`, overdue: false };
   }
 
-  function taskHTML(t, isSubtask = false) {
+  function taskHTML(t) {
     const isComplete = t.status === 'Complete' || t.status === 'Canceled';
     const due = t.due_date ? fmtDate(t.due_date, t.due_time) : null;
     const statusKey = t.status ? t.status.replace(/\s+/g, '-') : '';
     const pct = t.time_estimate > 0 ? Math.min((t.time_spent || 0) / t.time_estimate * 100, 120) : 0;
     const over = pct > 100;
-    const progress = !isSubtask ? getSubtaskProgress(t.id) : null;
+    const project = t.project_id ? PROJECTS.find(p => p.id === t.project_id) : null;
 
-    const html = `
-      <div class="task-row ${isComplete ? 'complete' : ''} ${isSubtask ? 'subtask' : ''}" onclick="openModal('${t.id}')">
+    return `
+      <div class="task-row ${isComplete ? 'complete' : ''}" onclick="openModal('${t.id}')">
         <div class="task-body">
           <div class="task-title">${escHtml(t.title)}</div>
           <div class="task-meta">
-            ${t.bucket && !isSubtask ? `<span class="tag bucket">${escHtml(t.bucket)}</span>` : ''}
+            ${t.bucket ? `<span class="tag bucket">${escHtml(t.bucket)}</span>` : ''}
+            ${project ? `<span class="tag project">${escHtml(project.name)}</span>` : ''}
             ${due ? `<span class="tag due ${due.overdue ? 'overdue' : ''}">${due.label}</span>` : ''}
             ${t.time_estimate ? `<span class="tag estimate">~${t.time_estimate}h${t.time_spent ? ` · ${t.time_spent}h spent` : ''}</span>` : ''}
           </div>
           ${t.time_estimate > 0 ? `<div class="time-bar"><div class="time-bar-fill ${over ? 'over' : ''}" style="width:${Math.min(pct,100)}%"></div></div>` : ''}
-          ${progress ? `<div class="subtask-progress">${progress.done}/${progress.total} subtasks<span class="subtask-progress-bar"><span class="fill" style="width:${(progress.done/progress.total*100).toFixed(0)}%"></span></span></div>` : ''}
           ${!isComplete ? `
             <div class="time-log-row" onclick="event.stopPropagation()">
               <span class="label">Log:</span>
@@ -466,15 +462,6 @@
           <div class="status-dot status-${statusKey}" title="${t.status || ''}"></div>
         </div>
       </div>`;
-
-    // Render subtasks inline (only when this is a parent, not a subtask itself)
-    if (!isSubtask) {
-      const subs = getSubtasks(t.id).filter(s => SHOW_COMPLETED || (s.status !== 'Complete' && s.status !== 'Canceled'));
-      if (subs.length > 0) {
-        return html + subs.map(s => taskHTML(s, true)).join('');
-      }
-    }
-    return html;
   }
 
   async function logTime(id, hours) {
@@ -537,23 +524,73 @@
     const tasks = getFilteredTasks();
     const el = document.getElementById('view');
 
-    // Show inbox quick-add only on 'all' or 'inbox' views, and never when showing completed
+    // Show inbox quick-add only on 'all' or 'inbox' views
     const showInbox = (CURRENT_BUCKET === 'all' || CURRENT_BUCKET === 'inbox') && !SHOW_COMPLETED;
     const inboxHtml = showInbox ? inboxHTML() : '';
     const inboxIds = new Set(getInboxTasks().map(t => t.id));
     const mainTasks = showInbox ? tasks.filter(t => !inboxIds.has(t.id)) : tasks;
 
-    if (mainTasks.length === 0 && !showInbox) {
+    // Projects for current view: skip when on Inbox, show only active projects matching bucket
+    let projects = [];
+    if (CURRENT_BUCKET !== 'inbox') {
+      projects = PROJECTS.filter(p => {
+        if (!SHOW_COMPLETED && p.status !== 'active') return false;
+        if (CURRENT_BUCKET === 'all') return true;
+        return p.bucket === CURRENT_BUCKET;
+      });
+    }
+
+    if (mainTasks.length === 0 && projects.length === 0 && !showInbox) {
       el.innerHTML = `<div class="empty-state">No tasks here. Add one above.</div>`;
       return;
     }
+
+    // Render projects section
+    let projectsHtml = '';
+    if (projects.length > 0) {
+      projectsHtml = `
+        <div class="projects-section">
+          <div class="projects-section-header">
+            <span>Projects</span>
+            <span class="count">${projects.length}</span>
+          </div>
+          ${projects.map(p => {
+            const projectTasks = TASKS.filter(t => t.project_id === p.id && (SHOW_COMPLETED || (t.status !== 'Complete' && t.status !== 'Canceled')));
+            const isExpanded = EXPANDED_PROJECTS.has(p.id);
+            return `
+              <div class="project-row ${isExpanded ? 'expanded' : ''}">
+                <div class="project-header" onclick="toggleProject('${p.id}')">
+                  <div>
+                    <div class="project-title">${escHtml(p.name)}</div>
+                    <div class="project-meta">
+                      ${p.bucket ? `<span class="tag bucket">${escHtml(p.bucket)}</span>` : ''}
+                      <span class="project-tasks-count">${projectTasks.length} task${projectTasks.length === 1 ? '' : 's'}</span>
+                    </div>
+                  </div>
+                  <button class="project-toggle" onclick="event.stopPropagation(); openProjectModal('${p.id}')">Edit</button>
+                </div>
+                <div class="project-tasks">
+                  ${projectTasks.length === 0
+                    ? '<div class="empty-state" style="padding:16px 0;font-size:12px">No tasks in this project yet.</div>'
+                    : projectTasks.map(taskHTML).join('')
+                  }
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // Filter mainTasks to exclude tasks already shown in expanded projects
+    // Actually simpler: just show all tasks in status groups regardless. Project tag will be visible.
 
     // Group by status
     const groups = {};
     STATUS_ORDER.forEach(s => { groups[s] = []; });
     mainTasks.forEach(t => { if (groups[t.status]) groups[t.status].push(t); });
 
-    el.innerHTML = inboxHtml + STATUS_ORDER.filter(s => groups[s].length > 0).map(status => `
+    const statusHtml = STATUS_ORDER.filter(s => groups[s].length > 0).map(status => `
       <div class="group-header">
         <span style="display:flex;align-items:center;gap:6px">
           <span style="width:8px;height:8px;border-radius:50%;background:${STATUS_COLORS[status]};display:inline-block"></span>
@@ -563,6 +600,71 @@
       </div>
       ${groups[status].map(taskHTML).join('')}
     `).join('');
+
+    el.innerHTML = inboxHtml + projectsHtml + statusHtml;
+  }
+
+  function toggleProject(id) {
+    if (EXPANDED_PROJECTS.has(id)) EXPANDED_PROJECTS.delete(id);
+    else EXPANDED_PROJECTS.add(id);
+    render();
+  }
+
+  function openProjectModal(id) {
+    const p = PROJECTS.find(pp => pp.id === id);
+    if (!p) return;
+    PROJECT_EDITING_ID = id;
+    document.getElementById('pm-name').value = p.name;
+    document.getElementById('pm-bucket').value = p.bucket || '';
+    document.getElementById('pm-status').value = p.status || 'active';
+    document.getElementById('pm-description').value = p.description || '';
+    document.getElementById('project-modal-overlay').classList.remove('hidden');
+  }
+
+  function closeProjectModal() {
+    document.getElementById('project-modal-overlay').classList.add('hidden');
+    PROJECT_EDITING_ID = null;
+  }
+
+  function newProject() {
+    PROJECT_EDITING_ID = null;
+    document.getElementById('pm-name').value = '';
+    document.getElementById('pm-bucket').value = CURRENT_BUCKET !== 'all' && CURRENT_BUCKET !== 'inbox' ? CURRENT_BUCKET : '';
+    document.getElementById('pm-status').value = 'active';
+    document.getElementById('pm-description').value = '';
+    document.getElementById('project-modal-overlay').classList.remove('hidden');
+  }
+
+  async function saveProject() {
+    const payload = {
+      name: document.getElementById('pm-name').value.trim(),
+      bucket: document.getElementById('pm-bucket').value || null,
+      status: document.getElementById('pm-status').value || 'active',
+      description: document.getElementById('pm-description').value.trim() || null,
+    };
+    if (!payload.name) return;
+    if (PROJECT_EDITING_ID) {
+      const { error } = await window.sb.from('projects').update(payload).eq('id', PROJECT_EDITING_ID);
+      if (!error) {
+        const idx = PROJECTS.findIndex(p => p.id === PROJECT_EDITING_ID);
+        if (idx >= 0) PROJECTS[idx] = { ...PROJECTS[idx], ...payload };
+      }
+    } else {
+      const { data, error } = await window.sb.from('projects').insert(payload).select().single();
+      if (!error && data) PROJECTS.unshift(data);
+    }
+    closeProjectModal();
+    render();
+  }
+
+  async function deleteProject() {
+    if (!PROJECT_EDITING_ID) return;
+    if (!confirm('Delete this project? Tasks linked to it will become unlinked.')) return;
+    await window.sb.from('projects').delete().eq('id', PROJECT_EDITING_ID);
+    PROJECTS = PROJECTS.filter(p => p.id !== PROJECT_EDITING_ID);
+    TASKS.forEach(t => { if (t.project_id === PROJECT_EDITING_ID) t.project_id = null; });
+    closeProjectModal();
+    render();
   }
 
   function openModal(id) {
@@ -571,13 +673,23 @@
     const overlay = document.getElementById('modal-overlay');
     overlay.classList.remove('hidden');
 
+    // Populate project picker
+    const projSelect = document.getElementById('f-project');
+    projSelect.innerHTML = '<option value="">— none —</option>' +
+      [...PROJECTS]
+        .filter(p => p.status === 'active')
+        .sort((a,b) => (a.bucket || '').localeCompare(b.bucket || '') || a.name.localeCompare(b.name))
+        .map(p => `<option value="${p.id}">${escHtml(p.bucket || '')}${p.bucket ? ' — ' : ''}${escHtml(p.name)}</option>`).join('');
+
+
     if (id) {
       const t = TASKS.find(t => t.id === id);
       if (!t) return;
-      document.getElementById('modal-title').textContent = t.parent_id ? 'Edit Subtask' : 'Edit Task';
+      document.getElementById('modal-title').textContent = 'Edit Task';
       document.getElementById('f-title').value = t.title || '';
       document.getElementById('f-bucket').value = t.bucket || '';
       document.getElementById('f-status').value = t.status || 'To Do';
+      document.getElementById('f-project').value = t.project_id || '';
       document.getElementById('f-due').value = t.due_date || '';
       document.getElementById('f-due-time').value = t.due_time ? t.due_time.substring(0,5) : '';
       document.getElementById('f-estimate').value = t.time_estimate || '';
@@ -593,6 +705,7 @@
       document.getElementById('f-title').value = '';
       document.getElementById('f-bucket').value = '';
       document.getElementById('f-status').value = 'To Do';
+      document.getElementById('f-project').value = '';
       document.getElementById('f-due').value = '';
       document.getElementById('f-due-time').value = '';
       document.getElementById('f-estimate').value = '';
@@ -603,78 +716,9 @@
         <button class="btn-primary" onclick="saveTask()">Save Task</button>
       `;
     }
-    renderModalSubtasks();
     setTimeout(() => document.getElementById('f-title').focus(), 100);
   }
 
-  function renderModalSubtasks() {
-    const container = document.getElementById('modal-subtasks-container');
-    if (!EDITING_ID) {
-      container.innerHTML = '';
-      return;
-    }
-    const parent = TASKS.find(t => t.id === EDITING_ID);
-    if (!parent) { container.innerHTML = ''; return; }
-    // Subtasks can only exist on top-level tasks (one-level nesting)
-    if (parent.parent_id) { container.innerHTML = ''; return; }
-
-    const subs = getSubtasks(EDITING_ID);
-    container.innerHTML = `
-      <div class="modal-subtasks">
-        <div class="modal-subtasks-header">
-          <h3>Subtasks ${subs.length > 0 ? `· ${subs.filter(s => s.status === 'Complete' || s.status === 'Canceled').length}/${subs.length}` : ''}</h3>
-        </div>
-        ${subs.map(s => `
-          <div class="modal-subtask-row ${(s.status === 'Complete' || s.status === 'Canceled') ? 'complete' : ''}">
-            <input type="checkbox" ${s.status === 'Complete' ? 'checked' : ''} onchange="toggleSubtaskComplete('${s.id}', this.checked)">
-            <span class="subtask-title-text" onclick="openModal('${s.id}')">${escHtml(s.title)}</span>
-            <button class="delete-sub" onclick="deleteSubtask('${s.id}')" title="Delete">✕</button>
-          </div>
-        `).join('')}
-        <div class="modal-add-subtask">
-          <input type="text" id="new-subtask-input" placeholder="Add a subtask..." onkeydown="if(event.key==='Enter') addSubtask()">
-          <button onclick="addSubtask()">Add</button>
-        </div>
-      </div>
-    `;
-  }
-
-  async function addSubtask() {
-    const input = document.getElementById('new-subtask-input');
-    const title = input.value.trim();
-    if (!title || !EDITING_ID) return;
-    const parent = TASKS.find(t => t.id === EDITING_ID);
-    if (!parent) return;
-    const { data, error } = await window.sb.from('tasks').insert({
-      title,
-      parent_id: EDITING_ID,
-      bucket: parent.bucket,
-      status: 'To Do'
-    }).select().single();
-    if (!error && data) {
-      TASKS.unshift(data);
-      input.value = '';
-      renderModalSubtasks();
-      render();
-    }
-  }
-
-  async function toggleSubtaskComplete(id, checked) {
-    const newStatus = checked ? 'Complete' : 'To Do';
-    await window.sb.from('tasks').update({ status: newStatus }).eq('id', id);
-    const t = TASKS.find(t => t.id === id);
-    if (t) t.status = newStatus;
-    renderModalSubtasks();
-    render();
-  }
-
-  async function deleteSubtask(id) {
-    if (!confirm('Delete this subtask?')) return;
-    await window.sb.from('tasks').delete().eq('id', id);
-    TASKS = TASKS.filter(t => t.id !== id);
-    renderModalSubtasks();
-    render();
-  }
 
   function closeModal() {
     document.getElementById('modal-overlay').classList.add('hidden');
@@ -693,6 +737,7 @@
       title,
       bucket: document.getElementById('f-bucket').value || null,
       status: document.getElementById('f-status').value || 'To Do',
+      project_id: document.getElementById('f-project').value || null,
       due_date: document.getElementById('f-due').value || null,
       due_time: document.getElementById('f-due-time').value || null,
       time_estimate: parseFloat(document.getElementById('f-estimate').value) || null,
@@ -750,5 +795,71 @@
   // Safety net — show page after 3s regardless
   setTimeout(() => { document.documentElement.style.visibility = ''; document.body.style.visibility = ''; }, 3000);
 </script>
+
+<!-- Project Modal -->
+<div class="modal-overlay hidden" id="project-modal-overlay" onclick="if(event.target===this)closeProjectModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Project</div>
+      <button class="modal-close" onclick="closeProjectModal()">✕</button>
+    </div>
+
+    <div class="form-row">
+      <label>Name</label>
+      <input type="text" id="pm-name" placeholder="Project name" autocomplete="off">
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Bucket</label>
+        <select id="pm-bucket">
+          <option value="">— none —</option>
+          <optgroup label="1. Work">
+            <option>1. Finnian</option>
+            <option>1. Tempo</option>
+            <option>1. Hoot</option>
+          </optgroup>
+          <optgroup label="2. Personal Growth">
+            <option>2. Personal Dev</option>
+            <option>2. Thoughts &amp; Ideas</option>
+          </optgroup>
+          <optgroup label="3. Fitness">
+            <option>3. Fitness</option>
+          </optgroup>
+          <optgroup label="4. Admin &amp; Routine">
+            <option>4. Chores</option>
+            <option>4. Grocery List</option>
+            <option>4. Shopping List</option>
+            <option>4. Splitwise Inbox</option>
+            <option>4. Get From Perth</option>
+          </optgroup>
+          <optgroup label="5. Leisure">
+            <option>5. Laleh</option>
+            <option>5. Leisure</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Status</label>
+        <select id="pm-status">
+          <option value="active">Active</option>
+          <option value="complete">Complete</option>
+          <option value="canceled">Canceled</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>Description</label>
+      <textarea id="pm-description" placeholder="What is this project?"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-danger" onclick="deleteProject()" id="pm-delete-btn">Delete</button>
+      <button class="btn-primary" onclick="saveProject()">Save</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
