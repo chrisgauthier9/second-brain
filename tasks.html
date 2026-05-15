@@ -183,9 +183,9 @@
       <button class="filter-btn" data-filter="Today" onclick="setFilter('Today')">Today</button>
       <button class="filter-btn" data-filter="In Progress" onclick="setFilter('In Progress')">In Progress</button>
       <button class="filter-btn" data-filter="Up Next" onclick="setFilter('Up Next')">Up Next</button>
-      <button class="filter-btn" data-filter="Hoot" onclick="setFilter('Hoot')">Hoot</button>
-      <button class="filter-btn" data-filter="Music" onclick="setFilter('Music')">Music</button>
-      <button class="filter-btn" data-filter="IG Bot" onclick="setFilter('IG Bot')">IG Bot</button>
+      <button class="filter-btn" data-filter="1. Hoot" onclick="setFilter('1. Hoot')">Hoot</button>
+      <button class="filter-btn" data-filter="1. Finnian" onclick="setFilter('1. Finnian')">Finnian</button>
+      <button class="filter-btn" data-filter="1. Tempo" onclick="setFilter('1. Tempo')">Tempo</button>
     </div>
     <button class="add-btn" onclick="openModal()">+ Add Task</button>
   </div>
@@ -211,15 +211,29 @@
         <label>Bucket</label>
         <select id="f-bucket">
           <option value="">— none —</option>
-          <option>Hoot</option>
-          <option>Music</option>
-          <option>IG Bot</option>
-          <option>Personal Dev</option>
-          <option>Fitness</option>
-          <option>Routine &amp; Chores</option>
-          <option>Laleh</option>
-          <option>Leisure</option>
-          <option>Thoughts &amp; Ideas</option>
+          <optgroup label="1. Work">
+            <option>1. Finnian</option>
+            <option>1. Tempo</option>
+            <option>1. Hoot</option>
+          </optgroup>
+          <optgroup label="2. Personal Growth">
+            <option>2. Personal Dev</option>
+            <option>2. Thoughts &amp; Ideas</option>
+          </optgroup>
+          <optgroup label="3. Fitness">
+            <option>3. Fitness</option>
+          </optgroup>
+          <optgroup label="4. Admin &amp; Routine">
+            <option>4. Chores</option>
+            <option>4. Grocery List</option>
+            <option>4. Shopping List</option>
+            <option>4. Splitwise Inbox</option>
+            <option>4. Get From Perth</option>
+          </optgroup>
+          <optgroup label="5. Leisure">
+            <option>5. Laleh</option>
+            <option>5. Leisure</option>
+          </optgroup>
         </select>
       </div>
       <div class="form-row">
