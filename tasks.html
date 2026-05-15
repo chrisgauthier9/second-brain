@@ -82,13 +82,12 @@
     .status-dot { width: 8px; height: 8px; border-radius: 50%; }
 
     /* Status colors */
-    .status-Today { background: #ec4899; }
-    .status-To-Do { background: #fbbf24; }
-    .status-Up-Next { background: #f59e0b; }
-    .status-Later { background: var(--dim); }
-    .status-Projects { background: #f97316; }
-    .status-In-Progress { background: #3b82f6; }
-    .status-Complete { background: var(--ok); }
+    .status-Now { background: #ec4899; }
+    .status-Next { background: #f59e0b; }
+    .status-Active { background: #3b82f6; }
+    .status-Soon { background: #fbbf24; }
+    .status-Someday { background: var(--dim); }
+    .status-Done { background: var(--ok); }
     .status-Canceled { background: var(--dim); opacity: .5; }
 
     /* Modal */
@@ -258,7 +257,7 @@
   <div class="show-completed-row">
     <label class="show-completed-label">
       <input type="checkbox" id="show-completed" onchange="toggleCompleted(this.checked)">
-      <span>Show completed &amp; canceled</span>
+      <span>Show done &amp; canceled</span>
     </label>
   </div>
 
@@ -311,12 +310,12 @@
       <div class="form-row">
         <label>Status</label>
         <select id="f-status">
-          <option>Today</option>
-          <option>Up Next</option>
-          <option>In Progress</option>
-          <option>To Do</option>
-          <option>Later</option>
-          <option>Complete</option>
+          <option>Now</option>
+          <option>Next</option>
+          <option>Active</option>
+          <option>Soon</option>
+          <option>Someday</option>
+          <option>Done</option>
           <option>Canceled</option>
         </select>
       </div>
@@ -391,19 +390,97 @@
   let TASKS = [];
   let PROJECTS = [];
   const EXPANDED_PROJECTS = new Set();
+
+  // Category menu (inline category change on task cards)
+  const CATEGORY_GROUPS = [
+    { label: '1. Work', items: ['1. Finnian', '1. Tempo', '1. Hoot'] },
+    { label: '2. Personal Growth', items: ['2. Personal Dev', '2. Thoughts & Ideas'] },
+    { label: '3. Fitness', items: ['3. Fitness'] },
+    { label: '4. Admin & Routine', items: ['4. Chores', '4. Grocery List', '4. Shopping List', '4. Splitwise Inbox', '4. Get From Perth'] },
+    { label: '5. Leisure', items: ['5. Laleh', '5. Leisure'] },
+  ];
+
+  function openCategoryMenu(event, taskId) {
+    closeCategoryMenu();
+    const task = TASKS.find(t => t.id === taskId);
+    if (!task) return;
+
+    const menu = document.createElement('div');
+    menu.className = 'cat-menu';
+    menu.id = 'cat-menu';
+
+    let html = '';
+    CATEGORY_GROUPS.forEach((group, idx) => {
+      if (idx > 0) html += '<div class="cat-menu-divider"></div>';
+      html += `<div class="cat-menu-group">${escHtml(group.label)}</div>`;
+      group.items.forEach(cat => {
+        const isCurrent = task.category === cat;
+        html += `<div class="cat-menu-item ${isCurrent ? 'current' : ''}" onclick="changeCategory('${taskId}', '${cat.replace(/'/g, "\\'")}')">${escHtml(cat)}</div>`;
+      });
+    });
+    html += '<div class="cat-menu-divider"></div>';
+    html += `<div class="cat-menu-item cat-menu-clear" onclick="changeCategory('${taskId}', null)">Clear category</div>`;
+    menu.innerHTML = html;
+
+    document.body.appendChild(menu);
+
+    // Position near click
+    const rect = event.target.getBoundingClientRect();
+    const menuHeight = Math.min(menu.scrollHeight, window.innerHeight * 0.5);
+    let top = rect.bottom + 4;
+    if (top + menuHeight > window.innerHeight) {
+      top = rect.top - menuHeight - 4;
+    }
+    let left = rect.left;
+    const menuWidth = 220;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = window.innerWidth - menuWidth - 8;
+    }
+    menu.style.top = `${top}px`;
+    menu.style.left = `${left}px`;
+
+    // Close on outside click
+    setTimeout(() => {
+      document.addEventListener('click', closeCategoryMenu, { once: true });
+    }, 50);
+  }
+
+  function closeCategoryMenu() {
+    const m = document.getElementById('cat-menu');
+    if (m) m.remove();
+  }
+
+  async function changeCategory(taskId, newCategory) {
+    closeCategoryMenu();
+    const task = TASKS.find(t => t.id === taskId);
+    if (!task) return;
+    const updates = { category: newCategory };
+    // If the task is linked to a project, and the new category doesn't match the project's category, unlink the project
+    if (task.project_id) {
+      const proj = PROJECTS.find(p => p.id === task.project_id);
+      if (proj && proj.category !== newCategory) {
+        updates.project_id = null;
+      }
+    }
+    const { error } = await window.sb.from('tasks').update(updates).eq('id', taskId);
+    if (!error) {
+      Object.assign(task, updates);
+      render();
+    }
+  }
   let PROJECT_EDITING_ID = null;
   let CURRENT_CATEGORY = 'inbox';
   let SHOW_COMPLETED = false;
   let EDITING_ID = null;
 
-  const STATUS_ORDER = ['Today', 'Up Next', 'In Progress', 'To Do', 'Later', 'Complete', 'Canceled'];
+  const STATUS_ORDER = ['Now', 'Next', 'Active', 'Soon', 'Someday', 'Done', 'Canceled'];
   const STATUS_COLORS = {
-    'Today': '#ec4899', 'To Do': '#fbbf24', 'Up Next': '#f59e0b',
-    'Later': '#6b7280', 'In Progress': '#3b82f6',
-    'Complete': '#34d399', 'Canceled': '#4b5563'
+    'Now': '#ec4899', 'Next': '#f59e0b', 'Active': '#3b82f6',
+    'Soon': '#fbbf24', 'Someday': '#6b7280',
+    'Done': '#34d399', 'Canceled': '#4b5563'
   };
 
-  const ACTIVE_STATUSES = new Set(['Today', 'To Do', 'Up Next', 'Later', 'In Progress']);
+  const ACTIVE_STATUSES = new Set(['Now', 'Next', 'Active', 'Soon', 'Someday']);
 
   async function load() {
     // Load projects + tasks in parallel
@@ -454,7 +531,7 @@
       tasks = tasks.filter(t => t.category === CURRENT_CATEGORY);
     }
     if (!SHOW_COMPLETED) {
-      tasks = tasks.filter(t => t.status !== 'Complete' && t.status !== 'Canceled');
+      tasks = tasks.filter(t => t.status !== 'Done' && t.status !== 'Canceled');
     }
     return tasks;
   }
@@ -477,7 +554,7 @@
   }
 
   function taskHTML(t) {
-    const isComplete = t.status === 'Complete' || t.status === 'Canceled';
+    const isComplete = t.status === 'Done' || t.status === 'Canceled';
     const due = t.due_date ? fmtDate(t.due_date, t.due_time) : null;
     const statusKey = t.status ? t.status.replace(/\s+/g, '-') : '';
     const pct = t.time_estimate > 0 ? Math.min((t.time_spent || 0) / t.time_estimate * 100, 120) : 0;
@@ -489,7 +566,7 @@
         <div class="task-body">
           <div class="task-title">${escHtml(t.title)}</div>
           <div class="task-meta">
-            ${t.category ? `<span class="tag cat ${catClass(t.category)}">${escHtml(t.category)}</span>` : ''}
+            ${t.category ? `<span class="tag cat ${catClass(t.category)}" onclick="event.stopPropagation(); openCategoryMenu(event, '${t.id}')">${escHtml(t.category)} ▾</span>` : `<span class="tag cat cat-default" onclick="event.stopPropagation(); openCategoryMenu(event, '${t.id}')">— set category — ▾</span>`}
             ${project ? `<span class="tag project">${escHtml(project.name)}</span>` : ''}
             ${due ? `<span class="tag due ${due.overdue ? 'overdue' : ''}">${due.label}</span>` : ''}
             ${t.time_estimate ? `<span class="tag estimate">~${t.time_estimate}h${t.time_spent ? ` · ${t.time_spent}h spent` : ''}</span>` : ''}
@@ -527,7 +604,7 @@
     if (!title) return;
     const { data, error } = await window.sb.from('tasks').insert({
       title,
-      status: 'To Do'
+      status: 'Soon'
     }).select().single();
     if (!error && data) {
       TASKS.unshift(data);
@@ -543,7 +620,7 @@
   function getInboxTasks() {
     return TASKS.filter(t =>
       (!t.category || t.category === '') &&
-      t.status !== 'Complete' && t.status !== 'Canceled'
+      t.status !== 'Done' && t.status !== 'Canceled'
     );
   }
 
@@ -601,7 +678,7 @@
             <span class="count">${projects.length}</span>
           </div>
           ${projects.map(p => {
-            const projectTasks = TASKS.filter(t => t.project_id === p.id && (SHOW_COMPLETED || (t.status !== 'Complete' && t.status !== 'Canceled')));
+            const projectTasks = TASKS.filter(t => t.project_id === p.id && (SHOW_COMPLETED || (t.status !== 'Done' && t.status !== 'Canceled')));
             const isExpanded = EXPANDED_PROJECTS.has(p.id);
             return `
               <div class="project-row ${isExpanded ? 'expanded' : ''}">
@@ -760,7 +837,7 @@
       document.getElementById('modal-title').textContent = 'Edit Task';
       document.getElementById('f-title').value = t.title || '';
       document.getElementById('f-bucket').value = t.category || '';
-      document.getElementById('f-status').value = t.status || 'To Do';
+      document.getElementById('f-status').value = t.status || 'Soon';
       refreshProjectPicker();
       document.getElementById('f-project').value = t.project_id || '';
       document.getElementById('f-due').value = t.due_date || '';
@@ -777,7 +854,7 @@
       document.getElementById('modal-title').textContent = 'New Task';
       document.getElementById('f-title').value = '';
       document.getElementById('f-bucket').value = '';
-      document.getElementById('f-status').value = 'To Do';
+      document.getElementById('f-status').value = 'Soon';
       refreshProjectPicker();
       document.getElementById('f-project').value = '';
       document.getElementById('f-due').value = '';
@@ -810,7 +887,7 @@
     const payload = {
       title,
       category: document.getElementById('f-bucket').value || null,
-      status: document.getElementById('f-status').value || 'To Do',
+      status: document.getElementById('f-status').value || 'Soon',
       project_id: document.getElementById('f-project').value || null,
       due_date: document.getElementById('f-due').value || null,
       due_time: document.getElementById('f-due-time').value || null,
