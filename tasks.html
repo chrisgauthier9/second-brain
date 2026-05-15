@@ -106,6 +106,20 @@
 
     .empty-state { text-align: center; padding: 40px 20px; color: var(--dim); font-size: 13px; }
 
+    .inbox-section { background: rgba(251,191,36,.06); border: 1px solid rgba(251,191,36,.25); border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+    .inbox-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .inbox-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: #fbbf24; display: flex; align-items: center; gap: 6px; }
+    .inbox-label .inbox-dot { width: 7px; height: 7px; border-radius: 50%; background: #fbbf24; display: inline-block; }
+    .inbox-count { background: rgba(251,191,36,.2); color: #fbbf24; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+    .inbox-empty { font-size: 12px; color: var(--dim); padding: 8px 0; }
+
+    .quick-add { display: flex; gap: 8px; margin-bottom: 8px; }
+    .quick-add input { flex: 1; padding: 10px 12px; background: var(--deep); border: 1px solid rgba(251,191,36,.3); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 14px; outline: none; }
+    .quick-add input:focus { border-color: #fbbf24; }
+    .quick-add input::placeholder { color: var(--dim); }
+    .quick-add-btn { background: rgba(251,191,36,.15); color: #fbbf24; border: 1px solid rgba(251,191,36,.3); padding: 10px 16px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .quick-add-btn:hover { background: rgba(251,191,36,.25); }
+
     .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
 
     /* Progress bar for time spent */
@@ -359,23 +373,77 @@
       </div>`;
   }
 
+  async function quickAdd() {
+    const input = document.getElementById('quick-input');
+    const title = input.value.trim();
+    if (!title) return;
+    const { data, error } = await sb.from('tasks').insert({
+      title,
+      status: 'To Do',
+      priority: 'none'
+    }).select().single();
+    if (!error && data) {
+      TASKS.unshift(data);
+      input.value = '';
+      render();
+    }
+  }
+
+  function handleQuickKey(e) {
+    if (e.key === 'Enter') quickAdd();
+  }
+
+  function getInboxTasks() {
+    return TASKS.filter(t =>
+      (!t.bucket || t.bucket === '') &&
+      t.status !== 'Complete' && t.status !== 'Canceled'
+    );
+  }
+
+  function inboxHTML() {
+    const items = getInboxTasks();
+    return `
+      <div class="inbox-section">
+        <div class="inbox-header">
+          <span class="inbox-label"><span class="inbox-dot"></span>Inbox — needs triage</span>
+          ${items.length > 0 ? `<span class="inbox-count">${items.length}</span>` : ''}
+        </div>
+        <div class="quick-add">
+          <input type="text" id="quick-input" placeholder="Quick add — tap to triage later..." onkeydown="handleQuickKey(event)" autocomplete="off">
+          <button class="quick-add-btn" onclick="quickAdd()">Add</button>
+        </div>
+        ${items.length === 0
+          ? '<div class="inbox-empty">Inbox clear ✓</div>'
+          : items.map(taskHTML).join('')
+        }
+      </div>`;
+  }
+
   function render() {
     const tasks = getFilteredTasks();
     const el = document.getElementById('view');
 
-    if (tasks.length === 0) {
+    // Always show inbox on active and all views
+    const showInbox = CURRENT_VIEW !== 'bucket';
+    const inboxHtml = showInbox ? inboxHTML() : '';
+
+    // Filter out inbox items from main list to avoid duplication
+    const inboxIds = new Set(getInboxTasks().map(t => t.id));
+    const mainTasks = showInbox ? tasks.filter(t => !inboxIds.has(t.id)) : tasks;
+
+    if (mainTasks.length === 0 && !showInbox) {
       el.innerHTML = `<div class="empty-state">No tasks here. Add one above.</div>`;
       return;
     }
 
     if (CURRENT_VIEW === 'bucket') {
       const buckets = {};
-      tasks.forEach(t => {
+      mainTasks.forEach(t => {
         const b = t.bucket || 'Uncategorized';
         if (!buckets[b]) buckets[b] = [];
         buckets[b].push(t);
       });
-      el.innerHTML = Object.entries(buckets).map(([bucket, items]) => `
+      el.innerHTML = inboxHtml + Object.entries(buckets).map(([bucket, items]) => `
         <div class="group-header">${escHtml(bucket)} <span class="count">${items.length}</span></div>
         ${items.map(taskHTML).join('')}
       `).join('');
@@ -385,9 +453,9 @@
     // Active / All — group by status
     const groups = {};
     STATUS_ORDER.forEach(s => { groups[s] = []; });
-    tasks.forEach(t => { if (groups[t.status]) groups[t.status].push(t); });
+    mainTasks.forEach(t => { if (groups[t.status]) groups[t.status].push(t); });
 
-    el.innerHTML = STATUS_ORDER.filter(s => groups[s].length > 0).map(status => `
+    el.innerHTML = inboxHtml + STATUS_ORDER.filter(s => groups[s].length > 0).map(status => `
       <div class="group-header">
         <span style="display:flex;align-items:center;gap:6px">
           <span style="width:8px;height:8px;border-radius:50%;background:${STATUS_COLORS[status]};display:inline-block"></span>
