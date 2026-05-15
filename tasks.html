@@ -118,6 +118,26 @@
 
     .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
 
+    /* Subtask styling */
+    .task-row.subtask { margin-left: 24px; background: var(--surface); border-left: 2px solid var(--accent); }
+    .task-row.subtask .task-title { font-size: 13px; }
+    .subtask-progress { font-size: 11px; color: var(--dim); margin-top: 4px; }
+    .subtask-progress-bar { display: inline-block; width: 60px; height: 4px; background: var(--border); border-radius: 999px; vertical-align: middle; margin-left: 6px; overflow: hidden; }
+    .subtask-progress-bar .fill { height: 100%; background: var(--accent); border-radius: 999px; }
+    .modal-subtasks { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .modal-subtasks-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .modal-subtasks-header h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin: 0; }
+    .modal-subtask-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--deep); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+    .modal-subtask-row.complete .subtask-title-text { text-decoration: line-through; color: var(--dim); }
+    .modal-subtask-row input[type="checkbox"] { width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
+    .modal-subtask-row .subtask-title-text { flex: 1; font-size: 13px; color: var(--text); cursor: pointer; }
+    .modal-subtask-row .delete-sub { background: transparent; border: none; color: var(--dim); cursor: pointer; padding: 2px 6px; font-size: 14px; }
+    .modal-subtask-row .delete-sub:hover { color: var(--err); }
+    .modal-add-subtask { display: flex; gap: 6px; margin-top: 6px; }
+    .modal-add-subtask input { flex: 1; padding: 8px 10px; background: var(--deep); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 13px; outline: none; }
+    .modal-add-subtask input:focus { border-color: var(--accent); }
+    .modal-add-subtask button { background: var(--accent); color: #fff; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; }
+
     /* Progress bar for time spent */
     .time-bar { height: 3px; background: var(--border); border-radius: 999px; margin-top: 6px; overflow: hidden; }
     .time-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .3s; }
@@ -309,6 +329,8 @@
       <input type="url" id="f-url" placeholder="https://...">
     </div>
 
+    <div id="modal-subtasks-container"></div>
+
     <div class="form-actions" id="form-actions">
       <button class="btn-primary" onclick="saveTask()">Save Task</button>
     </div>
@@ -373,7 +395,20 @@
     if (!SHOW_COMPLETED) {
       tasks = tasks.filter(t => t.status !== 'Complete' && t.status !== 'Canceled');
     }
+    // Exclude subtasks from the main list — they render inline under their parent
+    tasks = tasks.filter(t => !t.parent_id);
     return tasks;
+  }
+
+  function getSubtasks(parentId) {
+    return TASKS.filter(t => t.parent_id === parentId);
+  }
+
+  function getSubtaskProgress(parentId) {
+    const subs = getSubtasks(parentId);
+    if (subs.length === 0) return null;
+    const done = subs.filter(s => s.status === 'Complete' || s.status === 'Canceled').length;
+    return { done, total: subs.length };
   }
 
   function fmtDate(d, time) {
@@ -393,28 +428,39 @@
     return { label: `Due ${new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })}${timeStr}`, overdue: false };
   }
 
-  function taskHTML(t) {
+  function taskHTML(t, isSubtask = false) {
     const isComplete = t.status === 'Complete' || t.status === 'Canceled';
     const due = t.due_date ? fmtDate(t.due_date, t.due_time) : null;
     const statusKey = t.status ? t.status.replace(/\s+/g, '-') : '';
     const pct = t.time_estimate > 0 ? Math.min((t.time_spent || 0) / t.time_estimate * 100, 120) : 0;
     const over = pct > 100;
+    const progress = !isSubtask ? getSubtaskProgress(t.id) : null;
 
-    return `
-      <div class="task-row ${isComplete ? 'complete' : ''}" onclick="openModal('${t.id}')">
+    const html = `
+      <div class="task-row ${isComplete ? 'complete' : ''} ${isSubtask ? 'subtask' : ''}" onclick="openModal('${t.id}')">
         <div class="task-body">
           <div class="task-title">${escHtml(t.title)}</div>
           <div class="task-meta">
-            ${t.bucket ? `<span class="tag bucket">${escHtml(t.bucket)}</span>` : ''}
+            ${t.bucket && !isSubtask ? `<span class="tag bucket">${escHtml(t.bucket)}</span>` : ''}
             ${due ? `<span class="tag due ${due.overdue ? 'overdue' : ''}">${due.label}</span>` : ''}
             ${t.time_estimate ? `<span class="tag estimate">~${t.time_estimate}h${t.time_spent ? ` · ${t.time_spent}h spent` : ''}</span>` : ''}
           </div>
           ${t.time_estimate > 0 ? `<div class="time-bar"><div class="time-bar-fill ${over ? 'over' : ''}" style="width:${Math.min(pct,100)}%"></div></div>` : ''}
+          ${progress ? `<div class="subtask-progress">${progress.done}/${progress.total} subtasks<span class="subtask-progress-bar"><span class="fill" style="width:${(progress.done/progress.total*100).toFixed(0)}%"></span></span></div>` : ''}
         </div>
         <div class="task-row-right">
           <div class="status-dot status-${statusKey}" title="${t.status || ''}"></div>
         </div>
       </div>`;
+
+    // Render subtasks inline (only when this is a parent, not a subtask itself)
+    if (!isSubtask) {
+      const subs = getSubtasks(t.id).filter(s => SHOW_COMPLETED || (s.status !== 'Complete' && s.status !== 'Canceled'));
+      if (subs.length > 0) {
+        return html + subs.map(s => taskHTML(s, true)).join('');
+      }
+    }
+    return html;
   }
 
   async function quickAdd() {
@@ -503,7 +549,7 @@
     if (id) {
       const t = TASKS.find(t => t.id === id);
       if (!t) return;
-      document.getElementById('modal-title').textContent = 'Edit Task';
+      document.getElementById('modal-title').textContent = t.parent_id ? 'Edit Subtask' : 'Edit Task';
       document.getElementById('f-title').value = t.title || '';
       document.getElementById('f-bucket').value = t.bucket || '';
       document.getElementById('f-status').value = t.status || 'To Do';
@@ -532,7 +578,77 @@
         <button class="btn-primary" onclick="saveTask()">Save Task</button>
       `;
     }
+    renderModalSubtasks();
     setTimeout(() => document.getElementById('f-title').focus(), 100);
+  }
+
+  function renderModalSubtasks() {
+    const container = document.getElementById('modal-subtasks-container');
+    if (!EDITING_ID) {
+      container.innerHTML = '';
+      return;
+    }
+    const parent = TASKS.find(t => t.id === EDITING_ID);
+    if (!parent) { container.innerHTML = ''; return; }
+    // Subtasks can only exist on top-level tasks (one-level nesting)
+    if (parent.parent_id) { container.innerHTML = ''; return; }
+
+    const subs = getSubtasks(EDITING_ID);
+    container.innerHTML = `
+      <div class="modal-subtasks">
+        <div class="modal-subtasks-header">
+          <h3>Subtasks ${subs.length > 0 ? `· ${subs.filter(s => s.status === 'Complete' || s.status === 'Canceled').length}/${subs.length}` : ''}</h3>
+        </div>
+        ${subs.map(s => `
+          <div class="modal-subtask-row ${(s.status === 'Complete' || s.status === 'Canceled') ? 'complete' : ''}">
+            <input type="checkbox" ${s.status === 'Complete' ? 'checked' : ''} onchange="toggleSubtaskComplete('${s.id}', this.checked)">
+            <span class="subtask-title-text" onclick="openModal('${s.id}')">${escHtml(s.title)}</span>
+            <button class="delete-sub" onclick="deleteSubtask('${s.id}')" title="Delete">✕</button>
+          </div>
+        `).join('')}
+        <div class="modal-add-subtask">
+          <input type="text" id="new-subtask-input" placeholder="Add a subtask..." onkeydown="if(event.key==='Enter') addSubtask()">
+          <button onclick="addSubtask()">Add</button>
+        </div>
+      </div>
+    `;
+  }
+
+  async function addSubtask() {
+    const input = document.getElementById('new-subtask-input');
+    const title = input.value.trim();
+    if (!title || !EDITING_ID) return;
+    const parent = TASKS.find(t => t.id === EDITING_ID);
+    if (!parent) return;
+    const { data, error } = await window.sb.from('tasks').insert({
+      title,
+      parent_id: EDITING_ID,
+      bucket: parent.bucket,
+      status: 'To Do'
+    }).select().single();
+    if (!error && data) {
+      TASKS.unshift(data);
+      input.value = '';
+      renderModalSubtasks();
+      render();
+    }
+  }
+
+  async function toggleSubtaskComplete(id, checked) {
+    const newStatus = checked ? 'Complete' : 'To Do';
+    await window.sb.from('tasks').update({ status: newStatus }).eq('id', id);
+    const t = TASKS.find(t => t.id === id);
+    if (t) t.status = newStatus;
+    renderModalSubtasks();
+    render();
+  }
+
+  async function deleteSubtask(id) {
+    if (!confirm('Delete this subtask?')) return;
+    await window.sb.from('tasks').delete().eq('id', id);
+    TASKS = TASKS.filter(t => t.id !== id);
+    renderModalSubtasks();
+    render();
   }
 
   function closeModal() {
