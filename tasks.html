@@ -59,7 +59,22 @@
     .task-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; line-height: 1.3; }
     .task-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
-    .tag.bucket { background: rgba(124,58,237,.15); color: #a78bfa; }
+    /* Category tag colors (matching calendar) */
+    .tag.cat { color: #fff; }
+    .tag.cat-finnian        { background: rgba(245,158,11,.18); color: #fbbf24; }
+    .tag.cat-tempo          { background: rgba(239,68,68,.18);  color: #f87171; }
+    .tag.cat-hoot           { background: rgba(59,130,246,.18); color: #60a5fa; }
+    .tag.cat-personal-dev   { background: rgba(16,185,129,.18); color: #34d399; }
+    .tag.cat-thoughts       { background: rgba(16,185,129,.18); color: #34d399; }
+    .tag.cat-fitness        { background: rgba(251,191,36,.18); color: #fbbf24; }
+    .tag.cat-chores         { background: rgba(236,72,153,.18); color: #f472b6; }
+    .tag.cat-grocery        { background: rgba(236,72,153,.18); color: #f472b6; }
+    .tag.cat-shopping       { background: rgba(236,72,153,.18); color: #f472b6; }
+    .tag.cat-splitwise      { background: rgba(236,72,153,.18); color: #f472b6; }
+    .tag.cat-perth          { background: rgba(236,72,153,.18); color: #f472b6; }
+    .tag.cat-laleh          { background: rgba(167,139,250,.18); color: #a78bfa; }
+    .tag.cat-leisure        { background: rgba(167,139,250,.18); color: #a78bfa; }
+    .tag.cat-default        { background: rgba(124,58,237,.15); color: #a78bfa; }
     .tag.due { background: rgba(52,211,153,.1); color: var(--ok); }
     .tag.due.overdue { background: rgba(248,113,113,.15); color: #f87171; }
     .tag.estimate { background: rgba(59,91,122,.3); color: var(--muted); }
@@ -203,9 +218,9 @@
   <h1>Tasks</h1>
 
   <div class="bucket-selector-row">
-    <select id="bucket-selector" onchange="setBucket(this.value)">
+    <select id="bucket-selector" onchange="setCategory(this.value)">
       <option value="all">All Active</option>
-      <option value="inbox">Inbox (no bucket)</option>
+      <option value="inbox">Inbox (no category)</option>
       <optgroup label="1. Work">
         <option value="1. Finnian">1. Finnian</option>
         <option value="1. Tempo">1. Tempo</option>
@@ -259,7 +274,7 @@
 
     <div class="form-grid">
       <div class="form-row">
-        <label>Bucket</label>
+        <label>Category</label>
         <select id="f-bucket">
           <option value="">— none —</option>
           <optgroup label="1. Work">
@@ -342,11 +357,29 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth.js"></script>
 <script>
+  // Map category names to color class slugs
+  const CAT_CLASS = {
+    '1. Finnian': 'cat-finnian',
+    '1. Tempo': 'cat-tempo',
+    '1. Hoot': 'cat-hoot',
+    '2. Personal Dev': 'cat-personal-dev',
+    '2. Thoughts & Ideas': 'cat-thoughts',
+    '3. Fitness': 'cat-fitness',
+    '4. Chores': 'cat-chores',
+    '4. Grocery List': 'cat-grocery',
+    '4. Shopping List': 'cat-shopping',
+    '4. Splitwise Inbox': 'cat-splitwise',
+    '4. Get From Perth': 'cat-perth',
+    '5. Laleh': 'cat-laleh',
+    '5. Leisure': 'cat-leisure',
+  };
+  function catClass(name) { return CAT_CLASS[name] || 'cat-default'; }
+
   let TASKS = [];
   let PROJECTS = [];
   const EXPANDED_PROJECTS = new Set();
   let PROJECT_EDITING_ID = null;
-  let CURRENT_BUCKET = 'all';
+  let CURRENT_CATEGORY = 'all';
   let SHOW_COMPLETED = false;
   let EDITING_ID = null;
 
@@ -390,8 +423,8 @@
     return all;
   }
 
-  function setBucket(b) {
-    CURRENT_BUCKET = b;
+  function setCategory(b) {
+    CURRENT_CATEGORY = b;
     render();
   }
 
@@ -402,10 +435,10 @@
 
   function getFilteredTasks() {
     let tasks = TASKS;
-    if (CURRENT_BUCKET === 'inbox') {
-      tasks = tasks.filter(t => !t.bucket);
-    } else if (CURRENT_BUCKET !== 'all') {
-      tasks = tasks.filter(t => t.bucket === CURRENT_BUCKET);
+    if (CURRENT_CATEGORY === 'inbox') {
+      tasks = tasks.filter(t => !t.category);
+    } else if (CURRENT_CATEGORY !== 'all') {
+      tasks = tasks.filter(t => t.category === CURRENT_CATEGORY);
     }
     if (!SHOW_COMPLETED) {
       tasks = tasks.filter(t => t.status !== 'Complete' && t.status !== 'Canceled');
@@ -443,7 +476,7 @@
         <div class="task-body">
           <div class="task-title">${escHtml(t.title)}</div>
           <div class="task-meta">
-            ${t.bucket ? `<span class="tag bucket">${escHtml(t.bucket)}</span>` : ''}
+            ${t.category ? `<span class="tag cat ${catClass(t.category)}">${escHtml(t.category)}</span>` : ''}
             ${project ? `<span class="tag project">${escHtml(project.name)}</span>` : ''}
             ${due ? `<span class="tag due ${due.overdue ? 'overdue' : ''}">${due.label}</span>` : ''}
             ${t.time_estimate ? `<span class="tag estimate">~${t.time_estimate}h${t.time_spent ? ` · ${t.time_spent}h spent` : ''}</span>` : ''}
@@ -496,7 +529,7 @@
 
   function getInboxTasks() {
     return TASKS.filter(t =>
-      (!t.bucket || t.bucket === '') &&
+      (!t.category || t.category === '') &&
       t.status !== 'Complete' && t.status !== 'Canceled'
     );
   }
@@ -525,18 +558,18 @@
     const el = document.getElementById('view');
 
     // Show inbox quick-add only on 'all' or 'inbox' views
-    const showInbox = (CURRENT_BUCKET === 'all' || CURRENT_BUCKET === 'inbox') && !SHOW_COMPLETED;
+    const showInbox = (CURRENT_CATEGORY === 'all' || CURRENT_CATEGORY === 'inbox') && !SHOW_COMPLETED;
     const inboxHtml = showInbox ? inboxHTML() : '';
     const inboxIds = new Set(getInboxTasks().map(t => t.id));
     const mainTasks = showInbox ? tasks.filter(t => !inboxIds.has(t.id)) : tasks;
 
     // Projects for current view: skip when on Inbox, show only active projects matching bucket
     let projects = [];
-    if (CURRENT_BUCKET !== 'inbox') {
+    if (CURRENT_CATEGORY !== 'inbox') {
       projects = PROJECTS.filter(p => {
         if (!SHOW_COMPLETED && p.status !== 'active') return false;
-        if (CURRENT_BUCKET === 'all') return true;
-        return p.bucket === CURRENT_BUCKET;
+        if (CURRENT_CATEGORY === 'all') return true;
+        return p.category === CURRENT_CATEGORY;
       });
     }
 
@@ -563,7 +596,7 @@
                   <div>
                     <div class="project-title">${escHtml(p.name)}</div>
                     <div class="project-meta">
-                      ${p.bucket ? `<span class="tag bucket">${escHtml(p.bucket)}</span>` : ''}
+                      ${p.category ? `<span class="tag cat ${catClass(p.category)}">${escHtml(p.category)}</span>` : ''}
                       <span class="project-tasks-count">${projectTasks.length} task${projectTasks.length === 1 ? '' : 's'}</span>
                     </div>
                   </div>
@@ -615,7 +648,7 @@
     if (!p) return;
     PROJECT_EDITING_ID = id;
     document.getElementById('pm-name').value = p.name;
-    document.getElementById('pm-bucket').value = p.bucket || '';
+    document.getElementById('pm-bucket').value = p.category || '';
     document.getElementById('pm-status').value = p.status || 'active';
     document.getElementById('pm-description').value = p.description || '';
     document.getElementById('project-modal-overlay').classList.remove('hidden');
@@ -629,7 +662,7 @@
   function newProject() {
     PROJECT_EDITING_ID = null;
     document.getElementById('pm-name').value = '';
-    document.getElementById('pm-bucket').value = CURRENT_BUCKET !== 'all' && CURRENT_BUCKET !== 'inbox' ? CURRENT_BUCKET : '';
+    document.getElementById('pm-bucket').value = CURRENT_CATEGORY !== 'all' && CURRENT_CATEGORY !== 'inbox' ? CURRENT_CATEGORY : '';
     document.getElementById('pm-status').value = 'active';
     document.getElementById('pm-description').value = '';
     document.getElementById('project-modal-overlay').classList.remove('hidden');
@@ -638,7 +671,7 @@
   async function saveProject() {
     const payload = {
       name: document.getElementById('pm-name').value.trim(),
-      bucket: document.getElementById('pm-bucket').value || null,
+      category: document.getElementById('pm-bucket').value || null,
       status: document.getElementById('pm-status').value || 'active',
       description: document.getElementById('pm-description').value.trim() || null,
     };
@@ -678,8 +711,8 @@
     projSelect.innerHTML = '<option value="">— none —</option>' +
       [...PROJECTS]
         .filter(p => p.status === 'active')
-        .sort((a,b) => (a.bucket || '').localeCompare(b.bucket || '') || a.name.localeCompare(b.name))
-        .map(p => `<option value="${p.id}">${escHtml(p.bucket || '')}${p.bucket ? ' — ' : ''}${escHtml(p.name)}</option>`).join('');
+        .sort((a,b) => (a.category || '').localeCompare(b.category || '') || a.name.localeCompare(b.name))
+        .map(p => `<option value="${p.id}">${escHtml(p.category || '')}${p.category ? ' — ' : ''}${escHtml(p.name)}</option>`).join('');
 
 
     if (id) {
@@ -687,7 +720,7 @@
       if (!t) return;
       document.getElementById('modal-title').textContent = 'Edit Task';
       document.getElementById('f-title').value = t.title || '';
-      document.getElementById('f-bucket').value = t.bucket || '';
+      document.getElementById('f-bucket').value = t.category || '';
       document.getElementById('f-status').value = t.status || 'To Do';
       document.getElementById('f-project').value = t.project_id || '';
       document.getElementById('f-due').value = t.due_date || '';
@@ -735,7 +768,7 @@
 
     const payload = {
       title,
-      bucket: document.getElementById('f-bucket').value || null,
+      category: document.getElementById('f-bucket').value || null,
       status: document.getElementById('f-status').value || 'To Do',
       project_id: document.getElementById('f-project').value || null,
       due_date: document.getElementById('f-due').value || null,
@@ -811,7 +844,7 @@
 
     <div class="form-grid">
       <div class="form-row">
-        <label>Bucket</label>
+        <label>Category</label>
         <select id="pm-bucket">
           <option value="">— none —</option>
           <optgroup label="1. Work">
