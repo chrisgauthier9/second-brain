@@ -156,6 +156,7 @@
     <a href="alignment.html">Alignment</a>
     <a href="fitness.html">Fitness</a>
     <a href="tasks.html" class="active">Tasks</a>
+    <a href="reset.html">Reset</a>
     <a href="journal.html">Journal</a>
     <a href="flourishing-self.html">Flourishing Self</a>
   </nav>
@@ -282,9 +283,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth.js"></script>
 <script>
-  const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrZGJ6b3B0Ym9pbnlzc3BucGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjA0NjIsImV4cCI6MjA5MTMzNjQ2Mn0.ccbJRVXNfqmgXuH1J9vL8DgttCAFJ-36gulWpL6R_cQ';
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Use the authenticated client from auth.js
+  const sb = window.sb;
 
   let TASKS = [];
   let CURRENT_VIEW = 'active';
@@ -308,7 +308,6 @@
     }
     TASKS = data || [];
     render();
-    document.documentElement.style.visibility = '';
   }
 
   function setView(v) {
@@ -583,7 +582,7 @@
     }
   });
 
-  load();
+  window._authReadyPromise.then(() => load());
 </script>
 </body>
 </html>
