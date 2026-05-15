@@ -283,7 +283,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth.js"></script>
 <script>
-  let sb;
   let TASKS = [];
   let CURRENT_VIEW = 'active';
   let CURRENT_FILTER = 'all';
@@ -299,11 +298,7 @@
   const ACTIVE_STATUSES = new Set(['Today', 'To Do', 'Up Next', 'Later', 'Projects', 'In Progress']);
 
   async function load() {
-    if (!sb) {
-      document.getElementById('view').innerHTML = '<div class="loading">Auth not ready — please refresh.</div>';
-      return;
-    }
-    const { data, error } = await sb.from('tasks').select('*').order('created_at', { ascending: false });
+    const { data, error } = await window.sb.from('tasks').select('*').order('created_at', { ascending: false });
     if (error) {
       document.getElementById('view').innerHTML = `<div class="loading">Error: ${error.message}</div>`;
       return;
@@ -378,7 +373,7 @@
     const input = document.getElementById('quick-input');
     const title = input.value.trim();
     if (!title) return;
-    const { data, error } = await sb.from('tasks').insert({
+    const { data, error } = await window.sb.from('tasks').insert({
       title,
       status: 'To Do',
       priority: 'none'
@@ -473,7 +468,7 @@
     const task = TASKS.find(t => t.id === id);
     if (!task) return;
     const newStatus = (task.status === 'Complete') ? 'To Do' : 'Complete';
-    await sb.from('tasks').update({ status: newStatus }).eq('id', id);
+    await window.sb.from('tasks').update({ status: newStatus }).eq('id', id);
     task.status = newStatus;
     render();
   }
@@ -545,13 +540,13 @@
     };
 
     if (EDITING_ID) {
-      const { error } = await sb.from('tasks').update(payload).eq('id', EDITING_ID);
+      const { error } = await window.sb.from('tasks').update(payload).eq('id', EDITING_ID);
       if (!error) {
         const idx = TASKS.findIndex(t => t.id === EDITING_ID);
         if (idx >= 0) TASKS[idx] = { ...TASKS[idx], ...payload };
       }
     } else {
-      const { data, error } = await sb.from('tasks').insert(payload).select().single();
+      const { data, error } = await window.sb.from('tasks').insert(payload).select().single();
       if (!error && data) TASKS.unshift(data);
     }
 
@@ -561,7 +556,7 @@
 
   async function deleteTask(id) {
     if (!confirm('Delete this task?')) return;
-    await sb.from('tasks').delete().eq('id', id);
+    await window.sb.from('tasks').delete().eq('id', id);
     TASKS = TASKS.filter(t => t.id !== id);
     closeModal();
     render();
@@ -585,7 +580,6 @@
   });
 
   window._authReadyPromise.then(() => {
-    sb = window.sb;
     document.documentElement.style.visibility = '';
     load();
   });
