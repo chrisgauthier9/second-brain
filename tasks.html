@@ -299,6 +299,10 @@
   const ACTIVE_STATUSES = new Set(['Today', 'To Do', 'Up Next', 'Later', 'Projects', 'In Progress']);
 
   async function load() {
+    if (!sb) {
+      document.getElementById('view').innerHTML = '<div class="loading">Auth not ready — please refresh.</div>';
+      return;
+    }
     const { data, error } = await sb.from('tasks').select('*').order('created_at', { ascending: false });
     if (error) {
       document.getElementById('view').innerHTML = `<div class="loading">Error: ${error.message}</div>`;
@@ -582,8 +586,12 @@
 
   window._authReadyPromise.then(() => {
     sb = window.sb;
+    document.documentElement.style.visibility = '';
     load();
   });
+
+  // Safety net — show page after 3s regardless
+  setTimeout(() => { document.documentElement.style.visibility = ''; }, 3000);
 </script>
 </body>
 </html>
