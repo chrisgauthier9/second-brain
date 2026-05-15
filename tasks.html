@@ -311,10 +311,10 @@
       <div class="form-row">
         <label>Status</label>
         <select id="f-status">
-          <option>To Do</option>
           <option>Today</option>
           <option>Up Next</option>
           <option>In Progress</option>
+          <option>To Do</option>
           <option>Later</option>
           <option>Complete</option>
           <option>Canceled</option>
@@ -396,7 +396,7 @@
   let SHOW_COMPLETED = false;
   let EDITING_ID = null;
 
-  const STATUS_ORDER = ['Today', 'In Progress', 'Up Next', 'To Do', 'Later', 'Complete', 'Canceled'];
+  const STATUS_ORDER = ['Today', 'Up Next', 'In Progress', 'To Do', 'Later', 'Complete', 'Canceled'];
   const STATUS_COLORS = {
     'Today': '#ec4899', 'To Do': '#fbbf24', 'Up Next': '#f59e0b',
     'Later': '#6b7280', 'In Progress': '#3b82f6',
