@@ -82,9 +82,10 @@
     .status-dot { width: 8px; height: 8px; border-radius: 50%; }
 
     /* Status colors */
+    .status-In-Progress { background: #3b82f6; }
     .status-Now { background: #ec4899; }
     .status-Next { background: #f59e0b; }
-    .status-Active { background: #3b82f6; }
+    .status-Upcoming { background: #a78bfa; }
     .status-Soon { background: #fbbf24; }
     .status-Someday { background: var(--dim); }
     .status-Done { background: var(--ok); }
@@ -324,9 +325,10 @@
       <div class="form-row">
         <label>Status</label>
         <select id="f-status">
+          <option>In Progress</option>
           <option>Now</option>
           <option>Next</option>
-          <option>Active</option>
+          <option>Upcoming</option>
           <option>Soon</option>
           <option>Someday</option>
           <option>Done</option>
@@ -419,14 +421,23 @@
   let SHOW_COMPLETED = false;
   let EDITING_ID = null;
 
-  const STATUS_ORDER = ['Now', 'Next', 'Active', 'Soon', 'Someday', 'Done', 'Canceled'];
-  const STATUS_COLORS = {
-    'Now': '#ec4899', 'Next': '#f59e0b', 'Active': '#3b82f6',
-    'Soon': '#fbbf24', 'Someday': '#6b7280',
-    'Done': '#34d399', 'Canceled': '#4b5563'
+  const STATUS_ORDER = ['In Progress', 'Now', 'Next', 'Upcoming', 'Soon', 'Someday', 'Done', 'Canceled'];
+  const STATUS_LABELS = {
+    'In Progress': 'In Progress',
+    'Now': 'I. Now',
+    'Next': 'II. Next',
+    'Upcoming': 'III. Upcoming',
+    'Soon': 'IV. Soon',
+    'Someday': 'V. Someday',
+    'Done': 'Done',
+    'Canceled': 'Canceled'
   };
-
-  const ACTIVE_STATUSES = new Set(['Now', 'Next', 'Active', 'Soon', 'Someday']);
+  const STATUS_COLORS = {
+    'In Progress': '#3b82f6', 'Now': '#ec4899', 'Next': '#f59e0b',
+    'Upcoming': '#a78bfa', 'Soon': '#fbbf24', 'Someday': '#6b7280',
+    'Done': '#10b981', 'Canceled': '#6b7280'
+  };
+  const ACTIVE_STATUSES = new Set(['In Progress', 'Now', 'Next', 'Upcoming', 'Soon', 'Someday']);
 
   async function load() {
     // Load projects + tasks in parallel
@@ -533,7 +544,7 @@
               <span class="status-dot status-${statusKey}"></span>${escHtml(t.status || '')}
             </span>
             <select onchange="changeStatus('${t.id}', this.value)">
-              ${STATUS_ORDER.map(s => `<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`).join('')}
+              ${STATUS_ORDER.map(s => `<option value="${s}" ${t.status===s?'selected':''}>${STATUS_LABELS[s] || s}</option>`).join('')}
             </select>
           </span>
         </div>
@@ -671,7 +682,7 @@
       <div class="group-header">
         <span style="display:flex;align-items:center;gap:6px">
           <span style="width:8px;height:8px;border-radius:50%;background:${STATUS_COLORS[status]};display:inline-block"></span>
-          ${status}
+          ${STATUS_LABELS[status] || status}
         </span>
         <span class="count">${groups[status].length}</span>
       </div>
