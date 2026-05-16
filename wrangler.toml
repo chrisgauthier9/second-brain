@@ -1,0 +1,10 @@
+name = "second-brain"
+main = "_worker.js"
+compatibility_date = "2026-05-16"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets — serve all root files as static content
+# The Worker's `env.ASSETS.fetch(request)` falls through to these
+[assets]
+directory = "./"
+binding = "ASSETS"
