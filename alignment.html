@@ -305,11 +305,10 @@ const SHUTDOWN = [
 const HARD_NO_KEYS = new Set([]);
 
 // History heatmap rows
+// Hour rows (hoot/finnian/tempo) removed — those columns were dropped from daily_checkins.
+// Calendar is now the source of truth. Adding hour rows back would require fetching the worker
+// for the full heatmap range — TODO.
 const HABIT_ROWS = [
-  // Hours — minimum 1.0h each
-  { key: 'hoot_hours',     label: 'Hoot',         derived: true, dtype: 'min', col: 'hoot_hours',    threshold: 0 },
-  { key: 'finnian_hours',  label: 'Finnian',       derived: true, dtype: 'min', col: 'finnian_hours', threshold: 1.5 },
-  { key: 'tempo_hours',    label: 'Tempo',         derived: true, dtype: 'min', col: 'tempo_hours',   threshold: 0 },
   // Sleep
   { key: 'sleep_duration', label: 'Sleep ≥8.5h',   derived: true, dtype: 'sleep_duration', threshold: 8.5 },
   // Shutdown + trained + journaled
@@ -482,10 +481,17 @@ async function load() {
         if (h < 0) h += 24;
         return h;
       });
+      // Pull hours from calendar worker (source of truth)
+      let hoursData = null;
+      try {
+        const hRes = await fetch(`/api/calendar/hours?start=${monday}T00:00:00-04:00&end=${todayISO()}T23:59:59-04:00`);
+        if (hRes.ok) hoursData = await hRes.json();
+      } catch(e) { /* worker unavailable */ }
+      const cats = hoursData && hoursData.categories ? hoursData.categories : {};
       WEEK_STATS = {
-        hoot: wc.reduce((s,r) => s + (r.hoot_hours||0), 0),
-        finnian: wc.reduce((s,r) => s + (r.finnian_hours||0), 0),
-        tempo: wc.reduce((s,r) => s + (r.tempo_hours||0), 0),
+        hoot: cats.hoot ? cats.hoot.hours : 0,
+        finnian: cats.finnian ? cats.finnian.hours : 0,
+        tempo: cats.tempo ? cats.tempo.hours : 0,
         trained: (wsRes.data||[]).length,
         shutdowns: wc.filter(r => r.shutdown_sequence).length,
         avg_sleep: sleeps.length ? sleeps.reduce((a,b)=>a+b,0)/sleeps.length : 0
@@ -589,6 +595,34 @@ function renderSundayReset() {
     </div>`;
 }
 
+async function fetchAndRenderDayHours(dateISO) {
+  try {
+    const start = `${dateISO}T00:00:00-04:00`;
+    // Add a small overlap to next day start to ensure we capture midnight events
+    const next = shiftDate(dateISO, 1);
+    const end = `${next}T00:00:00-04:00`;
+    const res = await fetch(`/api/calendar/hours?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+    if (!res.ok) throw new Error('hours fetch failed');
+    const data = await res.json();
+    const cats = data.categories || {};
+    const set = (cat, id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const h = cats[cat] ? cats[cat].hours : 0;
+      el.textContent = `${h.toFixed(2)}h`;
+      el.style.color = h > 0 ? 'var(--text)' : 'var(--dim)';
+    };
+    set('hoot', 'hours-display-hoot');
+    set('finnian', 'hours-display-finnian');
+    set('tempo', 'hours-display-tempo');
+  } catch (e) {
+    ['hours-display-hoot','hours-display-finnian','hours-display-tempo'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = '—'; el.title = 'Calendar API unavailable'; }
+    });
+  }
+}
+
 function renderDay() {
   const row = DATA[CURRENT_DATE] || { date: CURRENT_DATE };
   const isSunday = new Date(CURRENT_DATE + 'T12:00:00').getDay() === 0;
@@ -640,19 +674,19 @@ function renderDay() {
     </section>
 
     <section>
-      <h2>Hours</h2>
+      <h2>Hours <span style="font-size:12px;color:var(--dim);font-weight:normal">(live from calendar)</span></h2>
       <div class="hours-grid">
         <div class="hours-cell">
           <label>Hoot</label>
-          <input type="number" step="0.25" min="0" max="24" data-col="hoot_hours" data-type="num" value="${fmtNum(row.hoot_hours)}" placeholder="0">
+          <div id="hours-display-hoot" style="font-size:24px;font-weight:600;color:var(--text);padding:8px 0">—</div>
         </div>
         <div class="hours-cell">
           <label>Finnian</label>
-          <input type="number" step="0.25" min="0" max="24" data-col="finnian_hours" data-type="num" value="${fmtNum(row.finnian_hours)}" placeholder="0">
+          <div id="hours-display-finnian" style="font-size:24px;font-weight:600;color:var(--text);padding:8px 0">—</div>
         </div>
         <div class="hours-cell">
           <label>Tempo</label>
-          <input type="number" step="0.25" min="0" max="24" data-col="tempo_hours" data-type="num" value="${fmtNum(row.tempo_hours)}" placeholder="0">
+          <div id="hours-display-tempo" style="font-size:24px;font-weight:600;color:var(--text);padding:8px 0">—</div>
         </div>
       </div>
     </section>
@@ -693,6 +727,9 @@ function renderDay() {
     </section>
     ${isSunday ? renderSundayReset() : ''}
   `;
+
+  // Fetch live hours from calendar worker for the current day
+  fetchAndRenderDayHours(CURRENT_DATE);
 
   // Day nav
   document.getElementById('prev-day').addEventListener('click', () => { CURRENT_DATE = shiftDate(CURRENT_DATE, -1); render(); });
