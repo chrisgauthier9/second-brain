@@ -238,6 +238,20 @@ const MAX_WEEK = currentWeekSunday(todayISO());
 // ---- Data ----
 let CHECKINS = {};
 let SESSIONS = [];
+let HOURS = null; // { categories: { hoot: {hours, events}, finnian: ..., tempo: ... } }
+
+// Compute hours for a specific local date + category from HOURS events
+function hoursOnDate(category, dateISO) {
+  if (!HOURS || !HOURS.categories || !HOURS.categories[category]) return 0;
+  const events = HOURS.categories[category].events || [];
+  let total = 0;
+  for (const ev of events) {
+    // Bucket by local date of event start (America/Toronto)
+    const startLocal = new Date(ev.start).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
+    if (startLocal === dateISO) total += ev.duration;
+  }
+  return total;
+}
 let WEIGHTS = {};
 let REVIEW = null;
 
@@ -249,11 +263,12 @@ async function load() {
     `${fmtDate(WEEK_START)} – ${fmtDate(weekEnd)}${isCur ? ' (this week)' : ''}`;
   document.getElementById('next-week').disabled = WEEK_START >= MAX_WEEK;
 
-  const [checkinRes, sessRes, weightRes, reviewRes] = await Promise.all([
+  const [checkinRes, sessRes, weightRes, reviewRes, hoursRes] = await Promise.all([
     window.sb.from('daily_checkins').select('*').gte('date', WEEK_START).lte('date', weekEnd),
     window.sb.from('sessions').select('id, date, style, name').gte('date', WEEK_START).lte('date', weekEnd).order('date'),
     window.sb.from('bodyweight_log').select('date, weight').gte('date', WEEK_START).lte('date', weekEnd),
     window.sb.from('weekly_reviews').select('*').eq('week_start', WEEK_START).maybeSingle(),
+    fetch(`/api/calendar/hours?start=${WEEK_START}T00:00:00-04:00&end=${weekEnd}T23:59:59-04:00`).then(r => r.ok ? r.json() : null).catch(() => null),
   ]);
 
   CHECKINS = {};
@@ -262,6 +277,7 @@ async function load() {
   WEIGHTS = {};
   for (const w of (weightRes.data || [])) WEIGHTS[w.date] = w.weight;
   REVIEW = reviewRes.data || null;
+  HOURS = hoursRes;
 
   render();
 }
@@ -306,12 +322,12 @@ function renderFlags(rows, days) {
 
   // Project days below threshold (Finnian 1.5h, Hoot/Tempo 1h)
   const projects = [
-    { col: 'hoot_hours', label: 'Hoot', threshold: 1 },
-    { col: 'finnian_hours', label: 'Finnian', threshold: 1.5 },
-    { col: 'tempo_hours', label: 'Tempo', threshold: 1 },
+    { cat: 'hoot', label: 'Hoot', threshold: 1 },
+    { cat: 'finnian', label: 'Finnian', threshold: 1.5 },
+    { cat: 'tempo', label: 'Tempo', threshold: 1 },
   ];
   for (const p of projects) {
-    const missed = rows.filter(r => (Number(r[p.col]) || 0) < p.threshold);
+    const missed = days.filter(d => hoursOnDate(p.cat, d) < p.threshold);
     if (missed.length >= 5) flags.push({ level: 'red', msg: `${p.label} below target ${missed.length}/7 days` });
     else if (missed.length >= 3) flags.push({ level: 'yellow', msg: `${p.label} below target ${missed.length} days` });
   }
@@ -354,9 +370,9 @@ function renderFlags(rows, days) {
 }
 
 function renderHours(rows, days) {
-  const sum = col => rows.reduce((a,r) => a + (Number(r[col])||0), 0);
-  const active = col => rows.filter(r => (Number(r[col])||0) > 0).length;
-  const hoot = sum('hoot_hours'), finn = sum('finnian_hours'), tempo = sum('tempo_hours');
+  const catTotal = cat => HOURS && HOURS.categories && HOURS.categories[cat] ? HOURS.categories[cat].hours : 0;
+  const catActive = cat => days.filter(d => hoursOnDate(cat, d) > 0).length;
+  const hoot = catTotal('hoot'), finn = catTotal('finnian'), tempo = catTotal('tempo');
 
   const card = (label, total, days) => {
     const cls = days >= 5 ? 'ok' : days >= 3 ? 'warn' : 'err';
@@ -370,9 +386,9 @@ function renderHours(rows, days) {
   return `<section>
     <h2>Project Hours</h2>
     <div class="stats-grid">
-      ${card('Hoot', hoot, active('hoot_hours'))}
-      ${card('Finnian', finn, active('finnian_hours'))}
-      ${card('Tempo', tempo, active('tempo_hours'))}
+      ${card('Hoot', hoot, catActive('hoot'))}
+      ${card('Finnian', finn, catActive('finnian'))}
+      ${card('Tempo', tempo, catActive('tempo'))}
     </div>
   </section>`;
 }
