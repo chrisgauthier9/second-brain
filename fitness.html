@@ -134,19 +134,21 @@ const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_3AzsiWvSIyBQ876U61ahbQ_vQtkdO6J';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const styleColors = {"Weightlifting":"var(--upper-a)","CrossFit":"var(--lower-a)"};
+const styleColors = {"Weightlifting":"var(--upper-a)","CrossFit":"var(--lower-a)","run":"var(--lower-b)"};
 const muscleColors = {Back:"var(--back)",Biceps:"var(--biceps)",Calves:"var(--calves)",Chest:"var(--chest)",Glutes:"var(--glutes)",Hamstrings:"var(--hamstrings)",Quads:"var(--quads)",Shoulders:"var(--shoulders)",Triceps:"var(--triceps)"};
 
-let DATA = { exercises:[], sessions:[], sets:[], weights:[] };
+let DATA = { exercises:[], sessions:[], sets:[], weights:[], runs:[] };
 let STATE = { tab:'sessions', detail:null };
 
 async function loadData() {
-  const [exRes, sessRes, setsRes, wtRes] = await Promise.all([
+  const [exRes, sessRes, setsRes, wtRes, runsRes] = await Promise.all([
     sb.from('exercises').select('*').order('name'),
     sb.from('sessions').select('*').order('date'),
     sb.from('sets_log').select('*, exercises(name, muscle_group, equipment)').order('date').order('id').order('set_number'),
     sb.from('bodyweight_log').select('date, weight').order('date'),
+    sb.from('runs').select('*').order('date'),
   ]);
+  DATA.runs = runsRes.data || [];
   DATA.weights = (wtRes.data || []).sort((a,b) => a.date.localeCompare(b.date));
   DATA.exercises = exRes.data || [];
   DATA.sets = setsRes.data || [];
@@ -238,6 +240,35 @@ function renderSessions() {
 }
 
 function renderSessionDetail(session) {
+  // Run session — show run metrics instead of sets
+  if (session.style === 'run') {
+    const run = DATA.runs.find(r => r.session_id === session.id);
+    function fmtSecs(s) { if (!s) return '—'; const m = Math.floor(s/60); const sec = s%60; return m + ':' + String(sec).padStart(2,'0'); }
+    let html = `<div style="margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:16px;font-weight:700;color:var(--lower-b)">Run</span>
+        <span style="font-size:12px;color:var(--muted)">${fmt(session.date)}</span>
+        ${session.name ? `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(251,191,36,0.15);color:var(--lower-b)">${esc(session.name)}</span>` : ''}
+      </div>
+    </div>`;
+    if (!run) {
+      html += `<div style="padding:30px 0;text-align:center;color:var(--dim);font-size:13px">Run data not found.</div>`;
+      return html;
+    }
+    html += `<div class="stat-grid">
+      <div class="stat-tile"><div class="stat-val">${run.distance_mi != null ? run.distance_mi : '—'}</div><div class="stat-label">Miles</div></div>
+      <div class="stat-tile"><div class="stat-val sm">${fmtSecs(run.duration_s)}</div><div class="stat-label">Time</div></div>
+      <div class="stat-tile"><div class="stat-val sm">${fmtSecs(run.avg_pace_s)}/mi</div><div class="stat-label">Avg Pace</div></div>
+    </div>
+    <div class="stat-grid" style="margin-top:0">
+      <div class="stat-tile"><div class="stat-val">${run.calories != null ? run.calories : '—'}</div><div class="stat-label">Calories</div></div>
+      <div class="stat-tile"><div class="stat-val">${run.elevation_ft != null ? run.elevation_ft + ' ft' : '—'}</div><div class="stat-label">Elevation</div></div>
+      <div class="stat-tile"><div class="stat-val">${run.cadence != null ? run.cadence : '—'}</div><div class="stat-label">Cadence</div></div>
+    </div>`;
+    if (run.avg_hr) html += `<div class="stat-grid" style="grid-template-columns:1fr;margin-top:0"><div class="stat-tile"><div class="stat-val">${run.avg_hr}</div><div class="stat-label">Avg Heart Rate</div></div></div>`;
+    if (run.notes || session.notes) html += `<div style="margin-top:18px;padding:12px;background:var(--deep);border-radius:8px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Notes</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap">${esc(run.notes || session.notes)}</div></div>`;
+    return html;
+  }
   const sets = DATA.sets.filter(s => s.session_id === session.id);
   const exerciseOrder = []; const seen = new Set();
   for (const s of sets) { const n = s.exercises?.name; if(n && !seen.has(n)){exerciseOrder.push(n);seen.add(n);} }
