@@ -134,7 +134,13 @@ const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_3AzsiWvSIyBQ876U61ahbQ_vQtkdO6J';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const styleColors = {"Weightlifting":"var(--upper-a)","CrossFit":"var(--lower-a)","run":"var(--lower-b)"};
+// Color by style; day_type (heavy/volume) drives weightlifting color
+const styleColors = {"weightlifting":"var(--upper-a)","boxing":"var(--arms)","run":"var(--lower-b)"};
+const dayTypeColors = {"heavy":"var(--upper-a)","volume":"var(--lower-a)"};
+function sessionColor(s) {
+  if (s.style === 'weightlifting' && s.day_type) return dayTypeColors[s.day_type] || styleColors.weightlifting;
+  return styleColors[s.style] || 'var(--misc)';
+}
 const muscleColors = {Back:"var(--back)",Biceps:"var(--biceps)",Calves:"var(--calves)",Chest:"var(--chest)",Glutes:"var(--glutes)",Hamstrings:"var(--hamstrings)",Quads:"var(--quads)",Shoulders:"var(--shoulders)",Triceps:"var(--triceps)"};
 
 let DATA = { exercises:[], sessions:[], sets:[], weights:[], runs:[] };
@@ -157,6 +163,7 @@ async function loadData() {
     id: s.id,
     date: s.date,
     style: s.style,
+    day_type: s.day_type,
     name: s.name,
     notes: s.notes,
     sets: DATA.sets.filter(set => set.session_id === s.id),
@@ -166,6 +173,7 @@ async function loadData() {
 }
 
 function wc(s) { return styleColors[s] || 'var(--misc)'; }
+// kept for legacy use; prefer sessionColor(session) for calendar tiles
 function mc(m) { return muscleColors[m] || 'var(--misc)'; }
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmt(iso) { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]} ${+d}`; }
@@ -228,14 +236,24 @@ function renderSessions() {
     const s = sessMap.get(iso);
     const isToday = iso===today;
     const cls = `cal-day${s?' has-session':''}${isToday?' today':''}`;
-    const bg = s ? wc(s.style) : 'transparent';
+    const bg = s ? sessionColor(s) : 'transparent';
     const click = s ? `onclick="showDetail('session',DATA.sessions.find(x=>x.id===${s.id}))"` : '';
     const label = s ? `<span class="cal-day-label">${esc(s.name||s.style||'')}</span>` : '';
     html += `<button class="${cls}" style="background:${bg}" ${click}><span class="cal-day-num">${d}</span>${label}</button>`;
   }
   html += `</div>`;
-  const usedStyles = new Set(DATA.sessions.map(s=>s.style).filter(Boolean));
-  html += `<div class="legend">${[...usedStyles].map(st=>`<div style="display:flex;align-items:center;gap:4px"><div class="legend-dot" style="background:${wc(st)}"></div><span class="legend-label">${st}</span></div>`).join('')}</div></div>`;
+  // Build legend: weightlifting splits into heavy/volume if both exist; other styles as-is
+  const legendItems = [];
+  const hasHeavy = DATA.sessions.some(s => s.style==='weightlifting' && s.day_type==='heavy');
+  const hasVolume = DATA.sessions.some(s => s.style==='weightlifting' && s.day_type==='volume');
+  const hasWlOther = DATA.sessions.some(s => s.style==='weightlifting' && !s.day_type);
+  if (hasHeavy) legendItems.push({color: dayTypeColors.heavy, label: 'Heavy'});
+  if (hasVolume) legendItems.push({color: dayTypeColors.volume, label: 'Volume'});
+  if (hasWlOther) legendItems.push({color: styleColors.weightlifting, label: 'Weightlifting'});
+  ['boxing','run'].forEach(st => {
+    if (DATA.sessions.some(s => s.style===st)) legendItems.push({color: styleColors[st]||'var(--misc)', label: st.charAt(0).toUpperCase()+st.slice(1)});
+  });
+  html += `<div class="legend">${legendItems.map(item=>`<div style="display:flex;align-items:center;gap:4px"><div class="legend-dot" style="background:${item.color}"></div><span class="legend-label">${item.label}</span></div>`).join('')}</div></div>`;
   return html;
 }
 
@@ -272,14 +290,15 @@ function renderSessionDetail(session) {
   const sets = DATA.sets.filter(s => s.session_id === session.id);
   const exerciseOrder = []; const seen = new Set();
   for (const s of sets) { const n = s.exercises?.name; if(n && !seen.has(n)){exerciseOrder.push(n);seen.add(n);} }
-  const isHeavy = (session.name||'').toLowerCase().includes('heavy');
-  const isVolume = (session.name||'').toLowerCase().includes('volume');
+  const isHeavy = session.day_type === 'heavy';
+  const isVolume = session.day_type === 'volume';
   const dayTypeBadge = session.name
     ? `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:${isHeavy?'rgba(96,165,250,0.15)':isVolume?'rgba(52,211,153,0.15)':'rgba(148,163,184,0.12)'};color:${isHeavy?'var(--upper-a)':isVolume?'var(--lower-a)':'var(--misc)'};">${esc(session.name)}</span>`
     : '';
+  const styleLabel = session.style ? session.style.charAt(0).toUpperCase()+session.style.slice(1) : '—';
   let html = `<div style="margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="font-size:16px;font-weight:700;color:${wc(session.style)}">${esc(session.style||'—')}</span>
+      <span style="font-size:16px;font-weight:700;color:${sessionColor(session)}">${styleLabel}</span>
       <span style="font-size:12px;color:var(--muted)">${fmt(session.date)}</span>
       ${dayTypeBadge}
     </div>
@@ -356,7 +375,7 @@ function renderExerciseDetail(exercise) {
     const key = s.session_id;
     if (!bySession.has(key)) {
       const sess = sessionMap.get(key);
-      bySession.set(key, {date:s.date, style:sess?.style, name:sess?.name, sets:[]});
+      bySession.set(key, {date:s.date, style:sess?.style, day_type:sess?.day_type, name:sess?.name, sets:[]});
     }
     bySession.get(key).sets.push(s);
   }
@@ -409,9 +428,8 @@ function renderExerciseDetail(exercise) {
       const minWeight = Math.min(...validSets.map(x => x.weight));
       const [yy,mo,d] = s.date.split('-');
       const label = MONTHS[+mo-1] + ' ' + +d;
-      const sName = (s.name||'').toLowerCase();
-      const isHeavy = sName.includes('heavy');
-      const isVolume = sName.includes('volume');
+      const isHeavy = s.day_type === 'heavy';
+      const isVolume = s.day_type === 'volume';
       // Assisted pull strength: best set = (bodyweight - assistance) * (1 + reps/30)
       const bw = bwAt(s.date);
       let estPullRM = null;
@@ -447,10 +465,11 @@ function renderExerciseDetail(exercise) {
   if (sessions.length > 0) {
     html += `<h3 class="section-label">History (${sessions.length} sessions)</h3>`;
     for (const sess of sessions) {
-      const sIsHeavy = (sess.name||'').toLowerCase().includes('heavy');
-      const sIsVolume = (sess.name||'').toLowerCase().includes('volume');
+      const sIsHeavy = sess.day_type === 'heavy';
+      const sIsVolume = sess.day_type === 'volume';
+      const sStyleLabel = sess.style ? sess.style.charAt(0).toUpperCase()+sess.style.slice(1) : '';
       const sNameBadge = sess.name ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:${sIsHeavy?'rgba(96,165,250,0.15)':sIsVolume?'rgba(52,211,153,0.15)':'rgba(148,163,184,0.12)'};color:${sIsHeavy?'var(--upper-a)':sIsVolume?'var(--lower-a)':'var(--misc)'};">${esc(sess.name)}</span>` : '';
-      html += `<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap"><span style="font-size:12px;font-weight:600">${fmtFull(sess.date)}</span><span style="font-size:11px;color:${wc(sess.style)};font-weight:600">${esc(sess.style||'')}</span>${sNameBadge}<span style="flex:1"></span><span style="font-size:11px;color:var(--dim)">${sess.sets.length} sets</span></div><div style="display:flex;flex-direction:column;gap:3px">${sess.sets.map(s=>setRow(s)).join('')}</div></div>`;
+      html += `<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap"><span style="font-size:12px;font-weight:600">${fmtFull(sess.date)}</span><span style="font-size:11px;color:${sessionColor(sess)};font-weight:600">${sStyleLabel}</span>${sNameBadge}<span style="flex:1"></span><span style="font-size:11px;color:var(--dim)">${sess.sets.length} sets</span></div><div style="display:flex;flex-direction:column;gap:3px">${sess.sets.map(s=>setRow(s)).join('')}</div></div>`;
     }
   }
   return html;
