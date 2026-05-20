@@ -8,3 +8,13 @@ compatibility_flags = ["nodejs_compat"]
 [assets]
 directory = "./"
 binding = "ASSETS"
+
+# KV namespace — must be declared here so it survives deploys
+# (Cloudflare wipes dashboard-only bindings on every deploy)
+[[kv_namespaces]]
+binding = "SECOND_BRAIN_KV"
+id = "496ff6d3254343ee9951643c4a166440"
+
+# Note: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are runtime secrets,
+# set via dashboard or `npx wrangler secret put`. Wrangler preserves
+# secrets across deploys by default (unlike plain text vars).
