@@ -138,7 +138,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const styleColors = {"weightlifting":"var(--upper-a)","boxing":"var(--arms)","run":"var(--lower-b)"};
 const dayTypeColors = {"heavy":"var(--upper-a)","volume":"var(--lower-a)"};
 function sessionColor(s) {
-  if (s.style === 'weightlifting' && s.day_type) return dayTypeColors[s.day_type] || styleColors.weightlifting;
   return styleColors[s.style] || 'var(--misc)';
 }
 const muscleColors = {Back:"var(--back)",Biceps:"var(--biceps)",Calves:"var(--calves)",Chest:"var(--chest)",Glutes:"var(--glutes)",Hamstrings:"var(--hamstrings)",Quads:"var(--quads)",Shoulders:"var(--shoulders)",Triceps:"var(--triceps)"};
@@ -244,12 +243,7 @@ function renderSessions() {
   html += `</div>`;
   // Build legend: weightlifting splits into heavy/volume if both exist; other styles as-is
   const legendItems = [];
-  const hasHeavy = DATA.sessions.some(s => s.style==='weightlifting' && s.day_type==='heavy');
-  const hasVolume = DATA.sessions.some(s => s.style==='weightlifting' && s.day_type==='volume');
-  const hasWlOther = DATA.sessions.some(s => s.style==='weightlifting' && !s.day_type);
-  if (hasHeavy) legendItems.push({color: dayTypeColors.heavy, label: 'Heavy'});
-  if (hasVolume) legendItems.push({color: dayTypeColors.volume, label: 'Volume'});
-  if (hasWlOther) legendItems.push({color: styleColors.weightlifting, label: 'Weightlifting'});
+  if (DATA.sessions.some(s => s.style==='weightlifting')) legendItems.push({color: styleColors.weightlifting, label: 'Weightlifting'});
   ['boxing','run'].forEach(st => {
     if (DATA.sessions.some(s => s.style===st)) legendItems.push({color: styleColors[st]||'var(--misc)', label: st.charAt(0).toUpperCase()+st.slice(1)});
   });
