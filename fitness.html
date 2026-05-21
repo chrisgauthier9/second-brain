@@ -163,7 +163,6 @@ async function loadData() {
     date: s.date,
     style: s.style,
     day_type: s.day_type,
-    name: s.name,
     notes: s.notes,
     sets: DATA.sets.filter(set => set.session_id === s.id),
   }));
@@ -237,7 +236,7 @@ function renderSessions() {
     const cls = `cal-day${s?' has-session':''}${isToday?' today':''}`;
     const bg = s ? sessionColor(s) : 'transparent';
     const click = s ? `onclick="showDetail('session',DATA.sessions.find(x=>x.id===${s.id}))"` : '';
-    const label = s ? `<span class="cal-day-label">${esc(s.name||s.style||'')}</span>` : '';
+    const label = s ? `<span class="cal-day-label">${s.day_type ? s.day_type.charAt(0).toUpperCase()+s.day_type.slice(1) : ''}</span>` : '';
     html += `<button class="${cls}" style="background:${bg}" ${click}><span class="cal-day-num">${d}</span>${label}</button>`;
   }
   html += `</div>`;
@@ -260,7 +259,6 @@ function renderSessionDetail(session) {
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="font-size:16px;font-weight:700;color:var(--lower-b)">Run</span>
         <span style="font-size:12px;color:var(--muted)">${fmt(session.date)}</span>
-        ${session.name ? `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(251,191,36,0.15);color:var(--lower-b)">${esc(session.name)}</span>` : ''}
       </div>
     </div>`;
     if (!run) {
@@ -286,8 +284,8 @@ function renderSessionDetail(session) {
   for (const s of sets) { const n = s.exercises?.name; if(n && !seen.has(n)){exerciseOrder.push(n);seen.add(n);} }
   const isHeavy = session.day_type === 'heavy';
   const isVolume = session.day_type === 'volume';
-  const dayTypeBadge = session.name
-    ? `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:${isHeavy?'rgba(96,165,250,0.15)':isVolume?'rgba(52,211,153,0.15)':'rgba(148,163,184,0.12)'};color:${isHeavy?'var(--upper-a)':isVolume?'var(--lower-a)':'var(--misc)'};">${esc(session.name)}</span>`
+  const dayTypeBadge = session.day_type
+    ? `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:${isHeavy?'rgba(96,165,250,0.15)':'rgba(52,211,153,0.15)'};color:${isHeavy?'var(--upper-a)':'var(--lower-a)'};">${isHeavy?'Heavy':'Volume'}</span>`
     : '';
   const styleLabel = session.style ? session.style.charAt(0).toUpperCase()+session.style.slice(1) : '—';
   let html = `<div style="margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
@@ -369,7 +367,7 @@ function renderExerciseDetail(exercise) {
     const key = s.session_id;
     if (!bySession.has(key)) {
       const sess = sessionMap.get(key);
-      bySession.set(key, {date:s.date, style:sess?.style, day_type:sess?.day_type, name:sess?.name, sets:[]});
+      bySession.set(key, {date:s.date, style:sess?.style, day_type:sess?.day_type, sets:[]});
     }
     bySession.get(key).sets.push(s);
   }
@@ -462,7 +460,7 @@ function renderExerciseDetail(exercise) {
       const sIsHeavy = sess.day_type === 'heavy';
       const sIsVolume = sess.day_type === 'volume';
       const sStyleLabel = sess.style ? sess.style.charAt(0).toUpperCase()+sess.style.slice(1) : '';
-      const sNameBadge = sess.name ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:${sIsHeavy?'rgba(96,165,250,0.15)':sIsVolume?'rgba(52,211,153,0.15)':'rgba(148,163,184,0.12)'};color:${sIsHeavy?'var(--upper-a)':sIsVolume?'var(--lower-a)':'var(--misc)'};">${esc(sess.name)}</span>` : '';
+      const sNameBadge = sess.day_type ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:${sIsHeavy?'rgba(96,165,250,0.15)':'rgba(52,211,153,0.15)'};color:${sIsHeavy?'var(--upper-a)':'var(--lower-a)'};">${sIsHeavy?'Heavy':'Volume'}</span>` : '';
       html += `<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap"><span style="font-size:12px;font-weight:600">${fmtFull(sess.date)}</span><span style="font-size:11px;color:${sessionColor(sess)};font-weight:600">${sStyleLabel}</span>${sNameBadge}<span style="flex:1"></span><span style="font-size:11px;color:var(--dim)">${sess.sets.length} sets</span></div><div style="display:flex;flex-direction:column;gap:3px">${sess.sets.map(s=>setRow(s)).join('')}</div></div>`;
     }
   }
