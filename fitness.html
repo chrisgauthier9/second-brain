@@ -40,15 +40,15 @@
     .back-btn { background: none; border: none; color: var(--upper-a); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; padding: 0; margin-bottom: 14px; display: flex; align-items: center; gap: 4px; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; width: 100%; text-align: left; font-family: inherit; cursor: pointer; display: block; color: var(--text); text-decoration: none; transition: border-color .15s; }
     .card:hover { border-color: #7c3aed; }
-    .set-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--deep); border-radius: 6px; font-size: 13px; }
+    .set-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--deep); border-radius: 6px; font-size: 13px; min-width: 0; overflow: hidden; }
     .set-num { color: var(--dim); width: 20px; font-weight: 600; flex-shrink: 0; }
-    .set-wt { color: var(--text); font-weight: 700; min-width: 58px; }
-    .set-reps { color: var(--muted); }
-    .set-rpe { font-size: 11px; font-weight: 700; margin-left: auto; }
+    .set-wt { color: var(--text); font-weight: 700; min-width: 52px; flex-shrink: 0; }
+    .set-reps { color: var(--muted); flex-shrink: 0; }
+    .set-rpe { font-size: 11px; font-weight: 700; margin-left: auto; flex-shrink: 0; }
     .pill { font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 999px; display: inline-block; }
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 20px; }
-    .stat-tile { padding: 12px 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; text-align: center; }
-    .stat-val { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1; }
+    .stat-tile { padding: 12px 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; text-align: center; min-width: 0; }
+    .stat-val { font-size: 18px; font-weight: 700; color: var(--text); line-height: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .stat-val.sm { font-size: 13px; }
     .stat-label { font-size: 10px; color: var(--dim); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.6px; }
     .stat-sub { font-size: 10px; color: var(--dim); margin-top: 2px; }
@@ -100,12 +100,14 @@
         background: #1f2937; border-bottom: 1px solid #374151;
         flex-direction: column; gap: 0; padding: 6px 0;
         margin-left: 0; align-items: stretch;
-        max-height: 0; height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
-        z-index: 100; flex: 0 0 0; width: 0; min-width: 0;
+        max-height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
+        z-index: 100; width: 100%;
       }
       .nav-links.open { max-height: calc(100vh - 49px); overflow-y: auto; padding: 6px 0; }
-      .nav-links a { padding: 14px 24px; border-radius: 0; font-size: 15px; }
-      header { position: sticky; top: 0; z-index: 101; overflow: hidden; border-bottom: none; } nav.nav-links { border: none; outline: none; } .nav-links a.active { background: transparent; color: #a78bfa; }
+      .nav-links a { padding: 14px 24px; border-radius: 0; font-size: 15px; width: 100%; }
+      header { position: sticky; top: 0; z-index: 101; }
+      .nav-links a.active { background: transparent; color: #a78bfa; }
+      .wrap { padding: 16px 12px; }
     }
   </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
@@ -268,11 +270,11 @@ function renderSessionDetail(session) {
     html += `<div class="stat-grid">
       <div class="stat-tile"><div class="stat-val">${run.distance_mi != null ? run.distance_mi : '—'}</div><div class="stat-label">Miles</div></div>
       <div class="stat-tile"><div class="stat-val sm">${fmtSecs(run.duration_s)}</div><div class="stat-label">Time</div></div>
-      <div class="stat-tile"><div class="stat-val sm">${fmtSecs(run.avg_pace_s)}/mi</div><div class="stat-label">Avg Pace</div></div>
+      <div class="stat-tile"><div class="stat-val sm">${fmtSecs(run.avg_pace_s)}</div><div class="stat-label">Pace / mi</div></div>
     </div>
     <div class="stat-grid" style="margin-top:0">
       <div class="stat-tile"><div class="stat-val">${run.calories != null ? run.calories : '—'}</div><div class="stat-label">Calories</div></div>
-      <div class="stat-tile"><div class="stat-val">${run.elevation_ft != null ? run.elevation_ft + ' ft' : '—'}</div><div class="stat-label">Elevation</div></div>
+      <div class="stat-tile"><div class="stat-val sm">${run.elevation_ft != null ? run.elevation_ft + ' ft' : '—'}</div><div class="stat-label">Elevation</div></div>
       <div class="stat-tile"><div class="stat-val">${run.cadence != null ? run.cadence : '—'}</div><div class="stat-label">Cadence</div></div>
     </div>`;
     if (run.avg_hr) html += `<div class="stat-grid" style="grid-template-columns:1fr;margin-top:0"><div class="stat-tile"><div class="stat-val">${run.avg_hr}</div><div class="stat-label">Avg Heart Rate</div></div></div>`;
@@ -444,8 +446,8 @@ function renderExerciseDetail(exercise) {
     html += `<div style="margin-bottom:20px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <h3 class="section-label" style="margin:0">Progress</h3>
-        <div id="ex-range-btns" style="display:flex;gap:4px">
-          ${['7d','30d','90d','All'].map(r => `<button onclick="filterExerciseChart('${r.toLowerCase()}')" id="ex-rb-${r.toLowerCase()}" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:${r==='All'?'var(--primary)':'var(--deep)'};color:${r==='All'?'#fff':'var(--dim)'};cursor:pointer">${r}</button>`).join('')}
+        <div id="ex-range-btns" style="display:flex;gap:4px;flex-wrap:wrap">
+          ${['7d','30d','90d','All'].map(r => `<button onclick="filterExerciseChart('${r.toLowerCase()}')" id="ex-rb-${r.toLowerCase()}" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:${r==='All'?'var(--primary)':'var(--deep)'};color:${r==='All'?'#fff':'var(--dim)'};cursor:pointer;white-space:nowrap">${r}</button>`).join('')}
         </div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 12px">
@@ -492,7 +494,7 @@ function renderWeight() {
   ).join('');
 
   return `
-    <div style="display:flex;gap:8px;margin-bottom:16px">${filters}</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">${filters}</div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px">
       <canvas id="weight-chart" height="160"></canvas>
     </div>`;
