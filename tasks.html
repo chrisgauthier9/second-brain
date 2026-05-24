@@ -143,7 +143,7 @@
     .projects-section { margin-bottom: 20px; }
     .projects-section-header { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); padding: 8px 0; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
     .projects-section-header .count { background: var(--border); color: var(--muted); padding: 2px 7px; border-radius: 999px; font-size: 10px; }
-    .project-row { background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(124,58,237,.04)); border: 1px solid rgba(124,58,237,.3); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s; }
+    .project-row { background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(124,58,237,.04)); border: 1px solid rgba(124,58,237,.3); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; transition: border-color .15s; }
     .project-row:hover { border-color: var(--accent); }
     .project-row .project-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .project-row .project-title { font-size: 14px; font-weight: 600; color: var(--text); }
@@ -153,6 +153,21 @@
     .project-toggle:hover { background: rgba(124,58,237,.35); }
 
     .tag.project { background: rgba(124,58,237,.18); color: #a78bfa; }
+
+    /* Project expand drawer */
+    .project-expand-btn { background: none; border: none; cursor: pointer; padding: 4px 6px; color: var(--dim); border-radius: 6px; transition: color .15s, background .15s; display: flex; align-items: center; flex-shrink: 0; }
+    .project-expand-btn:hover { color: #a78bfa; background: rgba(124,58,237,.15); }
+    .project-expand-btn svg { transition: transform .2s; display: block; }
+    .project-expand-btn.open svg { transform: rotate(180deg); }
+    .project-drawer { overflow: hidden; max-height: 0; transition: max-height .25s ease, padding .2s; padding: 0 0 0 2px; }
+    .project-drawer.open { max-height: 2000px; padding: 10px 0 2px 2px; }
+    .project-drawer-empty { font-size: 12px; color: var(--dim); padding: 2px 0 4px; }
+    .drawer-status-group { margin-bottom: 8px; }
+    .drawer-status-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--dim); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+    .drawer-task-chip { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 7px; background: rgba(255,255,255,.04); margin-bottom: 3px; cursor: pointer; transition: background .12s; }
+    .drawer-task-chip:hover { background: rgba(255,255,255,.08); }
+    .drawer-task-chip .chip-title { font-size: 13px; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .drawer-task-chip .chip-est { font-size: 11px; color: var(--dim); white-space: nowrap; flex-shrink: 0; }
 
     /* Status quick-change chip */
     .status-chip-wrap { position: relative; display: inline-block; cursor: pointer; }
@@ -654,10 +669,32 @@
           </div>
           ${projects.map(p => {
             const projectTasks = TASKS.filter(t => t.project_id === p.id && (SHOW_COMPLETED || (t.status !== 'Done' && t.status !== 'Canceled')));
+            const drawerTasks = TASKS.filter(t => t.project_id === p.id && (SHOW_COMPLETED || (t.status !== 'Done' && t.status !== 'Canceled')));
+            const drawerByStatus = {};
+            STATUS_ORDER.forEach(s => { drawerByStatus[s] = []; });
+            drawerTasks.forEach(t => { if (drawerByStatus[t.status]) drawerByStatus[t.status].push(t); });
+            const drawerStatusGroups = STATUS_ORDER.filter(s => drawerByStatus[s].length > 0).map(s => `
+              <div class="drawer-status-group">
+                <div class="drawer-status-label">
+                  <span style="width:6px;height:6px;border-radius:50%;background:${STATUS_COLORS[s]};display:inline-block;flex-shrink:0"></span>
+                  ${STATUS_LABELS[s] || s}
+                </div>
+                ${drawerByStatus[s].map(t => `
+                  <div class="drawer-task-chip" onclick="event.stopPropagation(); openTaskModal('${t.id}')">
+                    <span class="chip-title">${escHtml(t.title)}</span>
+                    ${t.time_estimate ? `<span class="chip-est">${escHtml(t.time_estimate)}</span>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            `).join('');
+
             return `
-              <div class="project-row" onclick="openProjectModal('${p.id}')">
+              <div class="project-row">
                 <div class="project-header">
-                  <div>
+                  <button class="project-expand-btn" id="expand-btn-${p.id}" onclick="event.stopPropagation(); toggleProjectDrawer('${p.id}')" title="Show tasks">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                  <div style="flex:1;min-width:0;cursor:pointer" onclick="toggleProjectDrawer('${p.id}')">
                     <div class="project-title">${escHtml(p.name)}</div>
                     <div class="project-meta">
                       ${p.category ? `<span class="tag cat ${catClass(p.category)}">${escHtml(p.category)}</span>` : ''}
@@ -665,6 +702,11 @@
                     </div>
                   </div>
                   <button class="project-toggle" onclick="event.stopPropagation(); openProjectModal('${p.id}')">Edit</button>
+                </div>
+                <div class="project-drawer" id="drawer-${p.id}">
+                  ${drawerTasks.length === 0
+                    ? '<div class="project-drawer-empty">No open tasks</div>'
+                    : drawerStatusGroups}
                 </div>
               </div>
             `;
@@ -690,6 +732,15 @@
     `).join('');
 
     el.innerHTML = inboxHtml + projectsHtml + statusHtml;
+  }
+
+  function toggleProjectDrawer(id) {
+    const drawer = document.getElementById('drawer-' + id);
+    const btn = document.getElementById('expand-btn-' + id);
+    if (!drawer) return;
+    const isOpen = drawer.classList.contains('open');
+    drawer.classList.toggle('open', !isOpen);
+    if (btn) btn.classList.toggle('open', !isOpen);
   }
 
   function openProjectModal(id) {
