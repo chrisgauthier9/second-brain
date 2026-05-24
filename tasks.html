@@ -633,6 +633,54 @@
       </div>`;
   }
 
+  function projectCardHTML(p) {
+    const projectTasks = TASKS.filter(function(t) {
+      return t.project_id === p.id && (SHOW_COMPLETED || (t.status !== 'Done' && t.status !== 'Canceled'));
+    });
+
+    var drawerByStatus = {};
+    STATUS_ORDER.forEach(function(s) { drawerByStatus[s] = []; });
+    projectTasks.forEach(function(t) { if (drawerByStatus[t.status]) drawerByStatus[t.status].push(t); });
+
+    var drawerInner = '';
+    if (projectTasks.length === 0) {
+      drawerInner = '<div class="project-drawer-empty">No open tasks</div>';
+    } else {
+      STATUS_ORDER.forEach(function(s) {
+        var group = drawerByStatus[s];
+        if (!group || group.length === 0) return;
+        var chips = group.map(function(t) {
+          var est = t.time_estimate ? '<span class="chip-est">' + escHtml(t.time_estimate) + '</span>' : '';
+          return '<div class="drawer-task-chip" onclick="event.stopPropagation(); openTaskModal(\'' + t.id + '\')">'
+               + '<span class="chip-title">' + escHtml(t.title) + '</span>'
+               + est
+               + '</div>';        }).join('');
+        var dot = '<span style="width:6px;height:6px;border-radius:50%;background:' + (STATUS_COLORS[s] || '#9ca3af') + ';display:inline-block;flex-shrink:0"></span>';
+        drawerInner += '<div class="drawer-status-group">'
+                     + '<div class="drawer-status-label">' + dot + ' ' + (STATUS_LABELS[s] || s) + '</div>'
+                     + chips
+                     + '</div>';
+      });
+    }
+
+    var catTag = p.category ? '<span class="tag cat ' + catClass(p.category) + '">' + escHtml(p.category) + '</span>' : '';
+    var taskCount = projectTasks.length;
+
+    return '<div class="project-row">'
+         + '<div class="project-header">'
+         + '<button class="project-expand-btn" id="expand-btn-' + p.id + '" onclick="event.stopPropagation(); toggleProjectDrawer(\'' + p.id + '\')" title="Show tasks">'
+         + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
+         + '</button>'
+         + '<div style="flex:1;min-width:0;cursor:pointer" onclick="toggleProjectDrawer(\'' + p.id + '\')">'
+         + '<div class="project-title">' + escHtml(p.name) + '</div>'
+         + '<div class="project-meta">' + catTag + '<span class="project-tasks-count">' + taskCount + ' task' + (taskCount === 1 ? '' : 's') + '</span></div>'
+         + '</div>'
+         + '<button class="project-toggle" onclick="event.stopPropagation(); openProjectModal(\'' + p.id + '\')">Edit</button>'
+         + '</div>'
+         + '<div class="project-drawer" id="drawer-' + p.id + '">' + drawerInner + '</div>'
+         + '</div>';
+  }
+
   function render() {
     const tasks = getFilteredTasks();
     const el = document.getElementById('view');
@@ -667,50 +715,7 @@
             <span>Projects</span>
             <span class="count">${projects.length}</span>
           </div>
-          ${projects.map(p => {
-            const projectTasks = TASKS.filter(t => t.project_id === p.id && (SHOW_COMPLETED || (t.status !== 'Done' && t.status !== 'Canceled')));
-            const drawerTasks = TASKS.filter(t => t.project_id === p.id && (SHOW_COMPLETED || (t.status !== 'Done' && t.status !== 'Canceled')));
-            const drawerByStatus = {};
-            STATUS_ORDER.forEach(s => { drawerByStatus[s] = []; });
-            drawerTasks.forEach(t => { if (drawerByStatus[t.status]) drawerByStatus[t.status].push(t); });
-            const drawerStatusGroups = STATUS_ORDER.filter(s => drawerByStatus[s].length > 0).map(s => `
-              <div class="drawer-status-group">
-                <div class="drawer-status-label">
-                  <span style="width:6px;height:6px;border-radius:50%;background:${STATUS_COLORS[s]};display:inline-block;flex-shrink:0"></span>
-                  ${STATUS_LABELS[s] || s}
-                </div>
-                ${drawerByStatus[s].map(t => `
-                  <div class="drawer-task-chip" onclick="event.stopPropagation(); openTaskModal('${t.id}')">
-                    <span class="chip-title">${escHtml(t.title)}</span>
-                    ${t.time_estimate ? `<span class="chip-est">${escHtml(t.time_estimate)}</span>` : ''}
-                  </div>
-                `).join('')}
-              </div>
-            `).join('');
-
-            return `
-              <div class="project-row">
-                <div class="project-header">
-                  <button class="project-expand-btn" id="expand-btn-${p.id}" onclick="event.stopPropagation(); toggleProjectDrawer('${p.id}')" title="Show tasks">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                  </button>
-                  <div style="flex:1;min-width:0;cursor:pointer" onclick="toggleProjectDrawer('${p.id}')">
-                    <div class="project-title">${escHtml(p.name)}</div>
-                    <div class="project-meta">
-                      ${p.category ? `<span class="tag cat ${catClass(p.category)}">${escHtml(p.category)}</span>` : ''}
-                      <span class="project-tasks-count">${projectTasks.length} task${projectTasks.length === 1 ? '' : 's'}</span>
-                    </div>
-                  </div>
-                  <button class="project-toggle" onclick="event.stopPropagation(); openProjectModal('${p.id}')">Edit</button>
-                </div>
-                <div class="project-drawer" id="drawer-${p.id}">
-                  ${drawerTasks.length === 0
-                    ? '<div class="project-drawer-empty">No open tasks</div>'
-                    : drawerStatusGroups}
-                </div>
-              </div>
-            `;
-          }).join('')}
+          ${projects.map(p => projectCardHTML(p)).join('')}
         </div>
       `;
     }
