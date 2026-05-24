@@ -651,7 +651,7 @@
         if (!group || group.length === 0) return;
         var chips = group.map(function(t) {
           var est = t.time_estimate ? '<span class="chip-est">' + escHtml(t.time_estimate) + '</span>' : '';
-          return '<div class="drawer-task-chip" onclick="event.stopPropagation(); openTaskModal(\'' + t.id + '\')">'
+          return '<div class="drawer-task-chip" onclick="event.stopPropagation(); openModal(\'' + t.id + '\')">'
                + '<span class="chip-title">' + escHtml(t.title) + '</span>'
                + est
                + '</div>';        }).join('');
@@ -709,13 +709,17 @@
     // Render projects section
     let projectsHtml = '';
     if (projects.length > 0) {
+      const projectCards = projects.map(p => {
+        try { return projectCardHTML(p); }
+        catch(e) { console.error('projectCardHTML error for', p.id, e); return ''; }
+      }).join('');
       projectsHtml = `
         <div class="projects-section">
           <div class="projects-section-header">
             <span>Projects</span>
             <span class="count">${projects.length}</span>
           </div>
-          ${projects.map(p => projectCardHTML(p)).join('')}
+          ${projectCards}
         </div>
       `;
     }
