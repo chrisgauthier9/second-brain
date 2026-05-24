@@ -63,7 +63,15 @@
     }
   </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="auth.js"></script>
-
+<script>
+// Redirect to last-visited page if one is stored
+(function() {
+  const last = localStorage.getItem('sb_last_page');
+  if (last && last !== 'index.html') {
+    window.location.replace(last);
+  }
+})();
+</script>
 </head>
 <body>
 <header>
@@ -155,4 +163,5 @@
 </script>
 </body>
 </html>
+
 
