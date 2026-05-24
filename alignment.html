@@ -315,6 +315,10 @@ const HABIT_ROWS = [
   { key: 'shutdown_sequence', label: 'Shutdown' },
   { key: 'trained',        label: 'Trained',       inverted: false, derived: true, dtype: 'trained' },
   { key: 'journaled',      label: 'Journaled',     derived: true, dtype: 'journal' },
+  // Project hours (from calendar)
+  { key: 'hoot_hours',    label: 'Hoot ≥1h',      derived: true, dtype: 'cal_hours', cat: 'hoot',    threshold: 1.0 },
+  { key: 'finnian_hours', label: 'Finnian ≥1.5h', derived: true, dtype: 'cal_hours', cat: 'finnian', threshold: 1.5 },
+  { key: 'tempo_hours',   label: 'Tempo ≥1h',     derived: true, dtype: 'cal_hours', cat: 'tempo',   threshold: 1.0 },
 ];
 
 // ----- State -----
@@ -327,6 +331,7 @@ let WEEK_STATS = {};
 let WEEKLY_REVIEWS_LIST = [];
 let CURRENT_DATE = todayISO();              // which day the Day tab is currently editing
 let WEIGHT_LOG = {};                        // date -> weight (lbs)
+let HOUR_DATA = {};                         // date -> { hoot, finnian, tempo } hours (from calendar)
 let RANGE = 7;                              // history heatmap range
 
 // ----- Date helpers (all in America/Toronto) -----
@@ -408,6 +413,13 @@ function habitHit(row, h) {
       else durationMin = wakeMin - bedMin;
       return (durationMin / 60) >= h.threshold;
     }
+    // Calendar hours ≥ threshold
+    if (h.dtype === 'cal_hours') {
+      const dayHours = HOUR_DATA[row.date];
+      if (!dayHours) return null;
+      const v = dayHours[h.cat] || 0;
+      return v >= h.threshold;
+    }
   }
 
   // ----- Direct boolean / text rows -----
@@ -456,6 +468,29 @@ async function load() {
       for (const w of (weightRes.data || [])) WEIGHT_LOG[w.date] = w.weight;
     }
   } catch (e) { /* bodyweight unavailable — render without it */ }
+
+  // Fetch 60-day calendar hours for heatmap rows (non-blocking)
+  HOUR_DATA = {};
+  try {
+    const heatCutoff = dateRange(60)[59];
+    const heatEnd = shiftDate(todayISO(), 1);
+    const hRes = await fetch(`/api/calendar/hours?start=${heatCutoff}T00:00:00-04:00&end=${heatEnd}T00:00:00-04:00`);
+    if (hRes.ok) {
+      const hData = await hRes.json();
+      const cats = hData.categories || {};
+      // Build per-day lookup by parsing each event's start datetime → local date
+      for (const cat of ['hoot', 'finnian', 'tempo']) {
+        const events = cats[cat] ? cats[cat].events : [];
+        for (const ev of events) {
+          if (!ev.start) continue;
+          // Convert event start to America/Toronto local date string
+          const evDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ev.start));
+          if (!HOUR_DATA[evDate]) HOUR_DATA[evDate] = { hoot: 0, finnian: 0, tempo: 0 };
+          HOUR_DATA[evDate][cat] = (HOUR_DATA[evDate][cat] || 0) + (ev.duration || 0);
+        }
+      }
+    }
+  } catch(e) { /* calendar unavailable — heatmap hour rows will show null */ }
 
   // Fetch all weekly reviews for history tab
   try {
@@ -1130,8 +1165,16 @@ load().catch(e => {
   nav.addEventListener('click', function(e) { if (e.target.tagName === 'A') close(); });
 })();
 </script>
+
+<script>
+// Remember this page as the last visited
+(function() {
+  try { localStorage.setItem('sb_last_page', 'alignment.html'); } catch(e) {}
+})();
+</script>
 </body>
 </html>
+
 
 
 
