@@ -295,6 +295,7 @@
 <script>
 // ----- Config -----
 const TZ = 'America/Toronto';
+const API_BASE = 'https://second-brain.chrisgauthier9.workers.dev';
 function todayISO() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
 }
@@ -474,7 +475,7 @@ async function load() {
   try {
     const heatCutoff = dateRange(60)[59];
     const heatEnd = shiftDate(todayISO(), 1);
-    const hRes = await fetch(`/api/calendar/hours?start=${heatCutoff}T00:00:00-04:00&end=${heatEnd}T00:00:00-04:00`);
+    const hRes = await fetch(`${API_BASE}/api/calendar/hours?start=${heatCutoff}T00:00:00-04:00&end=${heatEnd}T00:00:00-04:00`);
     if (hRes.ok) {
       const hData = await hRes.json();
       const cats = hData.categories || {};
@@ -519,7 +520,7 @@ async function load() {
       // Pull hours from calendar worker (source of truth)
       let hoursData = null;
       try {
-        const hRes = await fetch(`/api/calendar/hours?start=${monday}T00:00:00-04:00&end=${todayISO()}T23:59:59-04:00`);
+        const hRes = await fetch(`${API_BASE}/api/calendar/hours?start=${monday}T00:00:00-04:00&end=${todayISO()}T23:59:59-04:00`);
         if (hRes.ok) hoursData = await hRes.json();
       } catch(e) { /* worker unavailable */ }
       const cats = hoursData && hoursData.categories ? hoursData.categories : {};
@@ -636,7 +637,7 @@ async function fetchAndRenderDayHours(dateISO) {
     // Add a small overlap to next day start to ensure we capture midnight events
     const next = shiftDate(dateISO, 1);
     const end = `${next}T00:00:00-04:00`;
-    const res = await fetch(`/api/calendar/hours?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+    const res = await fetch(`${API_BASE}/api/calendar/hours?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
     if (!res.ok) throw new Error('hours fetch failed');
     const data = await res.json();
     const cats = data.categories || {};
@@ -1174,6 +1175,7 @@ load().catch(e => {
 </script>
 </body>
 </html>
+
 
 
 
