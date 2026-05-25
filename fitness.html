@@ -137,7 +137,7 @@ const SUPABASE_KEY = 'sb_publishable_3AzsiWvSIyBQ876U61ahbQ_vQtkdO6J';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Color by style; day_type (heavy/volume) drives weightlifting color
-const styleColors = {"weightlifting":"var(--upper-a)","boxing":"var(--arms)","run":"var(--lower-b)"};
+const styleColors = {"weightlifting":"var(--upper-a)","boxing":"var(--arms)","run":"var(--lower-b)","mobility":"var(--lower-a)"};
 const dayTypeColors = {"heavy":"var(--upper-a)","volume":"var(--lower-a)"};
 function sessionColor(s) {
   return styleColors[s.style] || 'var(--misc)';
@@ -245,7 +245,7 @@ function renderSessions() {
   // Build legend: weightlifting splits into heavy/volume if both exist; other styles as-is
   const legendItems = [];
   if (DATA.sessions.some(s => s.style==='weightlifting')) legendItems.push({color: styleColors.weightlifting, label: 'Weightlifting'});
-  ['boxing','run'].forEach(st => {
+  ['boxing','run','mobility'].forEach(st => {
     if (DATA.sessions.some(s => s.style===st)) legendItems.push({color: styleColors[st]||'var(--misc)', label: st.charAt(0).toUpperCase()+st.slice(1)});
   });
   html += `<div class="legend">${legendItems.map(item=>`<div style="display:flex;align-items:center;gap:4px"><div class="legend-dot" style="background:${item.color}"></div><span class="legend-label">${item.label}</span></div>`).join('')}</div></div>`;
