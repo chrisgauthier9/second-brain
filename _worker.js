@@ -27,6 +27,14 @@ export default {
       if (url.pathname === '/auth/callback') return handleAuthCallback(url, env);
       if (url.pathname === '/api/calendar/hours') return handleHoursAPI(url, env, ctx);
       if (url.pathname === '/api/calendar/status') return handleStatus(env);
+      if (url.pathname === '/api/calendar/debug') {
+        try {
+          const token = await getAccessToken(env);
+          return new Response(JSON.stringify({ ok: true, token_prefix: token.slice(0, 10) }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+        } catch(e) {
+          return new Response(JSON.stringify({ ok: false, error: e.message, stack: e.stack }), { status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+        }
+      }
     } catch (err) {
       return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
         status: 500,
@@ -263,3 +271,4 @@ async function handleStatus(env) {
     headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
   });
 }
+
