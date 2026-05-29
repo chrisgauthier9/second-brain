@@ -226,6 +226,27 @@
       .nav-links a { padding: 14px 24px; border-radius: 0; font-size: 15px; }
       .form-grid { grid-template-columns: 1fr; }
     }
+
+    /* Recurring view */
+    .recurring-h2 { font-size: 18px; font-weight: 700; margin: 4px 0 10px; }
+    .recurring-explainer { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-bottom: 16px; }
+    .recurring-explainer code { background: rgba(124,58,237,.15); color: #a78bfa; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    .recurring-explainer strong { color: var(--text); }
+    .recurring-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+    .recurring-card-head { cursor: pointer; }
+    .recurring-title { font-size: 15px; font-weight: 600; color: var(--text); }
+    .recurring-next { font-size: 12.5px; color: var(--muted); margin: 10px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .recurring-next strong { color: var(--text); }
+    .recurring-flag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--border); color: var(--muted); }
+    .recurring-flag.ok { background: rgba(52,211,153,.15); color: var(--ok); }
+    .recurring-flag.due { background: rgba(251,191,36,.15); color: var(--warn); }
+    .recurring-instances { border-top: 1px solid var(--border); padding-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .recurring-inst { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+    .recurring-inst:hover { background: var(--surface); }
+    .recurring-inst-due { font-size: 12px; color: var(--muted); }
+    .recurring-empty { font-size: 12px; color: var(--dim); padding: 4px 0; }
+    .recurring-orphans { margin-top: 18px; border: 1px solid rgba(248,113,113,.4); border-radius: 12px; padding: 12px; background: rgba(248,113,113,.05); }
+    .recurring-orphan-head { font-size: 12.5px; font-weight: 600; color: #f87171; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -256,6 +277,7 @@
     <select id="bucket-selector" onchange="setCategory(this.value)">
       <option value="all">All Active</option>
       <option value="inbox" selected>Inbox (no category)</option>
+      <option value="recurring">↻ Recurring</option>
       <optgroup label="1. Work">
         <option value="1. Finnian">1. Finnian</option>
         <option value="1. Tempo">1. Tempo</option>
@@ -681,9 +703,105 @@
          + '</div>';
   }
 
+  function computeNextSpawn(recurrence) {
+    if (!recurrence) return null;
+    const pat = recurrence.toLowerCase().trim();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dow = today.getDay();
+    const addDays = (base, n) => { const d = new Date(base); d.setDate(d.getDate()+n); return d; };
+    let next = null;
+    if (pat === 'daily') {
+      next = today;
+    } else if (pat === 'weekday') {
+      next = (dow >= 1 && dow <= 5) ? today : addDays(today, (1 - dow + 7) % 7);
+    } else if (pat.startsWith('weekly:')) {
+      const map = { sunday:0, monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6 };
+      const target = map[pat.split(':')[1]];
+      if (target === undefined) return null;
+      next = addDays(today, (target - dow + 7) % 7);
+    } else if (pat.startsWith('monthly:')) {
+      const n = parseInt(pat.split(':')[1], 10);
+      if (isNaN(n)) return null;
+      const dim = (y,m) => new Date(y, m+1, 0).getDate();
+      let y = today.getFullYear(), m = today.getMonth();
+      let cand = new Date(y, m, Math.min(n, dim(y,m)));
+      if (cand < today) { m += 1; if (m > 11) { m = 0; y += 1; } cand = new Date(y, m, Math.min(n, dim(y,m))); }
+      next = cand;
+    }
+    if (!next) return null;
+    const yyyy = next.getFullYear();
+    const mm = String(next.getMonth()+1).padStart(2,'0');
+    const dd = String(next.getDate()).padStart(2,'0');
+    return yyyy + '-' + mm + '-' + dd;
+  }
+
+  function recurringHTML() {
+    const templates = TASKS.filter(t => t.recurrence);
+    const HORIZON = 2;
+    const todayMid = new Date(); todayMid.setHours(0,0,0,0);
+    const explainer = '<div class="recurring-explainer">'
+      + 'Templates live with a <strong>recurrence</strong> pattern (e.g. <code>weekly:sunday</code>) and status Someday. '
+      + 'During the Saturday shutdown, <code>spawn_recurring_tasks()</code> creates an instance for each template whose next due date is within ' + HORIZON + ' days '
+      + '\u2014 copying category, estimate &amp; notes, linking back via <code>recurrence_parent_id</code>, and skipping any date that already has an instance.'
+      + '</div>';
+    if (templates.length === 0) {
+      return '<h2 class="recurring-h2">Recurring</h2>' + explainer + '<div class="empty-state">No recurring templates yet.</div>';
+    }
+    const templateTitles = new Set(templates.map(t => (t.title||'').toLowerCase()));
+    const blocks = templates.map(tpl => {
+      const next = computeNextSpawn(tpl.recurrence);
+      const nextLabel = next ? new Date(next + 'T12:00:00').toLocaleDateString('en', { weekday:'short', month:'short', day:'numeric' }) : 'unknown';
+      let willSpawn = false;
+      if (next) { const diff = Math.round((new Date(next + 'T00:00:00') - todayMid) / 86400000); willSpawn = diff <= HORIZON; }
+      const covered = next && TASKS.some(t => t.recurrence_parent_id === tpl.id && t.due_date === next);
+      let instances = TASKS.filter(t => t.recurrence_parent_id === tpl.id);
+      if (!SHOW_COMPLETED) instances = instances.filter(t => t.status !== 'Done' && t.status !== 'Canceled');
+      instances.sort((a,b) => (a.due_date||'').localeCompare(b.due_date||''));
+      const instRows = instances.length === 0
+        ? '<div class="recurring-empty">No instances yet</div>'
+        : instances.map(t => {
+            const due = t.due_date ? new Date(t.due_date + 'T12:00:00').toLocaleDateString('en',{ month:'short', day:'numeric', year:'2-digit' }) : '\u2014';
+            const sk = (t.status||'').replace(/\s+/g,'-');
+            return '<div class="recurring-inst" onclick="openModal(\'' + t.id + '\')">'
+              + '<span class="status-chip" style="background:' + (STATUS_COLORS[t.status]||'#374151') + '33;color:' + (STATUS_COLORS[t.status]||'#9ca3af') + '">'
+              + '<span class="status-dot status-' + sk + '"></span>' + escHtml(t.status||'') + '</span>'
+              + '<span class="recurring-inst-due">' + due + '</span></div>';
+          }).join('');
+      const catTag = tpl.category
+        ? '<span class="tag cat ' + catClass(tpl.category) + '">' + escHtml(tpl.category) + '</span>'
+        : '<span class="tag" style="background:rgba(248,113,113,.15);color:#f87171">no category</span>';
+      const flag = covered ? '<span class="recurring-flag ok">instance exists \u2713</span>'
+        : willSpawn ? '<span class="recurring-flag due">spawns next shutdown</span>'
+        : '<span class="recurring-flag">outside 2d window</span>';
+      return '<div class="recurring-card">'
+        + '<div class="recurring-card-head" onclick="openModal(\'' + tpl.id + '\')">'
+        + '<div class="recurring-title">' + escHtml(tpl.title) + '</div>'
+        + '<div class="task-meta" style="margin-top:4px">'
+        + '<span class="tag" style="background:rgba(124,58,237,.15);color:#a78bfa">\u21bb ' + escHtml(tpl.recurrence) + '</span>'
+        + catTag
+        + (tpl.time_estimate ? '<span class="tag estimate">~' + tpl.time_estimate + 'h</span>' : '')
+        + '</div></div>'
+        + '<div class="recurring-next">Next spawn: <strong>' + nextLabel + '</strong>' + flag + '</div>'
+        + '<div class="recurring-instances">' + instRows + '</div>'
+        + '</div>';
+    }).join('');
+    const orphans = TASKS.filter(t => !t.recurrence && !t.recurrence_parent_id
+      && t.status !== 'Done' && t.status !== 'Canceled'
+      && templateTitles.has((t.title||'').toLowerCase()));
+    let orphanHtml = '';
+    if (orphans.length > 0) {
+      orphanHtml = '<div class="recurring-orphans">'
+        + '<div class="recurring-orphan-head">\u26a0 ' + orphans.length + ' possible orphan' + (orphans.length===1?'':'s')
+        + ' \u2014 title matches a template but no recurrence_parent_id</div>'
+        + orphans.map(taskHTML).join('') + '</div>';
+    }
+    return '<h2 class="recurring-h2">Recurring</h2>' + explainer + blocks + orphanHtml;
+  }
+
   function render() {
-    const tasks = getFilteredTasks();
     const el = document.getElementById('view');
+    if (CURRENT_CATEGORY === 'recurring') { el.innerHTML = recurringHTML(); return; }
+    const tasks = getFilteredTasks();
 
     // Show inbox quick-add only on 'all' or 'inbox' views
     const showInbox = (CURRENT_CATEGORY === 'all' || CURRENT_CATEGORY === 'inbox') && !SHOW_COMPLETED;
