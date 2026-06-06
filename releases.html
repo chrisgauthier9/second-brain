@@ -77,6 +77,18 @@
     .song-meta .pill.stale-err { background: rgba(248,113,113,.18); color: var(--err); }
     .song-meta .pill.target { background: rgba(124,58,237,.15); color: #a78bfa; }
     .song-meta .icon-link { font-size: 11px; opacity: .7; }
+    .song-notes {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
+    }
 
     /* Cancelled footer */
     .canceled-section { margin-top: 24px; }
@@ -388,10 +400,15 @@ function cardHTML(song) {
   }
   if (song.url) pills.push(`<span class="icon-link">🔗</span>`);
 
+  const notesHTML = song.notes
+    ? `<div class="song-notes" title="${escapeHTML(song.notes)}">${escapeHTML(song.notes)}</div>`
+    : '';
+
   return `
     <div class="song-card ${stale} ${terminalClass}" data-id="${song.id}">
       <div class="song-title">${escapeHTML(song.title)}</div>
       <div class="song-meta">${pills.join('')}</div>
+      ${notesHTML}
     </div>`;
 }
 
