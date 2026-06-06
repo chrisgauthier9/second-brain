@@ -52,13 +52,11 @@
     .column-body { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
 
     /* Stage column accents */
-    .col-concept .column-header        { color: #94a3b8; }
-    .col-idea .column-header           { color: #a78bfa; }
-    .col-rough .column-header          { color: #818cf8; }
-    .col-finished .column-header       { color: #60a5fa; }
-    .col-ready_for_mix .column-header  { color: #fbbf24; }
-    .col-mastered .column-header       { color: #34d399; }
-    .col-released .column-header       { color: #f472b6; }
+    .col-idea .column-header              { color: #a78bfa; }
+    .col-rough_draft .column-header       { color: #818cf8; }
+    .col-finished_draft .column-header    { color: #60a5fa; }
+    .col-mix_and_mastered .column-header  { color: #fbbf24; }
+    .col-released .column-header          { color: #f472b6; }
 
     /* Cards */
     .song-card {
@@ -210,12 +208,10 @@
       <div class="form-row">
         <label>Stage</label>
         <select id="f-status">
-          <option value="concept">Concept</option>
           <option value="idea">Idea</option>
-          <option value="rough">Rough</option>
-          <option value="finished">Finished</option>
-          <option value="ready_for_mix">Ready for Mix</option>
-          <option value="mastered">Mastered</option>
+          <option value="rough_draft">Rough Draft</option>
+          <option value="finished_draft">Finished Draft</option>
+          <option value="mix_and_mastered">Mix &amp; Mastered</option>
           <option value="released">Released</option>
           <option value="canceled">Canceled</option>
         </select>
@@ -250,15 +246,13 @@
 <script src="auth.js"></script>
 <script>
 // ===== Constants =====
-const STAGES = ['concept', 'idea', 'rough', 'finished', 'ready_for_mix', 'mastered', 'released'];
+const STAGES = ['idea', 'rough_draft', 'finished_draft', 'mix_and_mastered', 'released'];
 const TERMINAL = new Set(['released', 'canceled']);
 const STAGE_LABEL = {
-  concept: 'Concept',
   idea: 'Idea',
-  rough: 'Rough',
-  finished: 'Finished',
-  ready_for_mix: 'Ready for Mix',
-  mastered: 'Mastered',
+  rough_draft: 'Rough Draft',
+  finished_draft: 'Finished Draft',
+  mix_and_mastered: 'Mix & Mastered',
   released: 'Released',
   canceled: 'Canceled'
 };
