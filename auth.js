@@ -53,4 +53,50 @@
     await sb.auth.signOut();
     window.location.replace('login.html');
   };
+
+  // ----- Google Calendar status banner -----
+  // Fires after auth resolves with a real session. Pings /api/calendar/status
+  // and injects a sticky warning banner if the refresh token is broken.
+  // The banner links to /auth/google so the user can re-authorize in one click.
+  window._authReadyPromise.then(async (session) => {
+    if (!session) return; // signed out; auth.js will redirect
+
+    let status;
+    try {
+      const res = await fetch('/api/calendar/status');
+      if (!res.ok) return;
+      status = await res.json();
+    } catch (e) {
+      return; // status endpoint unreachable; don't false-alarm
+    }
+
+    const broken = !status.connected ||
+      (status.token_refresh && status.token_refresh.ok === false);
+    if (!broken) return;
+
+    const reason = !status.connected
+      ? 'Not connected'
+      : (status.token_refresh && (status.token_refresh.error_description || status.token_refresh.error))
+        || 'refresh failed';
+
+    const inject = () => {
+      if (document.getElementById('calendar-status-banner')) return;
+      const banner = document.createElement('div');
+      banner.id = 'calendar-status-banner';
+      banner.innerHTML =
+        '<span style="flex:1">⚠️ <strong>Google Calendar disconnected.</strong> Hours data unavailable. <span style="opacity:.75">(' + reason + ')</span></span>' +
+        '<a href="/auth/google" style="padding:6px 14px;background:#fef3c7;color:#7c2d12;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;white-space:nowrap">Reconnect →</a>';
+      banner.style.cssText =
+        'position:sticky;top:0;left:0;right:0;z-index:9999;' +
+        'display:flex;align-items:center;gap:12px;' +
+        'padding:10px 16px;' +
+        'background:#7c2d12;color:#fef3c7;' +
+        'font-size:14px;font-family:system-ui,sans-serif;' +
+        'border-bottom:1px solid #92400e';
+      document.body.insertBefore(banner, document.body.firstChild);
+    };
+
+    if (document.body) inject();
+    else document.addEventListener('DOMContentLoaded', inject);
+  });
 })();
