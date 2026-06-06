@@ -166,6 +166,9 @@ async function loadData() {
     date: s.date,
     style: s.style,
     day_type: s.day_type,
+    pillar: s.pillar,
+    duration_minutes: s.duration_minutes,
+    intensity_zone: s.intensity_zone,
     notes: s.notes,
     sets: DATA.sets.filter(set => set.session_id === s.id),
   }));
