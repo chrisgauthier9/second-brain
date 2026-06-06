@@ -276,94 +276,10 @@ function muscleCadence() {
   return out;
 }
 
-function todayRecommendation() {
-  const wk = thisWeekRange();
-  const daysLeftAfterToday = 6 - wk.dow;
-  const stats = pillarProgress();
-  const today = wk.today;
-  const todaySessions = DATA.sessions.filter(s => s.date === today);
-
-  const strength = stats.find(p => p.id === 'strength');
-  const z2       = stats.find(p => p.id === 'zone2');
-  const z45      = stats.find(p => p.id === 'zone45');
-  const mob      = stats.find(p => p.id === 'mobility');
-  const bal      = stats.find(p => p.id === 'balance');
-
-  const didStrengthToday = todaySessions.some(s => s.pillar === 'strength');
-  const didCardioToday   = todaySessions.some(s => s.pillar === 'zone2' || s.pillar === 'zone45');
-  const didYogaToday     = todaySessions.some(s => s.style === 'yoga' || s.pillar === 'mobility' || s.pillar === 'balance');
-
-  const cadence = muscleCadence();
-  const staleGroups = Object.entries(cadence)
-    .filter(([, days]) => days === null || days >= 5)
-    .sort((a, b) => (b[1] ?? 99) - (a[1] ?? 99))
-    .map(([g]) => g);
-
-  const recs = [];
-
-  if (strength.current < strength.target && !didStrengthToday) {
-    const need = strength.target - strength.current;
-    const focus = staleGroups.length ? staleGroups[0] : 'rotate groups';
-    recs.push({
-      priority: 1,
-      pillar: 'strength',
-      headline: `Lift today — focus ${focus}`,
-      body: `${strength.current}/${strength.target} strength sessions this week. Need ${need} more in ${daysLeftAfterToday + 1} day${daysLeftAfterToday === 0 ? '' : 's'}. Staler groups first: ${staleGroups.slice(0,3).join(', ') || 'none stale'}.`,
-    });
-  }
-
-  if (z45.current < z45.target) {
-    const need = z45.target - z45.current;
-    recs.push({
-      priority: didCardioToday ? 4 : 2,
-      pillar: 'zone45',
-      headline: 'Norwegian 4×4 — 28 min',
-      body: `Z4-5 at ${z45.current}/${z45.target} min. Behind by ${need} min. One 4×4 (4 min Z5 + 3 min Z2 × 4) banks 28 min toward target.`,
-    });
-  }
-
-  if (z2.current < z2.target) {
-    const need = z2.target - z2.current;
-    const easy = Math.min(30, need);
-    recs.push({
-      priority: didCardioToday ? 4 : 3,
-      pillar: 'zone2',
-      headline: `Z2 — ${easy}+ min`,
-      body: `Z2 at ${z2.current}/${z2.target} min. Behind by ${need} min. Easiest path: 10-min post-meal walks (3 a day = 30 min, no calendar disruption).`,
-    });
-  }
-
-  if (!didYogaToday && (mob.current < mob.target || bal.current < bal.target)) {
-    recs.push({
-      priority: 5,
-      pillar: 'mob_bal',
-      headline: 'Yoga — covers mobility + balance',
-      body: `Mobility ${mob.current}/${mob.target} days, balance ${bal.current}/${bal.target} days this week. One yoga session checks both for today.`,
-    });
-  }
-
-  recs.sort((a, b) => a.priority - b.priority);
-
-  if (!recs.length) {
-    return { headline: 'On pace ✓', body: 'All hard pillars met this week. Maintenance day — yoga or walk if you feel like it.', pillar: null };
-  }
-  return recs[0];
-}
-
 function renderToday() {
   const stats = pillarProgress();
   const wk = thisWeekRange();
   const cadence = muscleCadence();
-  const rec = todayRecommendation();
-
-  const recColor = ({ strength:'#60a5fa', zone2:'#34d399', zone45:'#f87171', mob_bal:'#fbbf24' })[rec.pillar] || '#a78bfa';
-
-  const recHTML = `
-    <div style="background:${recColor}15;border:1px solid ${recColor}55;border-radius:12px;padding:14px 16px;margin-bottom:18px">
-      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:${recColor};margin-bottom:6px">Today's prescription</div>
-      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px">${esc(rec.headline)}</div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.5">${esc(rec.body)}</div>
-    </div>`;
 
   const wkEndDisplay = new Date(new Date(wk.end + 'T12:00:00').getTime() - 86400000).toISOString().slice(0,10);
   const pillarHTML = `
@@ -403,7 +319,7 @@ function renderToday() {
     </div>
     <div style="font-size:11px;color:var(--dim);margin-bottom:24px;text-align:center">Green &lt;3d · Blue 3-4d · Yellow 5-6d (stale) · Red 7+d or never</div>`;
 
-  return recHTML + pillarHTML + muscleHTML;
+  return pillarHTML + muscleHTML;
 }
 
 function render() {
