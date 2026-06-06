@@ -146,7 +146,7 @@ function sessionColor(s) {
 const muscleColors = {Back:"var(--back)",Biceps:"var(--biceps)",Calves:"var(--calves)",Chest:"var(--chest)",Glutes:"var(--glutes)",Hamstrings:"var(--hamstrings)",Quads:"var(--quads)",Shoulders:"var(--shoulders)",Triceps:"var(--triceps)"};
 
 let DATA = { exercises:[], sessions:[], sets:[], weights:[], runs:[] };
-let STATE = { tab:'sessions', detail:null };
+let STATE = { tab:'today', detail:null };
 
 async function loadData() {
   const [exRes, sessRes, setsRes, wtRes, runsRes] = await Promise.all([
@@ -189,6 +189,199 @@ function setRow(s) {
 function showDetail(type, data) { STATE.detail = {type, data}; render(); }
 function goBack() { STATE.detail = null; render(); }
 
+// ===== Active Coach — pillar tracking + recommendation =====
+
+// Sunday → Saturday week (America/Toronto), per dashboard convention
+function thisWeekRange() {
+  const todayParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(new Date());
+  const todayISO = `${todayParts.find(p=>p.type==='year').value}-${todayParts.find(p=>p.type==='month').value}-${todayParts.find(p=>p.type==='day').value}`;
+  const todayLocal = new Date(todayISO + 'T12:00:00');
+  const dow = todayLocal.getDay(); // 0=Sun
+  const start = new Date(todayLocal); start.setDate(start.getDate() - dow);
+  const end = new Date(start); end.setDate(end.getDate() + 7);
+  const fmt = d => d.toISOString().slice(0,10);
+  return { start: fmt(start), end: fmt(end), today: todayISO, dow };
+}
+
+const PILLARS = [
+  { id:'strength', label:'Strength', target:3,   unit:'sessions', color:'#60a5fa',
+    match: s => s.pillar === 'strength', accum:'count' },
+  { id:'zone2',    label:'Zone 2',   target:120, unit:'min',      color:'#34d399',
+    match: s => s.pillar === 'zone2',    accum:'minutes' },
+  { id:'zone45',   label:'Zone 4-5', target:60,  unit:'min',      color:'#f87171',
+    match: s => s.pillar === 'zone45',   accum:'minutes' },
+  { id:'mobility', label:'Mobility', target:7,   unit:'days',     color:'#fbbf24',
+    match: s => s.pillar === 'mobility' || s.style === 'yoga', accum:'days' },
+  { id:'balance',  label:'Balance',  target:7,   unit:'days',     color:'#a78bfa',
+    match: s => s.pillar === 'balance'  || s.style === 'yoga', accum:'days' },
+];
+
+function pillarProgress() {
+  const wk = thisWeekRange();
+  const inWeek = DATA.sessions.filter(s => s.date >= wk.start && s.date < wk.end);
+  return PILLARS.map(p => {
+    const hits = inWeek.filter(p.match);
+    let current = 0;
+    if (p.accum === 'count')        current = hits.length;
+    else if (p.accum === 'minutes') current = hits.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+    else if (p.accum === 'days')    current = new Set(hits.map(s => s.date)).size;
+    return { ...p, current, pct: Math.min(100, (current / p.target) * 100) };
+  });
+}
+
+const MAJOR_GROUPS = {
+  Chest:     ['Chest'],
+  Back:      ['Back'],
+  Legs:      ['Quads','Hamstrings','Glutes','Calves'],
+  Shoulders: ['Shoulders'],
+  Arms:      ['Biceps','Triceps'],
+};
+
+function muscleCadence() {
+  const today = thisWeekRange().today;
+  const out = {};
+  for (const [group, raws] of Object.entries(MAJOR_GROUPS)) {
+    let latest = null;
+    for (const s of DATA.sets) {
+      const mg = s.exercises?.muscle_group;
+      if (!mg || !raws.includes(mg)) continue;
+      if (!latest || s.date > latest) latest = s.date;
+    }
+    out[group] = latest ? Math.floor((new Date(today + 'T12:00:00') - new Date(latest + 'T12:00:00')) / 86400000) : null;
+  }
+  return out;
+}
+
+function todayRecommendation() {
+  const wk = thisWeekRange();
+  const daysLeftAfterToday = 6 - wk.dow;
+  const stats = pillarProgress();
+  const today = wk.today;
+  const todaySessions = DATA.sessions.filter(s => s.date === today);
+
+  const strength = stats.find(p => p.id === 'strength');
+  const z2       = stats.find(p => p.id === 'zone2');
+  const z45      = stats.find(p => p.id === 'zone45');
+  const mob      = stats.find(p => p.id === 'mobility');
+  const bal      = stats.find(p => p.id === 'balance');
+
+  const didStrengthToday = todaySessions.some(s => s.pillar === 'strength');
+  const didCardioToday   = todaySessions.some(s => s.pillar === 'zone2' || s.pillar === 'zone45');
+  const didYogaToday     = todaySessions.some(s => s.style === 'yoga' || s.pillar === 'mobility' || s.pillar === 'balance');
+
+  const cadence = muscleCadence();
+  const staleGroups = Object.entries(cadence)
+    .filter(([, days]) => days === null || days >= 5)
+    .sort((a, b) => (b[1] ?? 99) - (a[1] ?? 99))
+    .map(([g]) => g);
+
+  const recs = [];
+
+  if (strength.current < strength.target && !didStrengthToday) {
+    const need = strength.target - strength.current;
+    const focus = staleGroups.length ? staleGroups[0] : 'rotate groups';
+    recs.push({
+      priority: 1,
+      pillar: 'strength',
+      headline: `Lift today — focus ${focus}`,
+      body: `${strength.current}/${strength.target} strength sessions this week. Need ${need} more in ${daysLeftAfterToday + 1} day${daysLeftAfterToday === 0 ? '' : 's'}. Staler groups first: ${staleGroups.slice(0,3).join(', ') || 'none stale'}.`,
+    });
+  }
+
+  if (z45.current < z45.target) {
+    const need = z45.target - z45.current;
+    recs.push({
+      priority: didCardioToday ? 4 : 2,
+      pillar: 'zone45',
+      headline: 'Norwegian 4×4 — 28 min',
+      body: `Z4-5 at ${z45.current}/${z45.target} min. Behind by ${need} min. One 4×4 (4 min Z5 + 3 min Z2 × 4) banks 28 min toward target.`,
+    });
+  }
+
+  if (z2.current < z2.target) {
+    const need = z2.target - z2.current;
+    const easy = Math.min(30, need);
+    recs.push({
+      priority: didCardioToday ? 4 : 3,
+      pillar: 'zone2',
+      headline: `Z2 — ${easy}+ min`,
+      body: `Z2 at ${z2.current}/${z2.target} min. Behind by ${need} min. Easiest path: 10-min post-meal walks (3 a day = 30 min, no calendar disruption).`,
+    });
+  }
+
+  if (!didYogaToday && (mob.current < mob.target || bal.current < bal.target)) {
+    recs.push({
+      priority: 5,
+      pillar: 'mob_bal',
+      headline: 'Yoga — covers mobility + balance',
+      body: `Mobility ${mob.current}/${mob.target} days, balance ${bal.current}/${bal.target} days this week. One yoga session checks both for today.`,
+    });
+  }
+
+  recs.sort((a, b) => a.priority - b.priority);
+
+  if (!recs.length) {
+    return { headline: 'On pace ✓', body: 'All hard pillars met this week. Maintenance day — yoga or walk if you feel like it.', pillar: null };
+  }
+  return recs[0];
+}
+
+function renderToday() {
+  const stats = pillarProgress();
+  const wk = thisWeekRange();
+  const cadence = muscleCadence();
+  const rec = todayRecommendation();
+
+  const recColor = ({ strength:'#60a5fa', zone2:'#34d399', zone45:'#f87171', mob_bal:'#fbbf24' })[rec.pillar] || '#a78bfa';
+
+  const recHTML = `
+    <div style="background:${recColor}15;border:1px solid ${recColor}55;border-radius:12px;padding:14px 16px;margin-bottom:18px">
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:${recColor};margin-bottom:6px">Today's prescription</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px">${esc(rec.headline)}</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.5">${esc(rec.body)}</div>
+    </div>`;
+
+  const wkEndDisplay = new Date(new Date(wk.end + 'T12:00:00').getTime() - 86400000).toISOString().slice(0,10);
+  const pillarHTML = `
+    <div class="section-label">This week (${fmt(wk.start)} – ${fmt(wkEndDisplay)})</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
+      ${stats.map(p => `
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:600;color:var(--text)">${p.label}</span>
+            <span style="font-size:11px;color:${p.current >= p.target ? p.color : 'var(--muted)'};font-variant-numeric:tabular-nums">
+              ${p.current >= p.target ? '✓ ' : ''}${p.current}/${p.target} ${p.unit}
+            </span>
+          </div>
+          <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden">
+            <div style="background:${p.color};height:100%;width:${p.pct}%;border-radius:4px;transition:width .3s"></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+
+  const muscleHTML = `
+    <div class="section-label">Muscle groups — days since hit</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:18px">
+      ${Object.entries(cadence).map(([group, days]) => {
+        let bg, color;
+        if (days === null)      { bg = 'rgba(248,113,113,0.18)'; color = '#f87171'; }
+        else if (days >= 7)     { bg = 'rgba(248,113,113,0.18)'; color = '#f87171'; }
+        else if (days >= 5)     { bg = 'rgba(251,191,36,0.18)';  color = '#fbbf24'; }
+        else if (days >= 3)     { bg = 'rgba(96,165,250,0.10)';  color = 'var(--muted)'; }
+        else                    { bg = 'rgba(52,211,153,0.12)';  color = '#34d399'; }
+        return `
+          <div style="background:${bg};border:1px solid var(--border);border-radius:8px;padding:10px 4px;text-align:center;min-width:0">
+            <div style="font-size:18px;font-weight:700;color:${color};line-height:1">${days === null ? '∞' : days}</div>
+            <div style="font-size:9px;color:var(--dim);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px">${group}</div>
+          </div>`;
+      }).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:24px;text-align:center">Green &lt;3d · Blue 3-4d · Yellow 5-6d (stale) · Red 7+d or never</div>`;
+
+  return recHTML + pillarHTML + muscleHTML;
+}
+
 function render() {
   const app = document.getElementById('app');
   if (STATE.detail) {
@@ -199,9 +392,10 @@ function render() {
     if (STATE.detail.type === 'exercise') requestAnimationFrame(initExerciseChart);
     return;
   }
-  const tabs = `<div class="tabs">${['sessions','exercises','weight'].map(t=>`<button class="tab${STATE.tab===t?' active':''}" onclick="STATE.tab='${t}';render()">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('')}</div>`;
+  const tabs = `<div class="tabs">${['today','sessions','exercises','weight'].map(t=>`<button class="tab${STATE.tab===t?' active':''}" onclick="STATE.tab='${t}';render()">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('')}</div>`;
   let content = '';
-  if (STATE.tab === 'sessions') content = renderSessions();
+  if (STATE.tab === 'today') content = renderToday();
+  else if (STATE.tab === 'sessions') content = renderSessions();
   else if (STATE.tab === 'exercises') content = renderExercises();
   else content = renderWeight();
   app.innerHTML = tabs + content;
