@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111827">
+  <title>Releases – Second Brain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #111827; --card: #1f2937; --border: #374151; --deep: #0f172a;
+      --text: #f3f4f6; --muted: #9ca3af; --dim: #6b7280;
+      --accent: #7c3aed; --ok: #34d399; --warn: #fbbf24; --err: #f87171;
+      --surface: #1a2332;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; overscroll-behavior: none; }
+
+    header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 50; padding-top: max(12px, env(safe-area-inset-top)); }
+    .logo { font-size: 16px; font-weight: 700; color: #a78bfa; text-decoration: none; white-space: nowrap; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .nav-links a { font-size: 13px; color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 6px; }
+    .nav-links a:hover { background: var(--border); color: var(--text); }
+    .nav-links a.active { background: var(--accent); color: #fff; }
+    .nav-toggle { display: none; background: transparent; border: none; cursor: pointer; padding: 6px 8px; margin-left: auto; color: var(--text); }
+    .nav-toggle svg { display: block; width: 22px; height: 22px; }
+    .refresh-btn { display: none; background: transparent; border: none; cursor: pointer; padding: 6px 8px; color: var(--text); flex-shrink: 0; }
+    .refresh-btn svg { display: block; width: 20px; height: 20px; }
+
+    main { max-width: 1400px; margin: 0 auto; padding: 20px 16px 80px; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+
+    /* Toolbar */
+    .toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .toolbar-filters { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+    .filter-btn { background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 500; white-space: nowrap; }
+    .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .filter-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
+    .add-btn { background: var(--accent); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+    .add-btn:hover { opacity: .9; }
+
+    /* Kanban */
+    .kanban { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: thin; }
+    .kanban::-webkit-scrollbar { height: 8px; }
+    .kanban::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .column { flex: 1 1 0; min-width: 200px; max-width: 280px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .column-header { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 4px 4px 8px; border-bottom: 1px solid var(--border); }
+    .column-header .count { background: var(--border); color: var(--muted); padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+    .column-body { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
+
+    /* Stage column accents */
+    .col-concept .column-header        { color: #94a3b8; }
+    .col-idea .column-header           { color: #a78bfa; }
+    .col-finished .column-header       { color: #60a5fa; }
+    .col-ready_for_mix .column-header  { color: #fbbf24; }
+    .col-mastered .column-header       { color: #34d399; }
+    .col-released .column-header       { color: #f472b6; }
+
+    /* Cards */
+    .song-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-left: 3px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; cursor: pointer; transition: border-color .15s, transform .1s;
+      position: relative;
+    }
+    .song-card:hover { border-color: var(--accent); }
+    .song-card:active { transform: scale(.99); }
+    .song-card.stale-warn { border-left-color: var(--warn); }
+    .song-card.stale-err { border-left-color: var(--err); }
+    .song-card.terminal { border-left-color: transparent; }
+    .song-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; line-height: 1.3; word-break: break-word; }
+    .song-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 11px; color: var(--muted); }
+    .song-meta .pill { padding: 1px 7px; border-radius: 999px; background: var(--deep); white-space: nowrap; }
+    .song-meta .pill.stale-warn { background: rgba(251,191,36,.15); color: var(--warn); }
+    .song-meta .pill.stale-err { background: rgba(248,113,113,.18); color: var(--err); }
+    .song-meta .pill.target { background: rgba(124,58,237,.15); color: #a78bfa; }
+    .song-meta .icon-link { font-size: 11px; opacity: .7; }
+
+    /* Cancelled footer */
+    .canceled-section { margin-top: 24px; }
+    .canceled-toggle { width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 10px 14px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; }
+    .canceled-toggle:hover { color: var(--text); }
+    .canceled-body { display: none; margin-top: 8px; flex-wrap: wrap; gap: 6px; }
+    .canceled-body.open { display: flex; }
+    .canceled-body .song-card { flex: 1 1 260px; max-width: 320px; opacity: .7; border-left-color: var(--dim); }
+    .canceled-body .song-card:hover { opacity: 1; }
+
+    /* List view */
+    .list-view { display: none; flex-direction: column; gap: 6px; }
+    .list-view.active { display: flex; }
+    .kanban.hidden, .canceled-section.hidden { display: none; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-state h2 { font-size: 18px; margin-bottom: 8px; color: var(--text); font-weight: 600; }
+    .empty-state p { font-size: 14px; max-width: 360px; margin: 0 auto 16px; }
+
+    /* Modal (matches tasks.html) */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    @media (max-width: 600px) { .modal-overlay { align-items: flex-end; padding: 0; } }
+    .modal-overlay.hidden { display: none; }
+    .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; }
+    @media (max-width: 600px) { .modal { border-radius: 16px 16px 0 0; padding: 20px 20px 40px; max-width: 720px; } }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-close { background: var(--deep); border: 1px solid var(--border); color: var(--muted); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+    .modal-close:hover { color: var(--text); }
+    .form-row { margin-bottom: 12px; }
+    .form-row label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin-bottom: 5px; }
+    .form-row input, .form-row select, .form-row textarea {
+      width: 100%; padding: 10px 12px; background: var(--deep); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: inherit; font-size: 14px; outline: none;
+    }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--accent); }
+    .form-row select option { background: var(--deep); }
+    .form-row textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .btn-primary { flex: 1; background: var(--accent); color: #fff; border: none; padding: 12px; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-primary:hover { opacity: .9; }
+    .btn-secondary { background: var(--deep); color: var(--text); border: 1px solid var(--border); padding: 12px 16px; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .btn-secondary:hover { border-color: var(--accent); }
+    .btn-danger { background: transparent; color: var(--err); border: 1px solid var(--border); padding: 12px 16px; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .btn-danger:hover { border-color: var(--err); }
+
+    /* Stage history mini-timeline inside modal */
+    .stage-history { margin-top: 12px; padding: 12px; background: var(--deep); border: 1px solid var(--border); border-radius: 8px; }
+    .stage-history-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin-bottom: 8px; }
+    .stage-history-row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 12px; }
+    .stage-history-row .stage-name { color: var(--muted); }
+    .stage-history-row .stage-date { color: var(--text); font-variant-numeric: tabular-nums; }
+    .stage-history-row .stage-delta { color: var(--dim); font-size: 11px; }
+    .stage-history-row.current .stage-name { color: var(--accent); font-weight: 600; }
+
+    /* Mobile nav */
+    @media (max-width: 760px) {
+      header { padding: 10px 16px; flex-wrap: wrap; }
+      .logo { font-size: 15px; flex: 1; }
+      .refresh-btn { display: inline-flex; align-items: center; justify-content: center; }
+      .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+      .nav-links {
+        order: 99; width: 100%; flex-basis: 100%; flex-direction: column; gap: 0; padding: 0;
+        max-height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
+        border-top: 1px solid var(--border); margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px;
+      }
+      .nav-links.open { max-height: calc(100vh - 49px); height: auto; overflow-y: auto; padding: 6px 0; }
+      .nav-links a { padding: 14px 24px; border-radius: 0; font-size: 15px; }
+      main { padding: 16px 12px 80px; }
+      .kanban { flex-direction: column; }
+      .column { max-width: none; min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">⬡ Second Brain</a>
+  <nav class="nav-links" id="nav">
+    <a href="index.html">Home</a>
+    <a href="alignment.html">Alignment</a>
+    <a href="fitness.html">Fitness</a>
+    <a href="tasks.html">Tasks</a>
+    <a href="releases.html" class="active">Releases</a>
+    <a href="reset.html">Reset</a>
+    <a href="journal.html">Journal</a>
+    <a href="flourishing-self.html">Flourishing Self</a>
+  </nav>
+  <button class="refresh-btn" onclick="load()" aria-label="Refresh">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+  </button>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</header>
+
+<main>
+  <h1>Releases</h1>
+  <div class="subtitle">Where every track is in its lifecycle. Click a card to edit.</div>
+
+  <div class="toolbar">
+    <div class="toolbar-filters">
+      <button class="filter-btn active" data-view="kanban">Pipeline</button>
+      <button class="filter-btn" data-view="released">Released</button>
+      <button class="filter-btn" data-view="stalled">Stalled</button>
+    </div>
+    <button class="add-btn" id="add-song-btn">+ Add Song</button>
+  </div>
+
+  <div id="view">Loading…</div>
+</main>
+
+<!-- Edit / Add modal -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">New Song</div>
+      <button class="modal-close" id="modal-close">×</button>
+    </div>
+
+    <div class="form-row">
+      <label>Title</label>
+      <input type="text" id="f-title" placeholder="e.g. Track 008" autocomplete="off">
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Stage</label>
+        <select id="f-status">
+          <option value="concept">Concept</option>
+          <option value="idea">Idea</option>
+          <option value="finished">Finished</option>
+          <option value="ready_for_mix">Ready for Mix</option>
+          <option value="mastered">Mastered</option>
+          <option value="released">Released</option>
+          <option value="canceled">Canceled</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Target Release</label>
+        <input type="date" id="f-target">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>URL (SoundCloud / Drive / Ableton)</label>
+      <input type="url" id="f-url" placeholder="https://…">
+    </div>
+
+    <div class="form-row">
+      <label>Notes</label>
+      <textarea id="f-notes" placeholder="Anything worth remembering — vibes, refs, who heard it, what's next…"></textarea>
+    </div>
+
+    <div id="stage-history-block"></div>
+
+    <div class="form-actions">
+      <button class="btn-primary" id="f-save">Save</button>
+      <button class="btn-secondary" id="f-cancel">Cancel</button>
+      <button class="btn-danger" id="f-delete" style="display:none">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth.js"></script>
+<script>
+// ===== Constants =====
+const STAGES = ['concept', 'idea', 'finished', 'ready_for_mix', 'mastered', 'released'];
+const TERMINAL = new Set(['released', 'canceled']);
+const STAGE_LABEL = {
+  concept: 'Concept',
+  idea: 'Idea',
+  finished: 'Finished',
+  ready_for_mix: 'Ready for Mix',
+  mastered: 'Mastered',
+  released: 'Released',
+  canceled: 'Canceled'
+};
+const STALE_WARN_DAYS = 14;
+const STALE_ERR_DAYS = 30;
+
+// ===== State =====
+let SONGS = [];
+let VIEW = 'kanban';      // kanban | released | stalled
+let EDITING_ID = null;    // null when adding
+let CANCELED_OPEN = false;
+
+// ===== Helpers =====
+function daysSince(iso) {
+  if (!iso) return null;
+  const ms = Date.now() - new Date(iso).getTime();
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function staleClass(days) {
+  if (days >= STALE_ERR_DAYS) return 'stale-err';
+  if (days >= STALE_WARN_DAYS) return 'stale-warn';
+  return '';
+}
+
+// ===== Load =====
+async function load() {
+  await window._authReadyPromise;
+  const { data, error } = await window.sb.from('songs').select('*').order('status_entered_at', { ascending: false });
+  if (error) {
+    document.getElementById('view').innerHTML =
+      `<div class="empty-state"><h2>Couldn't load songs</h2><p>${error.message}</p></div>`;
+    return;
+  }
+  SONGS = data || [];
+  render();
+}
+
+// ===== Render =====
+function render() {
+  const v = document.getElementById('view');
+  if (!SONGS.length) {
+    v.innerHTML = `
+      <div class="empty-state">
+        <h2>No songs yet</h2>
+        <p>Drop your first track in to start tracking its lifecycle.</p>
+        <button class="add-btn" onclick="openAddModal()">+ Add Song</button>
+      </div>`;
+    return;
+  }
+  if (VIEW === 'kanban') renderKanban(v);
+  else if (VIEW === 'released') renderReleased(v);
+  else if (VIEW === 'stalled') renderStalled(v);
+}
+
+function renderKanban(v) {
+  const cols = STAGES.map(stage => {
+    const songs = SONGS.filter(s => s.status === stage);
+    const cards = songs.map(cardHTML).join('') || `<div style="font-size:12px;color:var(--dim);text-align:center;padding:12px 0">—</div>`;
+    return `
+      <div class="column col-${stage}">
+        <div class="column-header">
+          <span>${STAGE_LABEL[stage]}</span>
+          <span class="count">${songs.length}</span>
+        </div>
+        <div class="column-body">${cards}</div>
+      </div>`;
+  }).join('');
+
+  const canceled = SONGS.filter(s => s.status === 'canceled');
+  const canceledHTML = `
+    <div class="canceled-section">
+      <button class="canceled-toggle" id="canceled-toggle">
+        <span>Canceled (${canceled.length})</span>
+        <span style="font-size:11px;color:var(--dim)">${CANCELED_OPEN ? 'hide' : 'show'} ↓</span>
+      </button>
+      <div class="canceled-body${CANCELED_OPEN ? ' open' : ''}">
+        ${canceled.map(cardHTML).join('') || '<div style="font-size:12px;color:var(--dim);padding:12px">No canceled songs.</div>'}
+      </div>
+    </div>`;
+
+  v.innerHTML = `<div class="kanban">${cols}</div>${canceledHTML}`;
+  attachCardHandlers();
+  document.getElementById('canceled-toggle')?.addEventListener('click', () => {
+    CANCELED_OPEN = !CANCELED_OPEN;
+    render();
+  });
+}
+
+function renderReleased(v) {
+  const released = SONGS
+    .filter(s => s.status === 'released')
+    .sort((a, b) => (b.released_at || '').localeCompare(a.released_at || ''));
+  if (!released.length) {
+    v.innerHTML = `<div class="empty-state"><h2>Nothing released yet</h2><p>Songs you move to "Released" will appear here, newest first.</p></div>`;
+    return;
+  }
+  v.innerHTML = `<div class="list-view active">${released.map(cardHTML).join('')}</div>`;
+  attachCardHandlers();
+}
+
+function renderStalled(v) {
+  const stalled = SONGS
+    .filter(s => !TERMINAL.has(s.status) && daysSince(s.status_entered_at) >= STALE_WARN_DAYS)
+    .sort((a, b) => new Date(a.status_entered_at) - new Date(b.status_entered_at));
+  if (!stalled.length) {
+    v.innerHTML = `<div class="empty-state"><h2>Nothing's stalled</h2><p>Songs in a stage for ${STALE_WARN_DAYS}+ days will appear here. Clean run.</p></div>`;
+    return;
+  }
+  v.innerHTML = `<div class="list-view active">${stalled.map(cardHTML).join('')}</div>`;
+  attachCardHandlers();
+}
+
+function cardHTML(song) {
+  const days = daysSince(song.status_entered_at);
+  const stale = TERMINAL.has(song.status) ? '' : staleClass(days);
+  const terminalClass = TERMINAL.has(song.status) ? 'terminal' : '';
+  const pills = [];
+
+  if (song.status === 'released') {
+    pills.push(`<span class="pill">Released ${fmtDate(song.released_at)}</span>`);
+  } else if (song.status === 'canceled') {
+    pills.push(`<span class="pill">Canceled ${fmtDate(song.canceled_at)}</span>`);
+  } else {
+    pills.push(`<span class="pill ${stale}">${days}d in stage</span>`);
+  }
+  if (song.target_release_date && !TERMINAL.has(song.status)) {
+    pills.push(`<span class="pill target">→ ${fmtDate(song.target_release_date)}</span>`);
+  }
+  if (song.url) pills.push(`<span class="icon-link">🔗</span>`);
+
+  return `
+    <div class="song-card ${stale} ${terminalClass}" data-id="${song.id}">
+      <div class="song-title">${escapeHTML(song.title)}</div>
+      <div class="song-meta">${pills.join('')}</div>
+    </div>`;
+}
+
+function attachCardHandlers() {
+  document.querySelectorAll('.song-card').forEach(el => {
+    el.addEventListener('click', () => openEditModal(el.dataset.id));
+  });
+}
+
+// ===== Modal =====
+function openAddModal() {
+  EDITING_ID = null;
+  document.getElementById('modal-title').textContent = 'New Song';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-status').value = 'concept';
+  document.getElementById('f-target').value = '';
+  document.getElementById('f-url').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('stage-history-block').innerHTML = '';
+  document.getElementById('f-delete').style.display = 'none';
+  document.getElementById('modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('f-title').focus(), 50);
+}
+
+function openEditModal(id) {
+  const s = SONGS.find(x => x.id === id);
+  if (!s) return;
+  EDITING_ID = id;
+  document.getElementById('modal-title').textContent = 'Edit Song';
+  document.getElementById('f-title').value = s.title || '';
+  document.getElementById('f-status').value = s.status || 'concept';
+  document.getElementById('f-target').value = s.target_release_date || '';
+  document.getElementById('f-url').value = s.url || '';
+  document.getElementById('f-notes').value = s.notes || '';
+  document.getElementById('stage-history-block').innerHTML = stageHistoryHTML(s);
+  document.getElementById('f-delete').style.display = '';
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+  EDITING_ID = null;
+}
+
+function stageHistoryHTML(s) {
+  const rows = [];
+  const seq = [...STAGES, 'canceled'];
+  let prev = null;
+  for (const stage of seq) {
+    const at = s[`${stage}_at`];
+    if (!at) continue;
+    const delta = prev ? `+${Math.max(0, Math.floor((new Date(at) - new Date(prev)) / 86400000))}d` : '';
+    const current = s.status === stage;
+    rows.push(`
+      <div class="stage-history-row ${current ? 'current' : ''}">
+        <span class="stage-name">${STAGE_LABEL[stage]}${current ? ' (current)' : ''}</span>
+        <span style="display:flex;gap:8px;align-items:baseline">
+          <span class="stage-date">${fmtDate(at)}</span>
+          <span class="stage-delta">${delta}</span>
+        </span>
+      </div>`);
+    prev = at;
+  }
+  if (!rows.length) return '';
+  return `
+    <div class="stage-history">
+      <div class="stage-history-title">Stage history</div>
+      ${rows.join('')}
+    </div>`;
+}
+
+async function saveSong() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { alert('Title required'); return; }
+  const payload = {
+    title,
+    status: document.getElementById('f-status').value,
+    target_release_date: document.getElementById('f-target').value || null,
+    url: document.getElementById('f-url').value.trim() || null,
+    notes: document.getElementById('f-notes').value.trim() || null
+  };
+  if (EDITING_ID) {
+    const { error } = await window.sb.from('songs').update(payload).eq('id', EDITING_ID);
+    if (error) { alert(error.message); return; }
+  } else {
+    const { error } = await window.sb.from('songs').insert(payload);
+    if (error) { alert(error.message); return; }
+  }
+  closeModal();
+  await load();
+}
+
+async function deleteSong() {
+  if (!EDITING_ID) return;
+  if (!confirm('Delete this song permanently? (Cancel a song instead if you want to keep the record.)')) return;
+  const { error } = await window.sb.from('songs').delete().eq('id', EDITING_ID);
+  if (error) { alert(error.message); return; }
+  closeModal();
+  await load();
+}
+
+// ===== Wiring =====
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    VIEW = btn.dataset.view;
+    render();
+  });
+});
+document.getElementById('add-song-btn').addEventListener('click', openAddModal);
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('f-cancel').addEventListener('click', closeModal);
+document.getElementById('f-save').addEventListener('click', saveSong);
+document.getElementById('f-delete').addEventListener('click', deleteSong);
+document.getElementById('modal').addEventListener('click', (e) => {
+  if (e.target.id === 'modal') closeModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('modal').classList.contains('hidden')) closeModal();
+});
+
+// Mobile nav toggle
+document.getElementById('nav-toggle').addEventListener('click', () => {
+  document.getElementById('nav').classList.toggle('open');
+});
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => document.getElementById('nav').classList.remove('open'));
+});
+
+// HTML escape
+function escapeHTML(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+load();
+</script>
+</body>
+</html>
