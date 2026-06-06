@@ -319,7 +319,7 @@ const HABIT_ROWS = [
   // Project hours (from calendar)
   { key: 'hoot_hours',    label: 'Hoot ≥1h',      derived: true, dtype: 'cal_hours', cat: 'hoot',    threshold: 1.0 },
   { key: 'finnian_hours', label: 'Finnian ≥1.5h', derived: true, dtype: 'cal_hours', cat: 'finnian', threshold: 1.5 },
-  { key: 'tempo_hours',   label: 'Tempo ≥1h',     derived: true, dtype: 'cal_hours', cat: 'tempo',   threshold: 1.0 },
+  // Tempo metric removed June 1, 2026 — dropped as a tracked project. HOUR_DATA.tempo is still populated for historical queries.
 ];
 
 // ----- State -----
@@ -579,7 +579,6 @@ function renderSundayReset() {
   const checklist = [
     { label: 'Finnian 1.5h+ daily & coaching session', hit: s.finnian >= 7.5 },
     { label: 'Hoot 1h+ daily with real outputs', hit: s.hoot >= 5 },
-    { label: 'Tempo 1h+ daily with real outputs', hit: s.tempo >= 5 },
     { label: 'Trained 4+ times', hit: s.trained >= 4 },
     { label: 'Slept 8.5h+ average', hit: (s.avg_sleep || 0) >= 8.5 },
     { label: 'Daily shutdowns completed (5+)', hit: s.shutdowns >= 5 },
@@ -596,10 +595,6 @@ function renderSundayReset() {
           <div class="week-stat ${s.finnian>=7.5?'hit':'miss'}">
             <div class="stat-val">${(s.finnian||0).toFixed(1)}h</div>
             <div class="stat-lbl">Finnian</div>
-          </div>
-          <div class="week-stat ${s.tempo>=5?'hit':'miss'}">
-            <div class="stat-val">${(s.tempo||0).toFixed(1)}h</div>
-            <div class="stat-lbl">Tempo</div>
           </div>
           <div class="week-stat ${s.trained>=4?'hit':'miss'}">
             <div class="stat-val">${s.trained||0}</div>
@@ -650,9 +645,8 @@ async function fetchAndRenderDayHours(dateISO) {
     };
     set('hoot', 'hours-display-hoot');
     set('finnian', 'hours-display-finnian');
-    set('tempo', 'hours-display-tempo');
   } catch (e) {
-    ['hours-display-hoot','hours-display-finnian','hours-display-tempo'].forEach(id => {
+    ['hours-display-hoot','hours-display-finnian'].forEach(id => {
       const el = document.getElementById(id);
       if (el) { el.textContent = '—'; el.title = 'Calendar API unavailable'; }
     });
@@ -720,10 +714,6 @@ function renderDay() {
           <label>Finnian</label>
           <div id="hours-display-finnian" style="font-size:24px;font-weight:600;color:var(--text);padding:8px 0">—</div>
         </div>
-        <div class="hours-cell">
-          <label>Tempo</label>
-          <div id="hours-display-tempo" style="font-size:24px;font-weight:600;color:var(--text);padding:8px 0">—</div>
-        </div>
       </div>
     </section>
 
@@ -740,7 +730,7 @@ function renderDay() {
                   <ul>
                     <li>Schedule shutdown block</li>
                     <li>Schedule 8.5h sleep, or more if sleep debt</li>
-                    <li>1h+ each for Hoot, Finnian, Tempo</li>
+                    <li>1h+ Hoot, 1.5h+ Finnian</li>
                     <li>Fill any gaps together</li>
                   </ul>
                 </li>
