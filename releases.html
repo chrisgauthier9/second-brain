@@ -54,6 +54,7 @@
     /* Stage column accents */
     .col-concept .column-header        { color: #94a3b8; }
     .col-idea .column-header           { color: #a78bfa; }
+    .col-rough .column-header          { color: #818cf8; }
     .col-finished .column-header       { color: #60a5fa; }
     .col-ready_for_mix .column-header  { color: #fbbf24; }
     .col-mastered .column-header       { color: #34d399; }
@@ -211,6 +212,7 @@
         <select id="f-status">
           <option value="concept">Concept</option>
           <option value="idea">Idea</option>
+          <option value="rough">Rough</option>
           <option value="finished">Finished</option>
           <option value="ready_for_mix">Ready for Mix</option>
           <option value="mastered">Mastered</option>
@@ -248,11 +250,12 @@
 <script src="auth.js"></script>
 <script>
 // ===== Constants =====
-const STAGES = ['concept', 'idea', 'finished', 'ready_for_mix', 'mastered', 'released'];
+const STAGES = ['concept', 'idea', 'rough', 'finished', 'ready_for_mix', 'mastered', 'released'];
 const TERMINAL = new Set(['released', 'canceled']);
 const STAGE_LABEL = {
   concept: 'Concept',
   idea: 'Idea',
+  rough: 'Rough',
   finished: 'Finished',
   ready_for_mix: 'Ready for Mix',
   mastered: 'Mastered',
