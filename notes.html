@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Second Brain">
+  <meta name="theme-color" content="#111827">
+  <title>Notes – Second Brain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #111827; color: #f3f4f6; min-height: 100vh; font-size: 14px; overscroll-behavior: none; }
+
+    header { background: var(--card, #1f2937); border-bottom: 1px solid var(--border, #374151); padding: 12px 24px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 50; padding-top: max(12px, env(safe-area-inset-top)); }
+    .logo { font-size: 16px; font-weight: 700; color: #a78bfa; text-decoration: none; white-space: nowrap; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .nav-links a { font-size: 13px; color: #9ca3af; text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: background .15s; white-space: nowrap; }
+    .nav-links a:hover { background: #374151; color: #f3f4f6; }
+    .nav-links a.active { background: #7c3aed; color: #fff; }
+
+    main { max-width: 680px; margin: 0 auto; padding: 28px 18px 64px; }
+    .page-title { font-size: 20px; font-weight: 700; color: #f3f4f6; margin-bottom: 4px; }
+    .page-sub { font-size: 13px; color: #6b7280; margin-bottom: 22px; line-height: 1.5; }
+
+    /* ── Quick add ── */
+    .composer { display: flex; flex-direction: column; gap: 10px; background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 14px; margin-bottom: 26px; }
+    .composer textarea {
+      width: 100%; min-height: 64px; background: #111827; border: 1px solid #374151; color: #f3f4f6;
+      padding: 12px 14px; border-radius: 8px; font-family: inherit; font-size: 16px; line-height: 1.5; resize: vertical;
+    }
+    .composer textarea::placeholder { color: #4b5563; }
+    .composer textarea:focus { outline: none; border-color: #7c3aed; }
+    .composer-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .composer-hint { font-size: 11px; color: #4b5563; }
+    .add-btn { background: #7c3aed; border: none; color: #fff; font-size: 14px; font-weight: 600; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+    .add-btn:hover { background: #6d28d9; }
+    .add-btn:disabled { opacity: .5; cursor: default; }
+
+    /* ── Notes list ── */
+    .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; font-weight: 600; margin: 0 2px 10px; display: flex; align-items: center; gap: 8px; }
+    .section-label .count { background: #374151; color: #9ca3af; border-radius: 999px; padding: 1px 8px; font-size: 11px; }
+
+    .note { display: flex; align-items: flex-start; gap: 12px; background: #1f2937; border: 1px solid #374151; border-radius: 10px; padding: 14px; margin-bottom: 10px; transition: opacity .25s, transform .25s; }
+    .note.clearing { opacity: 0; transform: translateX(40px); }
+    .check {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #4b5563;
+      background: transparent; cursor: pointer; margin-top: 1px; display: flex; align-items: center; justify-content: center;
+      transition: border-color .15s, background .15s; padding: 0;
+    }
+    .check:hover { border-color: #7c3aed; }
+    .check svg { width: 13px; height: 13px; opacity: 0; stroke: #fff; }
+    .note-body { flex: 1; font-size: 15px; line-height: 1.5; color: #e5e7eb; white-space: pre-wrap; word-break: break-word; }
+    .note-meta { font-size: 11px; color: #4b5563; margin-top: 6px; }
+    .note-del { flex-shrink: 0; background: none; border: none; color: #4b5563; cursor: pointer; font-size: 16px; padding: 2px 4px; line-height: 1; }
+    .note-del:hover { color: #f87171; }
+
+    .empty { text-align: center; color: #4b5563; padding: 40px 20px; }
+    .empty .icon { font-size: 36px; opacity: .4; margin-bottom: 10px; }
+    .empty .msg { font-size: 14px; }
+
+    /* ── Cleared (history) ── */
+    .cleared-toggle { background: none; border: none; color: #6b7280; font-size: 13px; cursor: pointer; font-family: inherit; padding: 6px 2px; margin-top: 18px; display: inline-flex; align-items: center; gap: 6px; }
+    .cleared-toggle:hover { color: #9ca3af; }
+    .cleared-list { margin-top: 12px; }
+    .note.cleared { opacity: .55; }
+    .note.cleared .note-body { color: #9ca3af; text-decoration: line-through; text-decoration-color: #4b5563; }
+    .note.cleared .check { border-color: #16a34a; background: #16a34a; }
+    .note.cleared .check svg { opacity: 1; }
+    .restore-btn { flex-shrink: 0; background: none; border: none; color: #4b5563; cursor: pointer; font-size: 12px; padding: 2px 4px; font-family: inherit; }
+    .restore-btn:hover { color: #a78bfa; }
+
+    .loading-state { padding: 40px; text-align: center; color: #4b5563; font-size: 13px; }
+
+    /* ===== Mobile hamburger ===== */
+    .nav-toggle { display: none; background: transparent; border: none; cursor: pointer; padding: 6px 8px; margin-left: auto; color: var(--text, #f3f4f6); }
+    .nav-toggle svg { display: block; width: 22px; height: 22px; }
+    .refresh-btn { display: none; background: transparent; border: none; cursor: pointer; padding: 6px 8px; color: var(--text, #f3f4f6); flex-shrink: 0; }
+    .refresh-btn svg { display: block; width: 20px; height: 20px; }
+    .refresh-btn:active svg { opacity: 0.5; }
+    @media (max-width: 600px) {
+      .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+      .refresh-btn { display: inline-flex; align-items: center; justify-content: center; }
+      .nav-links {
+        position: fixed; top: 49px; left: 0; right: 0; bottom: 0;
+        background: #1f2937; border-bottom: 1px solid #374151;
+        flex-direction: column; gap: 0; padding: 6px 0;
+        margin-left: 0; align-items: stretch;
+        max-height: 0; height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
+        z-index: 100;
+      }
+      .nav-links.open { max-height: calc(100vh - 49px); height: auto; width: 100%; overflow-y: auto; padding: 6px 0; }
+      .nav-links a { padding: 14px 24px; border-radius: 0; font-size: 15px; }
+      header { position: sticky; top: 0; z-index: 101; overflow: hidden; border-bottom: none; } nav.nav-links { border: none; outline: none; } .nav-links a.active { background: transparent; color: #a78bfa; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="auth.js"></script>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">Second Brain</a>
+  <nav class="nav-links" id="nav">
+    <a href="index.html">Home</a>
+    <a href="alignment.html">Alignment</a>
+    <a href="fitness.html">Fitness</a>
+    <a href="tasks.html">Tasks</a>
+    <a href="releases.html">Releases</a>
+    <a href="reset.html">Reset</a>
+    <a href="journal.html">Journal</a>
+    <a href="notes.html" class="active">Notes</a>
+    <a href="flourishing-self.html">Flourishing Self</a>
+  </nav>
+</header>
+
+<main>
+  <div class="page-title">Notes</div>
+  <div class="page-sub">Quick capture for stray thoughts. Jot it down, revisit later, check it off when it's handled.</div>
+
+  <div class="composer">
+    <textarea id="composer-input" placeholder="What's on your mind?" rows="2"></textarea>
+    <div class="composer-row">
+      <span class="composer-hint">⌘/Ctrl + Enter to add</span>
+      <button class="add-btn" id="add-btn" onclick="addNote()">Add note</button>
+    </div>
+  </div>
+
+  <div class="section-label">Open <span class="count" id="open-count">0</span></div>
+  <div id="open-list"><div class="loading-state">Loading notes…</div></div>
+
+  <button class="cleared-toggle" id="cleared-toggle" onclick="toggleCleared()" style="display:none"></button>
+  <div class="cleared-list" id="cleared-list" style="display:none"></div>
+</main>
+
+<script>
+let openNotes = [];
+let clearedNotes = [];
+let showCleared = false;
+
+function escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function relTime(iso) {
+  if (!iso) return '';
+  const then = new Date(iso);
+  const diff = (Date.now() - then.getTime()) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  const days = Math.floor(diff/86400);
+  if (days < 7) return days + 'd ago';
+  return then.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+}
+
+const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+function render() {
+  // Open notes
+  document.getElementById('open-count').textContent = openNotes.length;
+  const openEl = document.getElementById('open-list');
+  if (openNotes.length === 0) {
+    openEl.innerHTML = '<div class="empty"><div class="icon">📝</div><div class="msg">No open notes. Capture a thought above.</div></div>';
+  } else {
+    openEl.innerHTML = openNotes.map(n => `
+      <div class="note" data-id="${n.id}">
+        <button class="check" onclick="clearNote('${n.id}')" aria-label="Clear note">${CHECK_SVG}</button>
+        <div>
+          <div class="note-body">${escHtml(n.body)}</div>
+          <div class="note-meta">${relTime(n.created_at)}</div>
+        </div>
+        <button class="note-del" onclick="deleteNote('${n.id}')" aria-label="Delete note">×</button>
+      </div>
+    `).join('');
+  }
+
+  // Cleared history
+  const toggle = document.getElementById('cleared-toggle');
+  const clearedEl = document.getElementById('cleared-list');
+  if (clearedNotes.length === 0) {
+    toggle.style.display = 'none';
+    clearedEl.style.display = 'none';
+  } else {
+    toggle.style.display = 'inline-flex';
+    toggle.textContent = (showCleared ? '▾ Hide' : '▸ Show') + ' cleared (' + clearedNotes.length + ')';
+    if (showCleared) {
+      clearedEl.style.display = 'block';
+      clearedEl.innerHTML = clearedNotes.map(n => `
+        <div class="note cleared" data-id="${n.id}">
+          <span class="check">${CHECK_SVG}</span>
+          <div>
+            <div class="note-body">${escHtml(n.body)}</div>
+            <div class="note-meta">cleared ${relTime(n.cleared_at)}</div>
+          </div>
+          <button class="restore-btn" onclick="restoreNote('${n.id}')">Restore</button>
+          <button class="note-del" onclick="deleteNote('${n.id}')" aria-label="Delete note">×</button>
+        </div>
+      `).join('');
+    } else {
+      clearedEl.style.display = 'none';
+    }
+  }
+}
+
+function toggleCleared() { showCleared = !showCleared; render(); }
+
+async function addNote() {
+  const input = document.getElementById('composer-input');
+  const body = input.value.trim();
+  if (!body) return;
+  const btn = document.getElementById('add-btn');
+  btn.disabled = true;
+  try {
+    const { data, error } = await window.sb.from('notes').insert({ body }).select().single();
+    if (error) throw error;
+    openNotes.unshift(data);
+    input.value = '';
+    render();
+    input.focus();
+  } catch (err) {
+    alert('Could not add note: ' + (err.message || err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function clearNote(id) {
+  const el = document.querySelector(`.note[data-id="${id}"]`);
+  if (el) el.classList.add('clearing');
+  try {
+    const { data, error } = await window.sb.from('notes')
+      .update({ done: true, cleared_at: new Date().toISOString() })
+      .eq('id', id).select().single();
+    if (error) throw error;
+    setTimeout(() => {
+      openNotes = openNotes.filter(n => n.id !== id);
+      clearedNotes.unshift(data);
+      render();
+    }, 220);
+  } catch (err) {
+    if (el) el.classList.remove('clearing');
+    alert('Could not clear note: ' + (err.message || err));
+  }
+}
+
+async function restoreNote(id) {
+  try {
+    const { data, error } = await window.sb.from('notes')
+      .update({ done: false, cleared_at: null })
+      .eq('id', id).select().single();
+    if (error) throw error;
+    clearedNotes = clearedNotes.filter(n => n.id !== id);
+    openNotes.unshift(data);
+    openNotes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    render();
+  } catch (err) {
+    alert('Could not restore note: ' + (err.message || err));
+  }
+}
+
+async function deleteNote(id) {
+  if (!confirm('Delete this note permanently?')) return;
+  try {
+    const { error } = await window.sb.from('notes').delete().eq('id', id);
+    if (error) throw error;
+    openNotes = openNotes.filter(n => n.id !== id);
+    clearedNotes = clearedNotes.filter(n => n.id !== id);
+    render();
+  } catch (err) {
+    alert('Could not delete note: ' + (err.message || err));
+  }
+}
+
+document.getElementById('composer-input').addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); addNote(); }
+});
+
+async function load() {
+  await window._authReadyPromise;
+  const { data, error } = await window.sb.from('notes')
+    .select('id, body, done, created_at, cleared_at')
+    .order('created_at', { ascending: false });
+  if (error) {
+    document.getElementById('open-list').innerHTML =
+      '<div class="empty"><div class="msg">Could not load notes: ' + escHtml(error.message) + '</div></div>';
+    return;
+  }
+  openNotes = (data || []).filter(n => !n.done);
+  clearedNotes = (data || []).filter(n => n.done)
+    .sort((a, b) => new Date(b.cleared_at || b.created_at) - new Date(a.cleared_at || a.created_at));
+  render();
+}
+
+load();
+</script>
+
+<script>
+(function () {
+  var nav = document.querySelector('header .nav-links');
+  var hdr = document.querySelector('header');
+  if (!nav || !hdr || hdr.querySelector('.nav-toggle')) return;
+  var btn = document.createElement('button');
+  btn.className = 'nav-toggle';
+  btn.setAttribute('aria-label', 'Open menu');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
+  var rfr = document.createElement('button');
+  rfr.className = 'refresh-btn';
+  rfr.setAttribute('aria-label', 'Refresh');
+  rfr.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
+  rfr.addEventListener('click', function() { location.reload(); });
+  var grp = document.createElement('div');
+  grp.style.cssText = 'display:flex;align-items:center;margin-left:auto;gap:0;flex-shrink:0;';
+  grp.appendChild(rfr);
+  grp.appendChild(btn);
+  hdr.appendChild(grp);
+  function close() { nav.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var open = nav.classList.toggle('open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  document.addEventListener('click', function(e) {
+    if (!nav.classList.contains('open')) return;
+    if (nav.contains(e.target) || btn.contains(e.target)) return;
+    close();
+  });
+  nav.addEventListener('click', function(e) { if (e.target.tagName === 'A') close(); });
+})();
+</script>
+
+<script>
+(function() {
+  try { localStorage.setItem('sb_last_page', 'notes.html'); } catch(e) {}
+})();
+</script>
+</body>
+</html>
