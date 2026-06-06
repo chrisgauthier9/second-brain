@@ -255,11 +255,42 @@ function eventDurationHours(ev) {
 // ===== Status check =====
 async function handleStatus(env) {
   const refreshToken = await env.SECOND_BRAIN_KV.get('google_refresh_token');
-  return new Response(JSON.stringify({
+  const status = {
     connected: !!refreshToken,
     kv_bound: !!env.SECOND_BRAIN_KV,
-    client_id_set: !!env.GOOGLE_CLIENT_ID
-  }), {
+    client_id_set: !!env.GOOGLE_CLIENT_ID,
+    client_secret_set: !!env.GOOGLE_CLIENT_SECRET,
+    token_refresh: null
+  };
+
+  // Try to actually refresh — pinpoints whether secrets / refresh_token still work
+  if (refreshToken && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
+    try {
+      const res = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          refresh_token: refreshToken,
+          client_id: env.GOOGLE_CLIENT_ID,
+          client_secret: env.GOOGLE_CLIENT_SECRET,
+          grant_type: 'refresh_token'
+        })
+      });
+      const data = await res.json();
+      status.token_refresh = {
+        ok: !!data.access_token,
+        http_status: res.status,
+        error: data.error || null,
+        error_description: data.error_description || null
+      };
+    } catch (err) {
+      status.token_refresh = { ok: false, exception: err.message };
+    }
+  } else {
+    status.token_refresh = { ok: false, skipped: 'missing client_id, client_secret, or refresh_token' };
+  }
+
+  return new Response(JSON.stringify(status, null, 2), {
     headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
   });
 }
