@@ -26,7 +26,7 @@ export default {
       if (url.pathname === '/auth/google') return handleAuthStart(url, env);
       if (url.pathname === '/auth/callback') return handleAuthCallback(url, env);
       if (url.pathname === '/api/calendar/hours') return handleHoursAPI(url, env, ctx);
-      if (url.pathname === '/api/calendar/status') return handleStatus(env);
+      if (url.pathname === '/api/calendar/status') return handleStatus(env, url);
     } catch (err) {
       return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
         status: 500,
@@ -253,7 +253,26 @@ function eventDurationHours(ev) {
 }
 
 // ===== Status check =====
-async function handleStatus(env) {
+async function handleStatus(env, url) {
+  // Test-only: simulate a disconnected state so the dashboard banner can be verified.
+  if (url && url.searchParams.get('force_disconnect') === '1') {
+    return new Response(JSON.stringify({
+      connected: true,
+      kv_bound: true,
+      client_id_set: true,
+      client_secret_set: true,
+      token_refresh: {
+        ok: false,
+        http_status: 400,
+        error: 'invalid_grant',
+        error_description: 'Simulated disconnect via ?force_disconnect=1'
+      },
+      simulated: true
+    }, null, 2), {
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+    });
+  }
+
   const refreshToken = await env.SECOND_BRAIN_KV.get('google_refresh_token');
   const status = {
     connected: !!refreshToken,

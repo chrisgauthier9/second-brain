@@ -61,9 +61,16 @@
   window._authReadyPromise.then(async (session) => {
     if (!session) return; // signed out; auth.js will redirect
 
+    // Forward ?force_disconnect=1 from the current URL so the banner can be tested
+    // by loading e.g. alignment.html?force_disconnect=1
+    const pageParams = new URLSearchParams(window.location.search);
+    const statusUrl = pageParams.has('force_disconnect')
+      ? '/api/calendar/status?force_disconnect=1'
+      : '/api/calendar/status';
+
     let status;
     try {
-      const res = await fetch('/api/calendar/status');
+      const res = await fetch(statusUrl);
       if (!res.ok) return;
       status = await res.json();
     } catch (e) {
