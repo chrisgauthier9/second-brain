@@ -137,12 +137,33 @@ const SUPABASE_URL = 'https://pkdbzoptboinysspnpjp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_3AzsiWvSIyBQ876U61ahbQ_vQtkdO6J';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Color by style; day_type (heavy/volume) drives weightlifting color
-const styleColors = {"weightlifting":"var(--upper-a)","boxing":"var(--arms)","run":"var(--lower-b)","mobility":"var(--lower-a)"};
-const dayTypeColors = {"heavy":"var(--upper-a)","volume":"var(--lower-a)"};
-function sessionColor(s) {
-  return styleColors[s.style] || 'var(--misc)';
+// Pillar-based color scheme (updated June 6, 2026 — matches the 5-pillar framework)
+const pillarColors = {
+  strength: '#60a5fa',  // blue
+  zone2:    '#34d399',  // green
+  zone45:   '#f87171',  // red
+  mobility: '#fbbf24',  // yellow
+  balance:  '#a78bfa',  // purple
+};
+const PILLAR_LABEL = {
+  strength: 'Strength',
+  zone2:    'Zone 2',
+  zone45:   'Zone 4-5',
+  mobility: 'Mobility',
+  balance:  'Balance',
+};
+// Fallback: infer pillar from style for sessions that don't have one set
+function inferPillar(s) {
+  if (s.pillar) return s.pillar;
+  if (s.style === 'weightlifting') return 'strength';
+  if (s.style === 'mobility' || s.style === 'yoga') return 'mobility';
+  if (s.style === 'walk' || s.style === 'run' || s.style === 'cycle' || s.style === 'swim') return 'zone2';
+  if (s.style === 'hiit' || s.style === 'boxing') return 'zone45';
+  return null;
 }
+function pillarColor(pillar) { return pillarColors[pillar] || 'var(--misc)'; }
+// Legacy: kept for any callers; now routes through pillar
+function sessionColor(s) { return pillarColor(inferPillar(s)); }
 const muscleColors = {Back:"var(--back)",Biceps:"var(--biceps)",Calves:"var(--calves)",Chest:"var(--chest)",Glutes:"var(--glutes)",Hamstrings:"var(--hamstrings)",Quads:"var(--quads)",Shoulders:"var(--shoulders)",Triceps:"var(--triceps)"};
 
 let DATA = { exercises:[], sessions:[], sets:[], weights:[], runs:[] };
@@ -415,8 +436,15 @@ function renderSessions() {
     calMonth = parseInt(tp.find(p=>p.type==='month').value) - 1;
     calYear  = parseInt(tp.find(p=>p.type==='year').value);
   }
-  const sessMap = new Map();
-  DATA.sessions.forEach(s => sessMap.set(s.date, s));
+  // Group sessions by date — multiple sessions per day are now expected (stacking rule)
+  const sessByDate = new Map();
+  DATA.sessions.forEach(s => {
+    if (!sessByDate.has(s.date)) sessByDate.set(s.date, []);
+    sessByDate.get(s.date).push(s);
+  });
+  // Sort each day's sessions by id so the visual order is stable
+  for (const arr of sessByDate.values()) arr.sort((a, b) => a.id - b.id);
+
   const firstDay = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
   const monthName = ['January','February','March','April','May','June','July','August','September','October','November','December'][calMonth];
@@ -431,21 +459,44 @@ function renderSessions() {
       ${Array(firstDay).fill('<div></div>').join('')}`;
   for (let d=1; d<=daysInMonth; d++) {
     const iso = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const s = sessMap.get(iso);
-    const isToday = iso===today;
-    const cls = `cal-day${s?' has-session':''}${isToday?' today':''}`;
-    const bg = s ? sessionColor(s) : 'transparent';
-    const click = s ? `onclick="showDetail('session',DATA.sessions.find(x=>x.id===${s.id}))"` : '';
-    const label = s ? `<span class="cal-day-label">${s.day_type ? s.day_type.charAt(0).toUpperCase()+s.day_type.slice(1) : ''}</span>` : '';
+    const sessionsOnDay = sessByDate.get(iso) || [];
+    const hasSession = sessionsOnDay.length > 0;
+    const isToday = iso === today;
+    const cls = `cal-day${hasSession?' has-session':''}${isToday?' today':''}`;
+    let bg = 'transparent';
+    let label = '';
+    let click = '';
+    if (sessionsOnDay.length === 1) {
+      const s = sessionsOnDay[0];
+      bg = pillarColor(inferPillar(s));
+      const dt = s.day_type && (s.day_type === 'heavy' || s.day_type === 'volume')
+        ? s.day_type.charAt(0).toUpperCase()+s.day_type.slice(1)
+        : '';
+      label = `<span class="cal-day-label">${dt}</span>`;
+      click = `onclick="showDetail('session',DATA.sessions.find(x=>x.id===${s.id}))"`;
+    } else if (sessionsOnDay.length > 1) {
+      // Multi-pillar stack — render as horizontal stripes
+      const colors = sessionsOnDay.map(s => pillarColor(inferPillar(s)));
+      const stops = colors.map((c, i) => {
+        const start = (i / colors.length) * 100;
+        const end   = ((i+1) / colors.length) * 100;
+        return `${c} ${start}%, ${c} ${end}%`;
+      }).join(', ');
+      bg = `linear-gradient(to bottom, ${stops})`;
+      label = `<span class="cal-day-label">${sessionsOnDay.length}×</span>`;
+      // Click jumps to the first session; sibling chips inside detail link to the others
+      click = `onclick="showDetail('session',DATA.sessions.find(x=>x.id===${sessionsOnDay[0].id}))"`;
+    }
     html += `<button class="${cls}" style="background:${bg}" ${click}><span class="cal-day-num">${d}</span>${label}</button>`;
   }
   html += `</div>`;
-  // Build legend: weightlifting splits into heavy/volume if both exist; other styles as-is
-  const legendItems = [];
-  if (DATA.sessions.some(s => s.style==='weightlifting')) legendItems.push({color: styleColors.weightlifting, label: 'Weightlifting'});
-  ['boxing','run','mobility'].forEach(st => {
-    if (DATA.sessions.some(s => s.style===st)) legendItems.push({color: styleColors[st]||'var(--misc)', label: st.charAt(0).toUpperCase()+st.slice(1)});
-  });
+  // Pillar-based legend — only show pillars actually present in the data
+  const presentPillars = new Set(DATA.sessions.map(s => inferPillar(s)));
+  const legendOrder = ['strength','zone2','zone45','mobility','balance'];
+  const legendItems = legendOrder
+    .filter(p => presentPillars.has(p))
+    .map(p => ({ color: pillarColors[p], label: PILLAR_LABEL[p] }));
+  if (presentPillars.has(null)) legendItems.push({ color: 'var(--misc)', label: 'Unclassified (Z3 / other)' });
   html += `<div class="legend">${legendItems.map(item=>`<div style="display:flex;align-items:center;gap:4px"><div class="legend-dot" style="background:${item.color}"></div><span class="legend-label">${item.label}</span></div>`).join('')}</div></div>`;
   return html;
 }
@@ -484,17 +535,46 @@ function renderSessionDetail(session) {
   for (const s of sets) { const n = s.exercises?.name; if(n && !seen.has(n)){exerciseOrder.push(n);seen.add(n);} }
   const isHeavy = session.day_type === 'heavy';
   const isVolume = session.day_type === 'volume';
-  const dayTypeBadge = session.day_type
+  const dayTypeBadge = (isHeavy || isVolume)
     ? `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:${isHeavy?'rgba(96,165,250,0.15)':'rgba(52,211,153,0.15)'};color:${isHeavy?'var(--upper-a)':'var(--lower-a)'};">${isHeavy?'Heavy':'Volume'}</span>`
     : '';
+  const pillar = inferPillar(session);
+  const pColor = pillarColor(pillar);
+  const pillarBadge = pillar
+    ? `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:${pColor}22;color:${pColor};border:1px solid ${pColor}55">${PILLAR_LABEL[pillar]}</span>`
+    : (session.intensity_zone === 3
+        ? `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--misc)22;color:var(--misc);border:1px solid var(--border)">Z3 · uncounted</span>`
+        : '');
+  const zoneBadge = (session.intensity_zone && pillar !== null)
+    ? `<span style="font-size:11px;color:var(--muted)">Z${session.intensity_zone}</span>`
+    : '';
+  const durBadge = session.duration_minutes
+    ? `<span style="font-size:11px;color:var(--muted)">${session.duration_minutes} min</span>`
+    : '';
   const styleLabel = session.style ? session.style.charAt(0).toUpperCase()+session.style.slice(1) : '—';
+  // Sibling sessions on the same date (stacked) — chips link to each
+  const siblings = DATA.sessions.filter(s => s.date === session.date && s.id !== session.id);
+  const siblingsHTML = siblings.length
+    ? `<div style="margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:11px;color:var(--dim)">Stacked with:</span>
+        ${siblings.map(s => {
+          const sp = inferPillar(s);
+          const sc = pillarColor(sp);
+          const sl = sp ? PILLAR_LABEL[sp] : (s.style ? s.style.charAt(0).toUpperCase()+s.style.slice(1) : 'Session');
+          return `<button onclick="showDetail('session',DATA.sessions.find(x=>x.id===${s.id}))" style="background:${sc}22;border:1px solid ${sc}55;color:${sc};padding:3px 9px;border-radius:999px;font-size:11px;cursor:pointer;font-weight:600;font-family:inherit">${sl}${s.duration_minutes ? ` · ${s.duration_minutes}m` : ''}</button>`;
+        }).join('')}
+      </div>`
+    : '';
   let html = `<div style="margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="font-size:16px;font-weight:700;color:${sessionColor(session)}">${styleLabel}</span>
+      <span style="font-size:16px;font-weight:700;color:${pColor}">${styleLabel}</span>
       <span style="font-size:12px;color:var(--muted)">${fmt(session.date)}</span>
+      ${pillarBadge}
       ${dayTypeBadge}
+      ${durBadge}
+      ${zoneBadge}
     </div>
-  </div>`;
+  </div>${siblingsHTML}`;
   if (sets.length === 0) {
     html += `<div style="padding:30px 0;text-align:center;color:var(--dim);font-size:13px">No sets logged${session.notes ? '' : ' for this session'}.</div>`;
   }
