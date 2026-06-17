@@ -297,14 +297,14 @@ function render() {
 
   document.getElementById('app').innerHTML = `
     ${inProgressBadge}
-    ${isCurrentWeek ? '' : renderFlags(rows, days)}
+    ${renderIntro()}
     ${renderHours(elapsedRows, elapsedDays)}
-    ${renderHabits(elapsedRows, elapsedDays)}
     ${renderTraining()}
-    ${renderWeight()}
     ${renderReflection()}
     ${renderTargets()}
   `;
+  // Removed (June 16, 2026 — Sunday Reset is now conversational, not audit):
+  //   renderFlags (heavy audit), renderHabits (dot table), renderWeight (not tracked)
 
   // Wire textarea saves
   document.querySelectorAll('textarea[data-field]').forEach(el => {
@@ -313,6 +313,16 @@ function render() {
 }
 
 // ---- Sections ----
+function renderIntro() {
+  return `<section style="border-color:rgba(124,58,237,.35);background:rgba(124,58,237,.05)">
+    <h2 style="color:#a78bfa">Sunday Reset — conversational</h2>
+    <p style="font-size:13px;color:var(--muted);line-height:1.6">
+      Use this with Claude. One headline, one win, one open loop, one focus for next week.
+      Light prose, no audit. The context below (hours, training) is reference — Claude pre-loads it.
+    </p>
+  </section>`;
+}
+
 function renderFlags(rows, days) {
   const flags = [];
 

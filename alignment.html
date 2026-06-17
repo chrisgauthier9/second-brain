@@ -555,49 +555,16 @@ async function saveWeeklyReview() {
 }
 
 function renderSundayReset() {
-  const wr = WEEKLY_REVIEW || {};
-  const s = WEEK_STATS;
-  const checklist = [
-    { label: 'Finnian 1.5h+ daily & coaching session', hit: s.finnian >= 7.5 },
-    { label: 'Hoot 1h+ daily with real outputs', hit: s.hoot >= 5 },
-    { label: 'Trained 4+ times', hit: s.trained >= 4 },
-    { label: 'Daily shutdowns completed (5+)', hit: s.shutdowns >= 5 },
-  ];
+  // Sunday Reset is now conversational (June 16, 2026 redesign) — the heavy audit UI
+  // has moved to a quick link to reset.html. Reset itself happens in chat with Claude.
   return `
     <div class="sunday-reset">
       <section>
-        <h2>Weekly Reset</h2>
-        <div class="week-stats">
-          <div class="week-stat ${s.hoot>=5?'hit':'miss'}">
-            <div class="stat-val">${(s.hoot||0).toFixed(1)}h</div>
-            <div class="stat-lbl">Hoot</div>
-          </div>
-          <div class="week-stat ${s.finnian>=7.5?'hit':'miss'}">
-            <div class="stat-val">${(s.finnian||0).toFixed(1)}h</div>
-            <div class="stat-lbl">Finnian</div>
-          </div>
-          <div class="week-stat ${s.trained>=4?'hit':'miss'}">
-            <div class="stat-val">${s.trained||0}</div>
-            <div class="stat-lbl">Sessions</div>
-          </div>
-          <div class="week-stat ${s.shutdowns>=5?'hit':'miss'}">
-            <div class="stat-val">${s.shutdowns||0}</div>
-            <div class="stat-lbl">Shutdowns</div>
-          </div>
-        </div>
-        <ul class="winning-checklist">
-          ${checklist.map(item => `
-            <li class="${item.hit ? 'yes' : 'no'}">
-              <span class="ck">${item.hit ? '✓' : '✕'}</span>
-              ${item.label}
-            </li>
-          `).join('')}
-        </ul>
-        <h2 style="font-size:13px;margin-bottom:8px">Reflection</h2>
-        <textarea class="notes" id="wr-reflection" placeholder="What happened this week? Where were you aligned? Where did you drift?">${(wr.reflection||'').replace(/</g,'&lt;')}</textarea>
-        <h2 style="font-size:13px;margin:12px 0 8px">Next Week's Targets</h2>
-        <textarea class="notes" id="wr-targets" placeholder="What does a winning week look like from here?">${(wr.targets||'').replace(/</g,'&lt;')}</textarea>
-        <button id="wr-save" onclick="saveWeeklyReview()" style="margin-top:10px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Save</button>
+        <h2>Sunday Reset</h2>
+        <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:12px">
+          It's Sunday. Reset is now a 10-15 min conversation with Claude — one headline, one win, one open loop, one focus for next week. Light prose, no audit checklist.
+        </p>
+        <a href="reset.html" style="display:inline-block;padding:9px 18px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">Open Reset →</a>
       </section>
     </div>`;
 }
@@ -681,21 +648,13 @@ function renderDay() {
     <section>
       <h2>Shutdown</h2>
       <details class="shutdown-ref" style="margin-bottom:12px">
-        <summary>How it works</summary>
-              <summary>Shutdown Sequence</summary>
-              <ol>
-                <li>Pull today's calendar and log work buckets</li>
-                <li>Daily journal</li>
-                <li>Honest feedback on the day</li>
-                <li>Plan tomorrow together
-                  <ul>
-                    <li>Schedule shutdown block</li>
-                    <li>1h+ Hoot, 1.5h+ Finnian</li>
-                    <li>Fill any gaps together</li>
-                  </ul>
-                </li>
-                <li>Mark shutdown complete</li>
-              </ol>
+        <summary>How it works (lightweight — June 16, 2026)</summary>
+        <ol style="margin:8px 0 0 18px;line-height:1.7">
+          <li><strong>Journal</strong> — what happened today (one sentence is fine)</li>
+          <li><strong>Plan tomorrow</strong> — primer-focused: music move, work minimum, fitness target</li>
+          <li><strong>Mark complete</strong> — toggle below</li>
+        </ol>
+        <div style="font-size:11px;color:var(--dim);margin-top:8px">Optional: triage Notes inbox if it has open items.</div>
       </details>
       <div class="toggle-list">
         ${SHUTDOWN.map(t => toggleHTML(t, row)).join('')}
