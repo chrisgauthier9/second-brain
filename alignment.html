@@ -311,8 +311,7 @@ const HARD_NO_KEYS = new Set([]);
 // Calendar is now the source of truth. Adding hour rows back would require fetching the worker
 // for the full heatmap range — TODO.
 const HABIT_ROWS = [
-  // Sleep
-  { key: 'sleep_duration', label: 'Sleep ≥8.5h',   derived: true, dtype: 'sleep_duration', threshold: 8.5 },
+  // Sleep tracking dropped June 16, 2026
   // Shutdown + trained + journaled
   { key: 'shutdown_sequence', label: 'Shutdown' },
   { key: 'trained',        label: 'Trained',       inverted: false, derived: true, dtype: 'trained' },
@@ -401,20 +400,7 @@ function habitHit(row, h) {
       }
       return vMin <= tMin;
     }
-    // Sleep duration ≥ threshold hours
-    if (h.dtype === 'sleep_duration') {
-      const bed = row?.bedtime;
-      const wake = row?.wake_time;
-      if (!bed || !wake) return null;
-      const [bh, bm] = String(bed).slice(0,5).split(':').map(Number);
-      const [wh, wm] = String(wake).slice(0,5).split(':').map(Number);
-      let bedMin = bh * 60 + bm;
-      const wakeMin = wh * 60 + wm;
-      let durationMin;
-      if (bedMin > wakeMin) durationMin = (24*60 - bedMin) + wakeMin;
-      else durationMin = wakeMin - bedMin;
-      return (durationMin / 60) >= h.threshold;
-    }
+    // Sleep duration handling dropped June 16, 2026
     // Calendar hours ≥ threshold
     if (h.dtype === 'cal_hours') {
       const dayHours = HOUR_DATA[row.date];
@@ -511,13 +497,7 @@ async function load() {
       ]);
       WEEKLY_REVIEW = wrRes.data || null;
       const wc = wcRes.data || [];
-      const sleeps = wc.filter(r => r.bedtime && r.wake_time).map(r => {
-        const [bh,bm] = r.bedtime.split(':').map(Number);
-        const [wh,wm] = r.wake_time.split(':').map(Number);
-        let h = (wh + wm/60) - (bh + bm/60);
-        if (h < 0) h += 24;
-        return h;
-      });
+      // Sleep aggregation dropped June 16, 2026
       // Pull hours from calendar worker (source of truth)
       let hoursData = null;
       try {
@@ -530,8 +510,7 @@ async function load() {
         finnian: cats.finnian ? cats.finnian.hours : 0,
         tempo: cats.tempo ? cats.tempo.hours : 0,
         trained: (wsRes.data||[]).length,
-        shutdowns: wc.filter(r => r.shutdown_sequence).length,
-        avg_sleep: sleeps.length ? sleeps.reduce((a,b)=>a+b,0)/sleeps.length : 0
+        shutdowns: wc.filter(r => r.shutdown_sequence).length
       };
     } catch(e) { /* weekly data unavailable */ }
   }
@@ -581,7 +560,6 @@ function renderSundayReset() {
     { label: 'Finnian 1.5h+ daily & coaching session', hit: s.finnian >= 7.5 },
     { label: 'Hoot 1h+ daily with real outputs', hit: s.hoot >= 5 },
     { label: 'Trained 4+ times', hit: s.trained >= 4 },
-    { label: 'Slept 8.5h+ average', hit: (s.avg_sleep || 0) >= 8.5 },
     { label: 'Daily shutdowns completed (5+)', hit: s.shutdowns >= 5 },
   ];
   return `
@@ -604,10 +582,6 @@ function renderSundayReset() {
           <div class="week-stat ${s.shutdowns>=5?'hit':'miss'}">
             <div class="stat-val">${s.shutdowns||0}</div>
             <div class="stat-lbl">Shutdowns</div>
-          </div>
-          <div class="week-stat ${(s.avg_sleep||0)>=8.5?'hit':'miss'}">
-            <div class="stat-val">${(s.avg_sleep||0).toFixed(1)}h</div>
-            <div class="stat-lbl">Avg Sleep</div>
           </div>
         </div>
         <ul class="winning-checklist">
@@ -674,21 +648,6 @@ function renderDay() {
 
 
     <section>
-      <h2>Sleep</h2>
-      <div class="times-row times-2">
-        <div class="time-cell">
-          <label>Bedtime</label>
-          <input type="time" data-col="bedtime" data-type="time" value="${fmtTime(row.bedtime)}">
-        </div>
-        <div class="time-cell">
-          <label>Wake</label>
-          <input type="time" data-col="wake_time" data-type="time" value="${fmtTime(row.wake_time)}">
-        </div>
-      </div>
-      <div id="sleep-duration" style="font-size:12px;color:var(--dim);margin:8px 0 0;text-align:center">${sleepDurationLabel(row.bedtime, row.wake_time)}</div>
-    </section>
-
-    <section>
       <h2>Fitness</h2>
       <div class="trained-cell">
         <span class="label">${trained ? 'Gym session logged' : 'No session yet'}</span>
@@ -730,7 +689,6 @@ function renderDay() {
                 <li>Plan tomorrow together
                   <ul>
                     <li>Schedule shutdown block</li>
-                    <li>Schedule 8.5h sleep, or more if sleep debt</li>
                     <li>1h+ Hoot, 1.5h+ Finnian</li>
                     <li>Fill any gaps together</li>
                   </ul>
@@ -902,26 +860,7 @@ async function saveJournalField(field, value) {
   setTimeout(() => { const el = document.getElementById('save-status'); if (el && el.classList.contains('saved')) el.textContent = ''; }, 1200);
 }
 
-function sleepDurationLabel(bedtime, wake) {
-  if (!bedtime || !wake) return '&nbsp;';
-  const [bh, bm] = String(bedtime).slice(0,5).split(':').map(Number);
-  const [wh, wm] = String(wake).slice(0,5).split(':').map(Number);
-  if ([bh, bm, wh, wm].some(n => Number.isNaN(n))) return '&nbsp;';
-  // Bedtime treated as the night before the wake. If bedtime hour >= 12 (PM),
-  // it falls before midnight; otherwise (after midnight), it's same morning.
-  let bedMin = bh * 60 + bm;
-  const wakeMin = wh * 60 + wm;
-  // Convention: if bedtime is later than wake on the clock, assume it's PM the night before.
-  let durationMin;
-  if (bedMin > wakeMin) {
-    durationMin = (24 * 60 - bedMin) + wakeMin;
-  } else {
-    durationMin = wakeMin - bedMin;
-  }
-  const hours = Math.floor(durationMin / 60);
-  const mins = durationMin % 60;
-  return `Slept ${hours}h${mins ? ' ' + mins + 'm' : ''}`;
-}
+// sleepDurationLabel removed June 16, 2026 — sleep tracking dropped entirely
 
 function setStatus(state, msg) {
   const el = document.getElementById('save-status');
@@ -952,11 +891,7 @@ async function saveCell(input) {
   }
   const r = DATA[CURRENT_DATE] || (DATA[CURRENT_DATE] = { date: CURRENT_DATE });
   r[col] = value;
-  // Refresh sleep duration display if bedtime or wake changed
-  if (col === 'bedtime' || col === 'wake_time') {
-    const el = document.getElementById('sleep-duration');
-    if (el) el.innerHTML = sleepDurationLabel(r.bedtime, r.wake_time);
-  }
+  // Sleep tracking dropped June 16, 2026 — no more bedtime/wake_time handlers
   await saveValue(col, value);
 }
 

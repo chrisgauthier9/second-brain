@@ -98,11 +98,7 @@
 }
 .no-data { color: var(--dim); font-size: 13px; font-style: italic; padding: 8px 0; }
 
-    /* Sleep row */
-    .sleep-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
-    .sleep-cell { background: var(--deep); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; text-align: center; }
-    .sleep-cell .label { font-size: 11px; color: var(--dim); margin-bottom: 4px; }
-    .sleep-cell .value { font-size: 15px; font-weight: 600; }
+    /* Sleep CSS removed June 16, 2026 */
 
     /* Flags */
     .flags { display: flex; flex-direction: column; gap: 6px; }
@@ -133,7 +129,6 @@
 
     @media (max-width: 600px) {
       .stats-grid { grid-template-columns: repeat(2,1fr); }
-      .sleep-row { grid-template-columns: repeat(2,1fr); }
       .nav-links a[data-hide-mobile] { display: none; }
     }
     /* ===== Mobile hamburger ===== */
@@ -305,7 +300,6 @@ function render() {
     ${renderHours(elapsedRows, elapsedDays)}
     ${renderHabits(elapsedRows, elapsedDays)}
     ${renderTraining()}
-    ${renderSleep(elapsedRows)}
     ${renderWeight()}
     ${renderReflection()}
     ${renderTargets()}
@@ -345,19 +339,7 @@ function renderFlags(rows, days) {
   }
   if (maxRest >= 3) flags.push({ level: 'yellow', msg: `${maxRest} consecutive rest days` });
 
-  // Sleep — flag if average below 8h
-  const sleeps = rows.filter(r => r.bedtime && r.wake_time).map(r => {
-    const [bh, bm] = r.bedtime.split(':').map(Number);
-    const [wh, wm] = r.wake_time.split(':').map(Number);
-    let h = (wh + wm/60) - (bh + bm/60);
-    if (h < 0) h += 24;
-    return h;
-  });
-  if (sleeps.length >= 3) {
-    const avg = sleeps.reduce((a,b)=>a+b, 0) / sleeps.length;
-    if (avg < 7.5) flags.push({ level: 'red', msg: `Avg sleep only ${avg.toFixed(1)}h` });
-    else if (avg < 8.5) flags.push({ level: 'yellow', msg: `Avg sleep ${avg.toFixed(1)}h (target 8.5h)` });
-  }
+  // Sleep flag dropped June 16, 2026 — sleep tracking removed entirely
 
   if (!flags.length) flags.push({ level: 'green', msg: 'No flags this week — clean run.' });
 
@@ -448,47 +430,7 @@ function renderTraining() {
   </section>`;
 }
 
-function renderSleep(rows) {
-  const times = rows.filter(r => r.bedtime && r.wake_time);
-  if (!times.length) {
-    return `<section><h2>Sleep</h2><p class="no-data">No sleep data logged this week.</p></section>`;
-  }
-
-  function toMins(t) {
-    const [h,m] = String(t).slice(0,5).split(':').map(Number);
-    let mins = h * 60 + m;
-    if (h < 12) mins += 24 * 60; // after midnight
-    return mins;
-  }
-  function minsToHM(m) {
-    const h = Math.floor(m/60) % 24;
-    const mn = m % 60;
-    return `${h}:${String(mn).padStart(2,'0')}`;
-  }
-  function duration(bed, wake) {
-    const bm = toMins(bed), wm = toMins(wake);
-    let d = wm + (wm < bm ? 24*60 : 0) - bm;
-    return d / 60;
-  }
-
-  const avgBed = minsToHM(Math.round(times.reduce((a,r) => a + toMins(r.bedtime), 0) / times.length) % (24*60));
-  const avgWake = String(times[0].wake_time).slice(0,5); // just show first as proxy
-  const avgDur = (times.reduce((a,r) => a + duration(r.bedtime, r.wake_time), 0) / times.length).toFixed(1);
-  const durColor = Number(avgDur) >= 8.5 ? 'var(--ok)' : Number(avgDur) >= 7.5 ? 'var(--warn)' : 'var(--err)';
-
-  return `<section>
-    <h2>Sleep — ${times.length} nights logged</h2>
-    <div class="sleep-row">
-      <div class="sleep-cell"><div class="label">Avg Bedtime</div><div class="value">${avgBed}</div></div>
-      <div class="sleep-cell"><div class="label">Avg Wake</div><div class="value">${String(times.reduce((a,r,i,arr) => {
-        const [h,m] = String(r.wake_time).slice(0,5).split(':').map(Number);
-        return a + h*60+m;
-      }, 0) / times.length | 0).padStart(4,'0').replace(/(\d{1,2})(\d{2})/, '$1:$2')}</div></div>
-      <div class="sleep-cell"><div class="label">Avg Duration</div><div class="value" style="color:${durColor}">${avgDur}h</div></div>
-      <div class="sleep-cell"><div class="label">Nights ≥8.5h</div><div class="value">${times.filter(r => duration(r.bedtime, r.wake_time) >= 8.5).length}/${times.length}</div></div>
-    </div>
-  </section>`;
-}
+// renderSleep removed June 16, 2026 — sleep tracking dropped entirely
 
 function renderWeight() {
   const entries = Object.entries(WEIGHTS);

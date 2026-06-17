@@ -108,6 +108,12 @@
       header { position: sticky; top: 0; z-index: 101; }
       .nav-links a.active { background: transparent; color: #a78bfa; }
       .wrap { padding: 16px 12px; }
+      /* Mobile tap-target + iOS-zoom-prevention (June 16, 2026) */
+      input, select, textarea, .search-input { font-size: 16px !important; }
+      .tab { padding: 12px 0; font-size: 13px; }
+      .muscle-pill { padding: 8px 14px; font-size: 12px; }
+      .cal-day-num { font-size: 13px; }
+      .stat-tile { padding: 14px 8px; }
     }
   </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
