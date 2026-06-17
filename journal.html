@@ -129,11 +129,13 @@
       header { position: sticky; top: 0; z-index: 101; overflow: hidden; border-bottom: none; }
       nav.nav-links { border: none; outline: none; }
       .nav-links a.active { background: transparent; color: #a78bfa; }
-      /* Mobile tap-target + iOS-zoom-prevention (June 16, 2026) */
+      /* Mobile tap-target + iOS-zoom-prevention (June 16, 2026; overflow June 17) */
+      html, body { overflow-x: hidden; }
       .entry-body, .editor textarea { font-size: 16px; }
       .action-btn { padding: 8px 14px; font-size: 13px; min-height: 36px; }
       .entry-panel { padding: 20px 16px; }
       .entry-weekday { font-size: 22px; }
+      .entry-body { word-break: break-word; }
     }
   </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="auth.js"></script>

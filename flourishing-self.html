@@ -643,6 +643,17 @@
     .two-col-panel ul li:last-child { border-bottom: none; }
     @media (max-width: 600px) {
       .two-col { grid-template-columns: 1fr; }
+      /* Mobile overflow + content reflow (June 17, 2026) */
+      html, body { overflow-x: hidden; }
+      main { max-width: 100%; padding: 24px 16px 80px; }
+      .toc-bar { padding: 0 12px; }
+      .toc-inner { gap: 12px; font-size: 12px; }
+      h1 { font-size: 28px; word-break: break-word; }
+      h2 { font-size: 22px; word-break: break-word; }
+      h3 { font-size: 18px; word-break: break-word; }
+      pre, code { word-break: break-word; white-space: pre-wrap; }
+      blockquote { padding-left: 14px; margin-left: 0; }
+      table { display: block; overflow-x: auto; }
     }
 
     /* ── GUIDING GOALS ── */

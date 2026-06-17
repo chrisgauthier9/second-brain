@@ -59,7 +59,15 @@
       }
       .nav-links.open { max-height: calc(100vh - 49px); height: auto; width: 100%; overflow-y: auto; padding: 6px 0; }
       .nav-links a { padding: 14px 24px; border-radius: 0; font-size: 15px; }
-      header { position: sticky; top: 0; z-index: 101; overflow: hidden; border-bottom: none; } nav.nav-links { border: none; outline: none; } .nav-links a.active { background: transparent; color: #a78bfa; }
+      header { position: sticky; top: 0; z-index: 101; overflow: hidden; border-bottom: none; }
+      nav.nav-links { border: none; outline: none; }
+      .nav-links a.active { background: transparent; color: #a78bfa; }
+      /* Mobile overflow guard (June 17, 2026) */
+      html, body { overflow-x: hidden; }
+      main { max-width: 100%; padding: 32px 16px; }
+      .hero h2 { font-size: 28px; }
+      .cards { gap: 12px; }
+      .card { padding: 20px; }
     }
   </style>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="auth.js"></script>

@@ -232,6 +232,25 @@
       .task-row { padding: 14px; }
       .modal-close { width: 36px; height: 36px; font-size: 20px; }
       .btn-primary, .btn-secondary, .btn-danger { padding: 14px 16px; font-size: 15px; }
+      /* Overflow fix (June 17, 2026): bucket-selector-row was pushing wider than viewport */
+      html, body { overflow-x: hidden; }
+      main { max-width: 100%; padding: 16px 12px 80px; }
+      .bucket-selector-row { flex-wrap: wrap; }
+      .bucket-selector-row select { flex-basis: 100%; width: 100%; }
+      .bucket-selector-row .add-btn { flex: 1; min-width: 0; padding: 12px 14px; }
+      .toolbar { flex-wrap: wrap; }
+      .task-row { gap: 8px; }
+      .task-body { min-width: 0; flex: 1; }
+      .task-title { word-break: break-word; }
+      .time-log-row { flex-wrap: wrap; gap: 4px; }
+      .time-log-btn { padding: 6px 10px; font-size: 12px; }
+      .task-row-right { flex-shrink: 0; }
+      .status-chip { white-space: nowrap; }
+      /* Recurring view: long titles, code snippets */
+      .recurring-explainer { font-size: 12px; }
+      .recurring-explainer code { word-break: break-word; }
+      .recurring-card { padding: 12px; }
+      .recurring-title { font-size: 14px; word-break: break-word; }
     }
 
     /* Recurring view */
