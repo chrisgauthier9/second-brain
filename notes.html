@@ -154,6 +154,8 @@
 <script>
 let NOTES = [];
 let SHOW_CLEARED = false;
+let EDITING_ID = null;
+let EDIT_BUFFER = '';
 
 async function load() {
   await window._authReadyPromise;
@@ -207,19 +209,77 @@ function render() {
 }
 
 function noteHTML(n) {
+  if (EDITING_ID === n.id) {
+    return `
+      <div class="note editing">
+        <div class="note-body" style="display:flex;flex-direction:column;gap:8px">
+          <textarea id="edit-${n.id}" class="capture-textarea" style="min-height:90px" autofocus>${escapeHTML(n.body)}</textarea>
+          <div class="note-meta">${fmtWhen(n.created_at)}${n.done && n.cleared_at ? ' · cleared ' + fmtWhen(n.cleared_at) : ''} · editing</div>
+        </div>
+        <div class="note-actions">
+          <button class="note-btn primary" onclick="saveEdit('${n.id}')">Save</button>
+          <button class="note-btn" onclick="cancelEdit()">Cancel</button>
+        </div>
+      </div>`;
+  }
   return `
     <div class="note ${n.done ? 'cleared' : ''}">
-      <div class="note-body">
+      <div class="note-body" onclick="startEdit('${n.id}')" style="cursor:text">
         ${escapeHTML(n.body)}
-        <div class="note-meta">${fmtWhen(n.created_at)}${n.done && n.cleared_at ? ' · cleared ' + fmtWhen(n.cleared_at) : ''}</div>
+        <div class="note-meta">${fmtWhen(n.created_at)}${n.done && n.cleared_at ? ' · cleared ' + fmtWhen(n.cleared_at) : ''} · <span style="opacity:.7">tap to edit</span></div>
       </div>
       <div class="note-actions">
         ${n.done
           ? `<button class="note-btn" onclick="restoreNote('${n.id}')">Restore</button>
              <button class="note-btn danger" onclick="deleteNote('${n.id}')">Delete</button>`
-          : `<button class="note-btn primary" onclick="clearNote('${n.id}')">Mark cleared</button>`}
+          : `<button class="note-btn primary" onclick="clearNote('${n.id}')">Mark cleared</button>
+             <button class="note-btn danger" onclick="deleteNote('${n.id}')">Delete</button>`}
       </div>
     </div>`;
+}
+
+function startEdit(id) {
+  EDITING_ID = id;
+  const note = NOTES.find(n => n.id === id);
+  EDIT_BUFFER = note ? note.body : '';
+  render();
+  // Auto-focus + place cursor at end
+  setTimeout(() => {
+    const ta = document.getElementById('edit-' + id);
+    if (ta) {
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+      // Auto-grow textarea to fit content
+      ta.style.height = 'auto';
+      ta.style.height = ta.scrollHeight + 'px';
+      ta.addEventListener('input', () => {
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+      });
+      ta.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); saveEdit(id); }
+        if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+      });
+    }
+  }, 30);
+}
+
+async function saveEdit(id) {
+  const ta = document.getElementById('edit-' + id);
+  if (!ta) return;
+  const body = ta.value.trim();
+  if (!body) { alert('Note body cannot be empty. Use Delete if you want to remove.'); return; }
+  const { error } = await window.sb.from('notes').update({ body }).eq('id', id);
+  if (error) { alert(error.message); return; }
+  EDITING_ID = null;
+  EDIT_BUFFER = '';
+  await load();
+}
+
+function cancelEdit() {
+  EDITING_ID = null;
+  EDIT_BUFFER = '';
+  render();
 }
 
 async function saveNote() {

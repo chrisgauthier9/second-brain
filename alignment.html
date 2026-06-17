@@ -468,7 +468,7 @@ async function load() {
       const hData = await hRes.json();
       const cats = hData.categories || {};
       // Build per-day lookup by parsing each event's start datetime → local date
-      for (const cat of ['hoot', 'finnian', 'tempo']) {
+      for (const cat of ['hoot', 'finnian']) {
         const events = cats[cat] ? cats[cat].events : [];
         for (const ev of events) {
           if (!ev.start) continue;

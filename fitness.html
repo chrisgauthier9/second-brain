@@ -204,7 +204,7 @@ async function loadData() {
   render();
 }
 
-function wc(s) { return styleColors[s] || 'var(--misc)'; }
+function wc(s) { return pillarColor(inferPillar({style: s})) || 'var(--misc)'; }
 // kept for legacy use; prefer sessionColor(session) for calendar tiles
 function mc(m) { return muscleColors[m] || 'var(--misc)'; }
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }

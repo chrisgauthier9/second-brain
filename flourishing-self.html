@@ -1391,10 +1391,10 @@
 </footer>
 
 <script>
-  // Nav toggle
+  // Nav toggle (fixed June 16, 2026: was looking for 'mainNav' but element has id 'nav')
   const toggle = document.getElementById('navToggle');
-  const nav = document.getElementById('mainNav');
-  toggle.addEventListener('click', e => {
+  const nav = document.getElementById('nav');
+  if (toggle && nav) toggle.addEventListener('click', e => {
     e.stopPropagation();
     const open = nav.classList.toggle('open');
     toggle.setAttribute('aria-expanded', open);
