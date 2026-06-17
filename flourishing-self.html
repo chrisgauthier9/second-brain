@@ -1405,15 +1405,17 @@
   // Nav toggle (fixed June 16, 2026: was looking for 'mainNav' but element has id 'nav')
   const toggle = document.getElementById('navToggle');
   const nav = document.getElementById('nav');
-  if (toggle && nav) toggle.addEventListener('click', e => {
-    e.stopPropagation();
-    const open = nav.classList.toggle('open');
-    toggle.setAttribute('aria-expanded', open);
-  });
-  document.addEventListener('click', e => {
-    if (!nav.contains(e.target) && !toggle.contains(e.target)) nav.classList.remove('open');
-  });
-  nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav.classList.remove('open')));
+  if (toggle && nav) {
+    toggle.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = nav.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open);
+    });
+    document.addEventListener('click', e => {
+      if (!nav.contains(e.target) && !toggle.contains(e.target)) nav.classList.remove('open');
+    });
+    nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav.classList.remove('open')));
+  }
 
   // TOC active state on scroll
   const tocLinks = document.querySelectorAll('.toc-inner a');
