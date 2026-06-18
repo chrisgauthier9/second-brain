@@ -108,9 +108,16 @@
       html, body { overflow-x: hidden; }
       .capture-textarea { font-size: 16px; min-height: 110px; }
       .save-btn { padding: 12px 20px; font-size: 14px; }
-      .note-btn { padding: 8px 12px; font-size: 12px; min-height: 36px; }
-      .note { padding: 12px; }
       .note-body { word-break: break-word; }
+      /* On mobile, stack body over a clean action row instead of cramming
+         buttons into the top-right corner (June 18, 2026). */
+      .note { flex-direction: column; gap: 0; padding: 14px; }
+      .note-actions {
+        flex-direction: row; flex-wrap: wrap; justify-content: flex-end;
+        gap: 8px; margin-top: 12px; padding-top: 12px;
+        border-top: 1px solid var(--border); width: 100%;
+      }
+      .note-btn { padding: 9px 16px; font-size: 13px; min-height: 38px; flex: 0 0 auto; }
     }
   </style>
 </head>
