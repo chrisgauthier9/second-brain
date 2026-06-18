@@ -696,7 +696,6 @@ function renderWeight() {
   }
 
   const cutoffs = { '7d': 7, '30d': 30, '1y': 365 };
-  const cutoffs = { '7d': 7, '30d': 30, '1y': 365 };
   let weights = all;
   if (WEIGHT_RANGE in cutoffs) {
     const cutoff = new Date(nowISO + 'T12:00:00');
