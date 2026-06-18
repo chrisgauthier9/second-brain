@@ -213,15 +213,16 @@ function render() {
 
 function noteHTML(n) {
   if (EDITING_ID === n.id) {
+    // Editing UI: Save/Cancel live INSIDE the body area (not in the side action column),
+    // so after save re-renders, the Save button position is NOT where Mark Cleared appears.
+    // Prevents the double-tap-save = accidental-clear bug.
     return `
-      <div class="note editing">
-        <div class="note-body" style="display:flex;flex-direction:column;gap:8px">
-          <textarea id="edit-${n.id}" class="capture-textarea" style="min-height:90px" autofocus>${escapeHTML(n.body)}</textarea>
-          <div class="note-meta">${fmtWhen(n.created_at)}${n.done && n.cleared_at ? ' · cleared ' + fmtWhen(n.cleared_at) : ''} · editing</div>
-        </div>
-        <div class="note-actions">
-          <button class="note-btn primary" onclick="saveEdit('${n.id}')">Save</button>
-          <button class="note-btn" onclick="cancelEdit()">Cancel</button>
+      <div class="note editing" style="display:block">
+        <textarea id="edit-${n.id}" class="capture-textarea" style="min-height:120px;margin-bottom:8px" autofocus>${escapeHTML(n.body)}</textarea>
+        <div class="note-meta" style="margin-bottom:10px">${fmtWhen(n.created_at)}${n.done && n.cleared_at ? ' · cleared ' + fmtWhen(n.cleared_at) : ''} · editing</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="note-btn" onclick="cancelEdit()" style="padding:10px 18px">Cancel</button>
+          <button class="note-btn primary" onclick="saveEdit('${n.id}')" style="padding:10px 18px">Save</button>
         </div>
       </div>`;
   }
