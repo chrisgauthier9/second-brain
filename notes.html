@@ -72,7 +72,7 @@
     .note.cleared { opacity: .55; }
     .note-body { flex: 1; min-width: 0; font-size: 14px; line-height: 1.5; color: var(--text); white-space: pre-wrap; word-break: break-word; }
     .note-meta { font-size: 11px; color: var(--dim); margin-top: 6px; }
-    .note-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+    .note-actions { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 4px; flex-shrink: 0; }
     .note-btn {
       background: var(--deep); border: 1px solid var(--border); color: var(--muted);
       padding: 6px 10px; border-radius: 6px; cursor: pointer; font-family: inherit;
@@ -97,7 +97,7 @@
       .nav-links {
         position: fixed; top: 49px; left: 0; right: 0; bottom: 0;
         background: var(--card); border-bottom: 1px solid var(--border);
-        flex-direction: column; gap: 0; padding: 6px 0;
+        flex-direction: column; flex-wrap: nowrap; gap: 0; padding: 6px 0;
         max-height: 0; height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
         z-index: 100; width: 100%;
       }

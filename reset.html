@@ -77,7 +77,7 @@
     .hard-no-row td:first-child { color: var(--hard-no); }
 
     /* Training list */
-    .session-list { display: flex; flex-direction: column; gap: 6px; }
+    .session-list { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 6px; }
     .session-row {
       display: flex; align-items: center; justify-content: space-between;
       background: var(--deep); border: 1px solid var(--border); border-radius: 8px;
@@ -101,7 +101,7 @@
     /* Sleep CSS removed June 16, 2026 */
 
     /* Flags */
-    .flags { display: flex; flex-direction: column; gap: 6px; }
+    .flags { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 6px; }
     .flag {
       display: flex; align-items: center; gap: 10px;
       background: var(--deep); border: 1px solid var(--border); border-radius: 8px;
@@ -142,7 +142,7 @@
       .nav-links {
         position: fixed; top: 49px; left: 0; right: 0; bottom: 0;
         background: #1f2937; border-bottom: 1px solid #374151;
-        flex-direction: column; gap: 0; padding: 6px 0;
+        flex-direction: column; flex-wrap: nowrap; gap: 0; padding: 6px 0;
         margin-left: 0; align-items: stretch;
         max-height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
         z-index: 100;
@@ -267,7 +267,7 @@ async function load() {
 
   const [checkinRes, sessRes, weightRes, reviewRes, hoursRes] = await Promise.all([
     window.sb.from('daily_checkins').select('*').gte('date', WEEK_START).lte('date', weekEnd),
-    window.sb.from('sessions').select('id, date, style, name').gte('date', WEEK_START).lte('date', weekEnd).order('date'),
+    window.sb.from('sessions').select('id, date, style').gte('date', WEEK_START).lte('date', weekEnd).order('date'),
     window.sb.from('bodyweight_log').select('date, weight').gte('date', WEEK_START).lte('date', weekEnd),
     window.sb.from('weekly_reviews').select('*').eq('week_start', WEEK_START).maybeSingle(),
     fetch(`/api/calendar/hours?start=${WEEK_START}T00:00:00-04:00&end=${weekEnd}T23:59:59-04:00`).then(r => r.ok ? r.json() : null).catch(() => null),

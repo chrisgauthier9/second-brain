@@ -45,7 +45,7 @@
     .cal-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
     .cal-dow { text-align: center; font-size: 10px; color: #4b5563; font-weight: 600; padding: 2px 0; }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-    .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; font-weight: 500; color: #6b7280; cursor: default; position: relative; border: 1px solid transparent; }
+    .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; flex-wrap: nowrap; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; font-weight: 500; color: #6b7280; cursor: default; position: relative; border: 1px solid transparent; }
     .cal-day.has-entry { color: #f3f4f6; cursor: pointer; }
     .cal-day.has-entry:hover { background: #374151; }
     .cal-day.today { border-color: #6b7280; }
@@ -61,7 +61,7 @@
     .entry-item-preview { font-size: 13px; color: #9ca3af; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
     .entry-panel { padding: 32px 40px; overflow-y: auto; max-height: calc(100vh - 49px); }
-    .entry-panel-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #4b5563; gap: 12px; padding: 40px; text-align: center; }
+    .entry-panel-empty { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: center; justify-content: center; height: 100%; color: #4b5563; gap: 12px; padding: 40px; text-align: center; }
     .entry-panel-empty .icon { font-size: 40px; opacity: 0.4; }
 
     .entry-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 6px; }
@@ -80,7 +80,7 @@
     .entry-body h1 { font-size: 18px; }
     .entry-body h2 { font-size: 16px; }
 
-    .editor { display: flex; flex-direction: column; gap: 12px; }
+    .editor { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 12px; }
     .editor-meta { display: flex; gap: 8px; flex-wrap: wrap; }
     .editor input[type="date"], .editor select {
       background: #1f2937; border: 1px solid #374151; color: #f3f4f6; padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 13px;
@@ -119,7 +119,7 @@
       .nav-links {
         position: fixed; top: 49px; left: 0; right: 0; bottom: 0;
         background: #1f2937; border-bottom: 1px solid #374151;
-        flex-direction: column; gap: 0; padding: 6px 0;
+        flex-direction: column; flex-wrap: nowrap; gap: 0; padding: 6px 0;
         margin-left: 0; align-items: stretch;
         max-height: 0; height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
         z-index: 100;

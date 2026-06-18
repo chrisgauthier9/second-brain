@@ -58,7 +58,7 @@
     .exercise-bar { width: 4px; height: 32px; border-radius: 2px; flex-shrink: 0; }
     .loading { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 13px; }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-    .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--border); font-family: inherit; padding: 0; cursor: default; background: transparent; }
+    .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; flex-wrap: nowrap; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--border); font-family: inherit; padding: 0; cursor: default; background: transparent; }
     .cal-day.has-session { cursor: pointer; }
     .cal-day.today { border: 1.5px solid var(--muted); }
     .cal-day-num { font-size: 12px; font-weight: 500; color: var(--dim); }
@@ -98,7 +98,7 @@
       .nav-links {
         position: fixed; top: 49px; left: 0; right: 0; bottom: 0;
         background: #1f2937; border-bottom: 1px solid #374151;
-        flex-direction: column; gap: 0; padding: 6px 0;
+        flex-direction: column; flex-wrap: nowrap; gap: 0; padding: 6px 0;
         margin-left: 0; align-items: stretch;
         max-height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease;
         z-index: 100; width: 100%;
