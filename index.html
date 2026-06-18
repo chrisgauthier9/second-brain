@@ -86,7 +86,6 @@
   <a href="index.html" class="logo">Second Brain</a>
   <nav class="nav-links" id="nav">
     <a href="index.html" class="active">Home</a>
-    <a href="alignment.html">Alignment</a>
     <a href="fitness.html">Fitness</a>
     <a href="tasks.html">Tasks</a>
     <a href="releases.html">Releases</a>
@@ -97,6 +96,16 @@
   </nav>
 </header>
 <main>
+  <!-- Today status bar (added Jun 18 when alignment.html was killed) -->
+  <div id="today-bar" style="background:#1f2937;border:1px solid #374151;border-radius:12px;padding:14px 16px;margin-bottom:32px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between">
+    <div id="today-hours" style="display:flex;gap:14px;flex-wrap:wrap;color:#9ca3af;font-size:13px">
+      <span style="opacity:.6">Loading today's hours…</span>
+    </div>
+    <button id="shutdown-btn" onclick="toggleShutdown()" style="padding:8px 16px;border-radius:8px;background:#374151;color:#9ca3af;border:1px solid #374151;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">
+      Loading…
+    </button>
+  </div>
+
   <div class="hero">
     <h2>Your Second Brain</h2>
     <p>Music-first priming. Tasks, notes, training, releases, journal — light scaffolding for a life shaped around what matters.</p>
@@ -130,12 +139,6 @@
       <div class="card-icon">📖</div>
       <h3>Journal</h3>
       <p>Daily entries going back to 2021. Search, browse, reflect.</p>
-      <div class="arrow">→</div>
-    </a>
-    <a href="alignment.html" class="card">
-      <div class="card-icon">🎯</div>
-      <h3>Alignment</h3>
-      <p>Daily shutdown (3 steps), shutdown toggle, hours from calendar.</p>
       <div class="arrow">→</div>
     </a>
     <a href="reset.html" class="card">
@@ -189,6 +192,83 @@
   nav.addEventListener('click', function(e) { if (e.target.tagName === 'A') close(); });
 })();
 </script>
+
+<script>
+// Today status bar — hours from calendar worker + shutdown toggle
+// (Added June 18, 2026 when alignment.html was killed)
+(async function() {
+  if (!window._authReadyPromise) return;
+  const session = await window._authReadyPromise;
+  if (!session) return;
+
+  const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date());
+
+  // Fetch hours
+  try {
+    const next = new Date(new Date(todayISO + 'T12:00:00').getTime() + 86400000);
+    const nextISO = next.toISOString().slice(0, 10);
+    const start = todayISO + 'T00:00:00-04:00';
+    const end = nextISO + 'T00:00:00-04:00';
+    const res = await fetch(`/api/calendar/hours?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+    const el = document.getElementById('today-hours');
+    if (res.ok) {
+      const data = await res.json();
+      const cats = data.categories || {};
+      const hoot = (cats.hoot ? cats.hoot.hours : 0);
+      const finnian = (cats.finnian ? cats.finnian.hours : 0);
+      el.innerHTML = `
+        <span><span style="color:#60a5fa;font-weight:600">Hoot</span> ${hoot.toFixed(1)}h today</span>
+        <span><span style="color:#f59e0b;font-weight:600">Finnian</span> ${finnian.toFixed(1)}h today</span>
+      `;
+    } else {
+      el.innerHTML = `<span style="opacity:.5">Calendar API unavailable</span>`;
+    }
+  } catch(e) {
+    document.getElementById('today-hours').innerHTML = `<span style="opacity:.5">Hours unavailable</span>`;
+  }
+
+  // Fetch shutdown state
+  await refreshShutdownBtn();
+})();
+
+async function refreshShutdownBtn() {
+  const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date());
+  const btn = document.getElementById('shutdown-btn');
+  if (!btn || !window.sb) return;
+  const { data } = await window.sb.from('daily_checkins').select('shutdown_sequence').eq('date', todayISO).maybeSingle();
+  const done = data && data.shutdown_sequence === true;
+  if (done) {
+    btn.textContent = '✓ Shutdown done';
+    btn.style.background = 'rgba(52,211,153,.15)';
+    btn.style.borderColor = 'rgba(52,211,153,.35)';
+    btn.style.color = '#34d399';
+  } else {
+    btn.textContent = 'Mark shutdown done';
+    btn.style.background = '#7c3aed';
+    btn.style.borderColor = '#7c3aed';
+    btn.style.color = '#fff';
+  }
+}
+
+async function toggleShutdown() {
+  const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date());
+  if (!window.sb) return;
+  const btn = document.getElementById('shutdown-btn');
+  btn.disabled = true;
+  // Read current state, flip it
+  const { data } = await window.sb.from('daily_checkins').select('shutdown_sequence').eq('date', todayISO).maybeSingle();
+  const current = data && data.shutdown_sequence === true;
+  const next = !current;
+  const { error } = await window.sb.from('daily_checkins').upsert(
+    { date: todayISO, shutdown_sequence: next },
+    { onConflict: 'date' }
+  );
+  btn.disabled = false;
+  if (error) { alert(error.message); return; }
+  await refreshShutdownBtn();
+}
+</script>
+
 </body>
 </html>
 
